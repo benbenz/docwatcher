@@ -13,13 +13,17 @@ output_dir = "download"
 
 def crawl_rendered_all():
 
-    if os.path.isdir(output_dir):
-        rmtree(output_dir)
+    #if os.path.isdir(output_dir):
+    #    rmtree(output_dir)
 
     with open('config.json','r') as jsonfile:
         cfg = json.load(jsonfile)
-    
-    crawler.crawl(url=cfg["url_run"],sleep_time=5,depth=1,output_dir=output_dir,method="rendered-all",gecko_path=gecko_path)
+
+    urls = cfg.get('urls').keys()
+
+    for url,url_config in cfg.get('urls').items():
+        method = url_config.get('method') or "rendered-all"
+        crawler.crawl(url=url,sleep_time=5,depth=1,output_dir=output_dir,method=method,gecko_path=gecko_path)
 
 if __name__ == '__main__':
     crawl_rendered_all()
