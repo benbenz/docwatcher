@@ -3,8 +3,10 @@ import os
 import uuid
 from urllib.parse import urlparse
 import psutil       
+from crawler.helper import get_content_type
 
 class LocalStorageHandler:
+
     def __init__(self, directory, subdirectory, extension):
         self.directory = directory
         self.subdirectory = subdirectory
@@ -53,7 +55,7 @@ class CSVStatsHandler:
 
         with open(output, 'a', newline='') as file:
             writer = csv.DictWriter(file, self._FIELDNAMES)
-            filename = get_filename(parsed_url)
+            filename = get_filename(parsed_url,response)
             row = {
                 'filename': filename,
                 'local_name': local_name,
@@ -92,17 +94,26 @@ class ProcessHandler:
         self.process_list = []
 
 
-def get_filename(parsed_url):
+def get_filename(parsed_url,response):
     filename = parsed_url.path.split('/')[-1]
     if parsed_url.query:
         filename += f'_{parsed_url.query}'
-    if not filename.lower().endswith(".pdf"):
+    content_type = get_content_type(response)
+    if content_type="application/pdf" and not filename.lower().endswith(".pdf"):
         filename += ".pdf"
+    if content_type="text/html" and not filename.lower().endswith(".html"):
+        filename += ".html"
+
     filename = filename.replace('%20', '_')
 
     if len(filename) >= 255:
-        filename = str(uuid.uuid4())[:8] + ".pdf"
-
+        if content_type="application/pdf" :
+            filename = str(uuid.uuid4())[:8] + ".pdf"
+        elif content_type="text/html" :
+            filename = str(uuid.uuid4())[:8] + ".pdf"
+        else:
+            filename = str(uuid.uuid4())[:8] 
+            
     return filename
 
 
