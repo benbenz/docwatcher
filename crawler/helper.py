@@ -2,6 +2,7 @@ import logging
 from functools import lru_cache
 from crawler.proxy import ProxyManager
 import re
+import requests
 from urllib.parse import urlparse,urlunparse
 
 pm = ProxyManager()
