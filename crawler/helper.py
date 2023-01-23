@@ -64,7 +64,7 @@ def call(session, url, use_proxy=False, retries=0):
             response.raise_for_status()
         except requests.exceptions.InvalidSchema as re:
             msg = str(re)
-            if url.startswith('tel':):
+            if url.startswith('tel:'):
                 pass
             else:
                 print(re)
