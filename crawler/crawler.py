@@ -1,9 +1,9 @@
 from crawler.helper import get_content_type, call, clean_url
 from crawler.crawl_methods import get_hrefs_html, get_hrefs_js_simple, ClickCrawler
-
+import time
 
 class Crawler:
-    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", process_handler=None):
+    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=1, process_handler=None):
 
         # Crawler internals
         self.downloader = downloader
@@ -11,6 +11,7 @@ class Crawler:
         self.head_handlers = head_handlers or {}
         self.session = self.downloader.session()
         self.process_handler = process_handler
+        self.sleep_time = sleep_time
 
         # Crawler information
         self.handled = set()
@@ -48,6 +49,9 @@ class Crawler:
             return
 
         print(final_url)
+
+        print("sleeping {0}s ...".format(self.sleep_time))
+        time.sleep(self.sleep_time)
 
         # Type of content on page at url
         content_type = get_content_type(response)

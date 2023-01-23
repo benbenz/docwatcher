@@ -131,7 +131,7 @@ class ClickCrawler:
 
     def find_next_clickable_element(self, tried_refresh=False):
         try:
-            elements = self.driver.find_elements_by_css_selector("*")
+            elements = self.driver.find_elements("css selector","*")
 
             # Go through all elements on page and look where the cursor is a pointer
             for k, element in enumerate(elements):
@@ -149,7 +149,7 @@ class ClickCrawler:
         return None, None
 
     def find_element_by_id(self, element_id):
-        elements = self.driver.find_elements_by_css_selector("*")
+        elements = self.driver.find_elements("css selector","*")
 
         for el in elements:
             el_id = make_element_id(el)
@@ -177,7 +177,7 @@ class ClickCrawler:
                 time.sleep(3)
 
                 new_urls_on_page = [link.get_attribute("href") for link in \
-                                    self.driver.find_elements_by_css_selector("a") \
+                                    self.driver.find_elements("css selector","a") \
                                     if is_valid_link(link.get_attribute("href"))]
 
         except Exception:
@@ -198,7 +198,7 @@ class ClickCrawler:
         self.main_url = self.driver.current_url
 
         urls_on_page = [link.get_attribute("href") for link in \
-                        self.driver.find_elements_by_css_selector("a") \
+                        self.driver.find_elements("css selector","a") \
                         if is_valid_link(link.get_attribute("href"))]
 
         urls += handle_url_list_js(urls, urls_on_page, parsed_response_url, self.follow_foreign_hosts)

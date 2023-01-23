@@ -1,12 +1,12 @@
 import os
 from shutil import rmtree
 import csv
-
+import json
 import crawler
 
 
 # change this to your geckodriver path
-gecko_path = "/Applications/MAMP/htdocs/simfin-ml/geckodriver"
+gecko_path = "./geckodriver"
 output_dir = "unit_tests_files"
 
 
@@ -17,7 +17,10 @@ def test_crawl_rendered_all():
     if os.path.isdir(output_dir):
         rmtree(output_dir)
 
-    crawler.crawl(url="https://simfin.com/crawlingtest",output_dir=output_dir,method="rendered-all",gecko_path=gecko_path,depth=3)
+    cfg = json.load("config.json")
+
+    #crawler.crawl(url="https://simfin.com/crawlingtest",output_dir=output_dir,method="rendered-all",gecko_path=gecko_path,depth=3)
+    crawler.crawl(url=cfg["url_test"],sleep_time=5,output_dir=output_dir,method="rendered-all",gecko_path=gecko_path,depth=10)
 
     assert os.path.isdir(output_dir)
     assert os.path.isfile(os.path.join(output_dir,"simfin.com.csv"))
@@ -30,3 +33,6 @@ def test_crawl_rendered_all():
         for a in range(1,len(reader)):
             assert reader[a][0] == files_to_be_found[a-1][0]
             assert reader[a][2] == files_to_be_found[a - 1][2]
+
+if __name__ == '__main__':
+    test_crawl_rendered_all()

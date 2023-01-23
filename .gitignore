@@ -106,3 +106,10 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+
+/geckodriver
+/download
+config.json
+
+
+.DS_Store
