@@ -19,6 +19,11 @@ class ProxyManager:
     def get_list(self):
 
         ua = get_user_agent()
+        
+        # @benbenz
+        if len(self.proxies)>0:
+            return
+
         self.proxies = []
         self.current_index = 0
         self.requests_counter = 0
@@ -30,16 +35,20 @@ class ProxyManager:
         soup = BeautifulSoup(proxies_doc, 'html.parser')
         proxies_table = soup.find(id='proxylisttable')
 
-        for row in proxies_table.tbody.find_all('tr'):
+        if proxies_table is None:
+            return 
 
-            ip = row.find_all('td')[0].string
-            port = row.find_all('td')[1].string
+        if proxies_table:
+            for row in proxies_table.tbody.find_all('tr'):
 
-            if ip not in self.blacklisted and ip not in [x['ip'] for x in self.proxies]:
-                self.proxies.append({
-                    'ip': ip,
-                    'port': port,
-                })
+                ip = row.find_all('td')[0].string
+                port = row.find_all('td')[1].string
+
+                if ip not in self.blacklisted and ip not in [x['ip'] for x in self.proxies]:
+                    self.proxies.append({
+                        'ip': ip,
+                        'port': port,
+                    })
 
         self.last_updated = datetime.datetime.now()
 
