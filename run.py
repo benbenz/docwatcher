@@ -19,10 +19,9 @@ def crawl_rendered_all():
     with open('config.json','r') as jsonfile:
         cfg = json.load(jsonfile)
 
-    urls = cfg.get('urls').keys()
-
-    for url,url_config in cfg.get('urls').items():
+    for url_config in cfg.get('urls'):
         method = url_config.get('method') or "rendered-all"
+        url = url_config.get("url")
         crawler.crawl(url=url,sleep_time=5,depth=1,output_dir=output_dir,method=method,gecko_path=gecko_path)
 
 if __name__ == '__main__':
