@@ -5,9 +5,8 @@ from urllib.parse import urlparse
 from crawler.crawler import Crawler
 from crawler.downloaders import RequestsDownloader
 from crawler.handlers import (
-    LocalStoragePDFHandler,
-    LocalStorageHTMLHandler,
-    CSVStatsPDFHandler,
+    LocalStorageHandler,
+    CSVStatsHandler,
     ProcessHandler,
     get_filename
 )
@@ -29,14 +28,16 @@ def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="g
     if page_name is None:
         page_name = urlparse(url).netloc
 
-    get_handlers['application/pdf'] = LocalStoragePDFHandler(
-        directory=output_dir, subdirectory=page_name)
+    get_handlers['application/pdf'] = LocalStorageHandler(
+        directory=output_dir, subdirectory=page_name, extension="pdf")
 
-    get_handlers['text/html'] = LocalStorageHTMLHandler(
-        directory=output_dir, subdirectory=page_name)
+    get_handlers['text/html'] = LocalStorageHandler(
+        directory=output_dir, subdirectory=page_name, extension="html")
 
     if custom_stats_handler is None:
-        head_handlers['application/pdf'] = CSVStatsPDFHandler(directory=output_dir, name=page_name)
+        defhandler = CSVStatsHandler(directory=output_dir, name=page_name)
+        head_handlers['application/pdf'] = defhandler
+        head_handlers['text/html'] = defhandler
     else:
         for content_type, Handler in custom_stats_handler.items():
             head_handlers[content_type] = Handler

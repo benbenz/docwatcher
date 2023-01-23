@@ -37,6 +37,7 @@ class Crawler:
         url = clean_url(url)
 
         if url in self.handled or url[-4:] in self.file_endings_exclude:
+            print("url already handled")
             return
 
         response = call(self.session, url)
