@@ -3,7 +3,9 @@ from selenium import webdriver
 from urllib.parse import urlparse, urljoin
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import InvalidSessionIdException, ElementClickInterceptedException
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 import time
+import json
 
 
 def get_hrefs_html(response, follow_foreign_hosts=False):
@@ -107,6 +109,12 @@ class ClickCrawler:
         self.main_url = response.url
         self.follow_foreign_hosts = follow_foreign_hosts
 
+        try:
+            with open('config.json') as cfg_file:
+                self.config = json.load(cfg_file)
+        except:
+            self.config = dict()
+
         self.iterations_limit = 500
 
     def load_driver(self):
@@ -116,7 +124,11 @@ class ClickCrawler:
 
         driver_options = Options()
         driver_options.headless = True
-        self.driver = webdriver.Firefox(executable_path=self.executable_path, options=driver_options)
+        if self.config.get('firefox'):
+            binary = FirefoxBinary(self.config.get('firefox'))
+            self.driver = webdriver.Firefox(firefox_binary=binary,executable_path=self.executable_path, options=driver_options)
+        else:
+            self.driver = webdriver.Firefox(executable_path=self.executable_path, options=driver_options)
 
         self.process_handler.register_new_process(self.driver.service.process.pid)
 
