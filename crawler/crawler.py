@@ -1,6 +1,9 @@
 from crawler.helper import get_content_type, call, clean_url
 from crawler.crawl_methods import get_hrefs_html, get_hrefs_js_simple, ClickCrawler
 import time
+from urllib.parse import urlparse
+
+K_DOMAINS_SKIP = 'domains_skip'
 
 class Crawler:
     def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=1, process_handler=None):
@@ -12,6 +15,12 @@ class Crawler:
         self.session = self.downloader.session()
         self.process_handler = process_handler
         self.sleep_time = sleep_time
+
+        try:
+            with open('config.json','r') as jsonfile:
+                self.config = json.load(jsonfile)
+        except:
+            self.config = dict()
 
         # Crawler information
         self.handled = set()
@@ -38,6 +47,12 @@ class Crawler:
 
         if url in self.handled or url[-4:] in self.file_endings_exclude:
             print("url already handled")
+            return
+
+        urlinfo = urlparse(url)
+        
+        if self.config.get(K_DOMAINS_SKIP) and urlinfo.netloc in self.config.get(K_DOMAINS_SKIP):
+            print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
             return
 
         response = call(self.session, url)
