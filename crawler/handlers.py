@@ -99,21 +99,19 @@ def get_filename(parsed_url,response):
     if parsed_url.query:
         filename += f'_{parsed_url.query}'
     content_type = get_content_type(response)
-    if content_type="application/pdf" and not filename.lower().endswith(".pdf"):
-        filename += ".pdf"
-    if content_type="text/html" and not filename.lower().endswith(".html"):
-        filename += ".html"
+    ext = ""
+    if content_type=="application/pdf" :
+        ext = ".pdf"
+    if content_type=="text/html":
+        ext = ".html"
+    if not filename.lower().endswith(ext):
+        filename += ext
 
     filename = filename.replace('%20', '_')
 
     if len(filename) >= 255:
-        if content_type="application/pdf" :
-            filename = str(uuid.uuid4())[:8] + ".pdf"
-        elif content_type="text/html" :
-            filename = str(uuid.uuid4())[:8] + ".pdf"
-        else:
-            filename = str(uuid.uuid4())[:8] 
-            
+        filename = str(uuid.uuid4())[:8] + ext
+
     return filename
 
 
