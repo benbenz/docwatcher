@@ -16,7 +16,8 @@ def crawl_rendered_all():
     if os.path.isdir(output_dir):
         rmtree(output_dir)
 
-    cfg = json.load('config.json')
+    with open('config.json','r') as jsonfile:
+        cfg = json.load(jsonfile)
     
     crawler.crawl(url=cfg["url_run"],sleep_time=5,depth=1,output_dir=output_dir,method="rendered-all",gecko_path=gecko_path)
 
