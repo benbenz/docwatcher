@@ -1,0 +1,25 @@
+{
+
+    "url_test": "http://url-test.com/" ,
+
+    "domains_skip" : [
+        "facebook.com" ,
+        "twitter.com" ,
+        "instagram.com" 
+    ] ,
+
+    "firefox" : null ,
+
+    "urls" : [
+            { "url" : "http://url1.com/"      , "method" : "normal"       , "depth" : 7 , "ignore_patterns" : [ "<a href=\"mailto.*\"" ]} ,
+            { "url" : "https://url2.com/"     , "method" : "rendered"     , "depth" : 7 } ,
+            { "url" : "https://url3.com/"     , "method" : "rendered-all" , "depth" : 7 } ,
+            { "url" : "https://www.url4.com/" , "method" : "normal"       , "depth" : 7 } 
+    ] ,
+
+    "keywords" : [
+        { "pattern" : "parsing"           , "raw" : false , "level" : 1 } ,
+        { "pattern" : "beautiful .* soup" , "raw" : true  , "level" : 3 } ,
+        { "pattern" : "html .* regex"     , "raw" : true  , "level" : 3 } 
+    ]
+}
