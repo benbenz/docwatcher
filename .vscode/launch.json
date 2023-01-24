@@ -9,12 +9,12 @@
             "name": "Run",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/run.py",
+            "program": "${workspaceFolder}/doccrawler/run.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [],
             "env": {
-                "PYTHONPATH":"${workspaceRoot}:$PYTHONPATH"
+                "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:$PYTHONPATH"
             }
         }
     ]

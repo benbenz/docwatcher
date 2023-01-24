@@ -54,7 +54,7 @@ class Crawler:
             return
 
         urlinfo = urlparse(url)
-        
+
         if self.config.get(K_DOMAINS_SKIP) and urlinfo.netloc in self.config.get(K_DOMAINS_SKIP):
             print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
             return
@@ -84,7 +84,7 @@ class Crawler:
         file_status = FileStatus.UNKNOWN
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
-            local_name , file_status = get_handler.handle(response,old_files=old_files)
+            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files)
         if head_handler and file_status!=FileStatus.EXISTING:
             head_handler.handle(response, depth, previous_url, local_name)
 

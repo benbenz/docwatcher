@@ -20,7 +20,7 @@ logging.basicConfig(
 requests_downloader = RequestsDownloader()
 
 
-def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_stats_handler=None, custom_process_handler=None):
+def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None):
     head_handlers = {}
     get_handlers = {}
 
@@ -28,11 +28,15 @@ def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="g
     if page_name is None:
         page_name = urlparse(url).netloc
 
-    get_handlers['application/pdf'] = LocalStorageHandler(
-        directory=output_dir, subdirectory=page_name, extension="pdf")
+    if custom_get_handler is None:
+        get_handlers['application/pdf'] = LocalStorageHandler(
+            directory=output_dir, subdirectory=page_name)
 
-    get_handlers['text/html'] = LocalStorageHandler(
-        directory=output_dir, subdirectory=page_name, extension="html")
+        get_handlers['text/html'] = LocalStorageHandler(
+            directory=output_dir, subdirectory=page_name)
+    else:
+        for content_type, Handler in custom_get_handler.items():
+            get_handlers[content_type] = Handler
 
     if custom_stats_handler is None:
         defhandler = CSVStatsHandler(directory=output_dir, name=page_name)

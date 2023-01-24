@@ -14,14 +14,14 @@ class FileStatus(IntEnum):
 
 class LocalStorageHandler:
 
-    def __init__(self, directory, subdirectory, extension):
+    def __init__(self, directory, subdirectory):
         self.directory = directory
         self.subdirectory = subdirectory
-        self.extension = extension
 
     def handle(self, response, *args, **kwargs):
         parsed = urlparse(response.url)
-        filename = str(uuid.uuid4()) + "." + self.extension
+        ext = get_extension(response)
+        filename = str(uuid.uuid4()) + "." + ext
         subdirectory = self.subdirectory or parsed.netloc
         directory = os.path.join(self.directory, subdirectory)
         os.makedirs(directory, exist_ok=True)
@@ -29,7 +29,7 @@ class LocalStorageHandler:
         if kwargs.get('old_files'):
             has_similar_file = False
             similar_file = None
-            for old_file , in kwargs.get('old_files'):
+            for old_file in kwargs.get('old_files'):
                 with open(old_file,'r') as old_fp:
                     old_content = old_fp.read()
                     if old_content == response.content:
@@ -139,17 +139,24 @@ class ProcessHandler:
 
         self.process_list = []
 
+def get_extension(response):
+    content_type = get_content_type(response)
+    ext = ""
+    if content_type=="application/pdf" :
+        ext = ".pdf"
+    elif content_type=="text/html":
+        ext = ".html"
+    elif content_type=="application/msword":
+        ext = ".doc"
+    elif content_type=="application/vnd.openxmlformats" or content_type=="officedocument.wordprocessingml.document":
+        ext = ".docx"
+    return ext  
 
 def get_filename(parsed_url,response):
     filename = parsed_url.path.split('/')[-1]
     if parsed_url.query:
         filename += f'_{parsed_url.query}'
-    content_type = get_content_type(response)
-    ext = ""
-    if content_type=="application/pdf" :
-        ext = ".pdf"
-    if content_type=="text/html":
-        ext = ".html"
+    ext = get_extension(response)
     if not filename.lower().endswith(ext):
         filename += ext
 

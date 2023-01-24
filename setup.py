@@ -9,7 +9,8 @@ setup(
         'requests',
         'selenium',
         'requests_html',
-        'psutil'
+        'psutil',
+        'django'
     ],
     extras_require={
         'tests': [
