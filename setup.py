@@ -10,7 +10,9 @@ setup(
         'selenium',
         'requests_html',
         'psutil',
-        'django'
+        'django',
+        'whoosh',
+        'django-haystack[whoosh]'
     ],
     extras_require={
         'tests': [

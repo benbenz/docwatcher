@@ -73,7 +73,7 @@ class DBStatsHandler:
         list_handled = []
         if self.domain:
             for doc in Document.objects.filter(domain=self.domain):
-                list_handled.append(doc.local_file)
+                list_handled.append(doc.local_file.name)
         return list_handled
 
     def handle(self, response, depth, previous_url, local_name, *args, **kwargs):
@@ -83,5 +83,5 @@ class DBStatsHandler:
     def get_filenames(self,response):
         result = []
         for doc in Document.objects.filter(url=response.url):
-            result.append(doc.local_file)
+            result.append(doc.local_file.name)
         return result
