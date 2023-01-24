@@ -1,9 +1,12 @@
 from crawler.helper import get_content_type, call, clean_url
 from crawler.crawl_methods import get_hrefs_html, get_hrefs_js_simple, ClickCrawler
+from crawler.handlers import FileStatus
 import time
 from urllib.parse import urlparse
+import json
 
 K_DOMAINS_SKIP = 'domains_skip'
+K_URLS         = 'urls'
 
 class Crawler:
     def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=1, process_handler=None):
@@ -19,7 +22,8 @@ class Crawler:
         try:
             with open('config.json','r') as jsonfile:
                 self.config = json.load(jsonfile)
-        except:
+        except Exception as e:
+            print(e)
             self.config = dict()
 
         # Crawler information
@@ -67,7 +71,7 @@ class Crawler:
         print(final_url)
 
         print("sleeping {0}s ...".format(self.sleep_time))
-        time.sleep(self.sleep_time)
+        time.sleep(1) #self.sleep_time)
 
         # Type of content on page at url
         content_type = get_content_type(response)
@@ -75,19 +79,21 @@ class Crawler:
         # Name of pdf
         local_name = None
 
-        get_handler = self.get_handlers.get(content_type)
-        if get_handler:
-            local_name = get_handler.handle(response)
-
+        get_handler  = self.get_handlers.get(content_type)
         head_handler = self.head_handlers.get(content_type)
-        if head_handler:
+        file_status = FileStatus.UNKNOWN
+        if get_handler:
+            old_files = head_handler.get_filenames(response) if head_handler else None
+            local_name , file_status = get_handler.handle(response,old_files=old_files)
+        if head_handler and file_status!=FileStatus.EXISTING:
             head_handler.handle(response, depth, previous_url, local_name)
 
         if content_type == "text/html":
+            self.handled.add(final_url)
             if depth and follow:
                 depth -= 1
                 urls = self.get_urls(response)
-                self.handled.add(final_url)
+                #self.handled.add(final_url)
                 for next_url in urls:
                     self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'])
         else:

@@ -4,6 +4,13 @@ import uuid
 from urllib.parse import urlparse
 import psutil       
 from crawler.helper import get_content_type
+from enum import IntEnum
+
+class FileStatus(IntEnum):
+    UNKNOWN  = 0
+    NEW      = 1
+    MODIFIED = 2
+    EXISTING = 4
 
 class LocalStorageHandler:
 
@@ -18,12 +25,29 @@ class LocalStorageHandler:
         subdirectory = self.subdirectory or parsed.netloc
         directory = os.path.join(self.directory, subdirectory)
         os.makedirs(directory, exist_ok=True)
+        file_status = FileStatus.NEW
+        if kwargs.get('old_files'):
+            has_similar_file = False
+            similar_file = None
+            for old_file , in kwargs.get('old_files'):
+                with open(old_file,'r') as old_fp:
+                    old_content = old_fp.read()
+                    if old_content == response.content:
+                        has_similar_file = True
+                        similar_file = old_file
+                        break
+            if has_similar_file:
+                print("Skipping recording of file {0} because it has already a version of it: {1}".format(reponse.url,similar_file))
+                return similar_file , FileStatus.EXISTING
+            else:
+                file_status = FileStatus.MODIFIED
+
         path = os.path.join(directory, filename)
         path = _ensure_unique(path)
         with open(path, 'wb') as f:
             f.write(response.content)
 
-        return path        
+        return path , file_status  
 
 class CSVStatsHandler:
     _FIELDNAMES = ['filename', 'local_name', 'url', 'linking_page_url', 'size', 'depth']
@@ -53,6 +77,14 @@ class CSVStatsHandler:
             with open(output, 'w', newline='') as file:
                 csv.writer(file).writerow(self._FIELDNAMES)
 
+        with open(output, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for k, row in enumerate(reader):
+                if k > 0:
+                    if row[1] == local_name and row[2] == response.url:
+                        print("CSVStatsHandler: this entry is already saved! {0} {1}".format(local_name,response.url))
+                        return
+
         with open(output, 'a', newline='') as file:
             writer = csv.DictWriter(file, self._FIELDNAMES)
             filename = get_filename(parsed_url,response)
@@ -66,6 +98,20 @@ class CSVStatsHandler:
             }
             writer.writerow(row)
 
+    def get_filenames(self,response):
+        parsed_url = urlparse(response.url)
+        name = self.name or parsed_url.netloc
+        output = os.path.join(self.directory, name + '.csv')
+        if not os.path.isfile(output):
+            return None
+        result = []
+        with open(output, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for k, row in enumerate(reader):
+                if k > 0:
+                    if row[2] == response.url:
+                        result.append(row[1]) # local_name
+        return result
 
 class ProcessHandler:
 
@@ -117,7 +163,8 @@ def get_filename(parsed_url,response):
 
 def _ensure_unique(path):
     if os.path.isfile(path):
+        filename,ext = os.path.splitext(path)
         short_uuid = str(uuid.uuid4())[:8]
-        path = path.replace('.pdf', f'-{short_uuid}.pdf')
+        path = path.replace(ext, f'-{short_uuid}{ext}')
         return _ensure_unique(path)
     return path
