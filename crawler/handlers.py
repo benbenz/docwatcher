@@ -21,7 +21,7 @@ class LocalStorageHandler:
     def handle(self, response, *args, **kwargs):
         parsed = urlparse(response.url)
         ext = get_extension(response)
-        filename = str(uuid.uuid4()) + "." + ext
+        filename = str(uuid.uuid4()) + ext
         subdirectory = self.subdirectory or parsed.netloc
         directory = os.path.join(self.directory, subdirectory)
         os.makedirs(directory, exist_ok=True)
@@ -30,12 +30,17 @@ class LocalStorageHandler:
             has_similar_file = False
             similar_file = None
             for old_file in kwargs.get('old_files'):
-                with open(old_file,'r') as old_fp:
-                    old_content = old_fp.read()
-                    if old_content == response.content:
-                        has_similar_file = True
-                        similar_file = old_file
-                        break
+                if not os.path.isfile(old_file):
+                    continue
+                try:
+                    with open(old_file,'r') as old_fp:
+                        old_content = old_fp.read()
+                        if old_content == response.content:
+                            has_similar_file = True
+                            similar_file = old_file
+                            break
+                except:
+                    print("Error opening file",old_file)
             if has_similar_file:
                 print("Skipping recording of file {0} because it has already a version of it: {1}".format(reponse.url,similar_file))
                 return similar_file , FileStatus.EXISTING
@@ -146,10 +151,20 @@ def get_extension(response):
         ext = ".pdf"
     elif content_type=="text/html":
         ext = ".html"
+    elif content_type=="text/plain":
+        ext = ".txt"
+    elif content_type=="application/rtf":
+        ext = ".rtf"
     elif content_type=="application/msword":
         ext = ".doc"
     elif content_type=="application/vnd.openxmlformats" or content_type=="officedocument.wordprocessingml.document":
         ext = ".docx"
+    elif content_type=="application/vnd.ms-powerpoint":
+        ext = ".ppt"
+    elif content_type=="application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        ext = ".pptx"
+    elif content_type=="application/vnd.ms-powerpoint.presentation.macroEnabled.12":
+        ext = ".pptm"
     return ext  
 
 def get_filename(parsed_url,response):

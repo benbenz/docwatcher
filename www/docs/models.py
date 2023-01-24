@@ -17,9 +17,14 @@ class Document(models.Model):
     class DocumentType(models.TextChoices):
         UNKNOWN   = 'UNK', _('Unknown')
         TEXT      = 'TXT', _('Text')
+        RTF       = 'RTF', _('Rich Text Format')
         HTML      = 'HTML', _('HTML')
-        DOC       = 'DOC', _('Doc')
         PDF       = 'PDF', _('PDF')
+        DOC       = 'DOC', _('Doc')
+        DOCX      = 'DOCX', _('Docx')
+        PPT       = 'PPT', _('PowerPoint')
+        PPTX      = 'PPTX', _('PowerPointX')
+        PPTM      = 'PPTM', _('PowerPointM')
 
     #user = models.ForeignKey(User)
 
@@ -32,8 +37,9 @@ class Document(models.Model):
     remote_name = models.CharField(max_length=200)
 
     # Content: HTML/PDF + file
+    local_file  = models.FileField()    
     doc_type    = models.CharField(max_length=4,choices=DocumentType.choices,default=DocumentType.TEXT)    
     title       = models.CharField(max_length=200)
     body        = models.TextField()
+    num_pages   = models.IntegerField()
     size        = models.IntegerField()
-    local_file  = models.FileField()

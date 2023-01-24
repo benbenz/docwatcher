@@ -12,6 +12,9 @@ setup(
         'psutil',
         'django',
         'whoosh',
+        'pypdf4',
+        'python-pptx',
+        'python-docx',
         'django-haystack[whoosh]'
     ],
     extras_require={

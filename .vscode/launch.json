@@ -9,7 +9,7 @@
             "name": "Run",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/doccrawler/run.py",
+            "program": "${workspaceFolder}/docspider/run.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [],
