@@ -116,3 +116,5 @@ config.json
 
 www/*/migrations/
 whoosh_index
+
+__pycache__
