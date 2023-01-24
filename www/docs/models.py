@@ -37,7 +37,7 @@ class Document(models.Model):
     remote_name = models.CharField(max_length=200)
 
     # Content: HTML/PDF + file
-    local_file  = models.FileField()    
+    local_file  = models.FileField(unique=True)    
     doc_type    = models.CharField(max_length=4,choices=DocumentType.choices,default=DocumentType.TEXT)    
     title       = models.CharField(max_length=200)
     body        = models.TextField()

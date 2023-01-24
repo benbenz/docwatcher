@@ -12,6 +12,7 @@ from striprtf.striprtf import rtf_to_text
 import os
 import csv
 import uuid
+import traceback
 
 # load django stuff
 # MAKE SURE ROOT/www is also in the PYTHONPATH !!!
@@ -55,6 +56,8 @@ class AllInOneHandler(LocalStorageHandler):
         # the file already existed
         if file_status == FileStatus.EXISTING:
             return path , file_status 
+        elif file_status == FileStatus.SKIPPED:
+            return path , file_status
 
         parsed_url  = urlparse(response.url)
         domain_name = parsed_url.netloc
@@ -71,18 +74,20 @@ class AllInOneHandler(LocalStorageHandler):
                     pdf         = PdfFileReader(f)
                     information = pdf.getDocumentInfo()
                     num_pages   = pdf.getNumPages()
-                    title       = information.title
-                    body        = "\n".join([p.extract_text() for p in pdf.pages])
-            except:
-                print("ERROR processing file",path)
+                    title       = information.title or filename
+                    body        = "\n".join([p.extractText() for p in pdf.pages])
+            except Exception as e:
+                print("ERROR processing file",path,e)
+                traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.DOC , Document.DocumentType.DOCX]:
             try:
                 with open(path,'rb') as f:
                     worddoc  = Document(f)
                     body     = "\n".join([p.text for p in worddoc.paragraphs])
-            except:
-                print("ERROR processing file",path)
+            except Exception as e:
+                print("ERROR processing file",path,e)
+                traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.PPT , Document.DocumentType.PPTX , Document.DocumentType.PPTM]:
             try:
@@ -93,8 +98,9 @@ class AllInOneHandler(LocalStorageHandler):
                             for shape in slide.shapes:
                                 if hasattr(shape, "text"):
                                     body += shape.text + '\n'
-            except:
-                print("ERROR processing file",path)
+            except Exception as e:
+                print("ERROR processing file",path,e)
+                traceback.print_exc()
         
         elif doc_type == Document.DocumentType.RTF:
             body = rtf_to_text(body)
@@ -116,7 +122,9 @@ class AllInOneHandler(LocalStorageHandler):
             local_file  = path #local_name
         )
         # save the new entry
+        #print("saving new entry ...")
         doc.save()
+        #print("done saving.")
 
         return path , file_status  
 

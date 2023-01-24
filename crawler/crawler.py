@@ -45,9 +45,12 @@ class Crawler:
             for handled_entry in handled_list:
                 self.handled.add(clean_url(handled_entry))
 
-    def crawl(self, url, depth, previous_url=None, follow=True):
+    def crawl(self, url, depth, previous_url=None, follow=True, orig_url=None, ignore_patterns=None):
 
         url = clean_url(url)
+
+        if orig_url is None:
+            orig_url = url
 
         if url in self.handled or url[-4:] in self.file_endings_exclude:
             print("url already handled: {0}".format(url))
@@ -55,9 +58,11 @@ class Crawler:
 
         urlinfo = urlparse(url)
 
-        if self.config.get(K_DOMAINS_SKIP) and urlinfo.netloc in self.config.get(K_DOMAINS_SKIP):
-            print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
-            return
+        if self.config.get(K_DOMAINS_SKIP):
+            for kdomain in self.config.get(K_DOMAINS_SKIP):
+                if kdomain == urlinfo.netloc or urlinfo.netloc.endswith(".{0}".format(kdomain)):
+                    print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
+                    return
 
         response = call(self.session, url)
         if not response:
@@ -84,8 +89,8 @@ class Crawler:
         file_status = FileStatus.UNKNOWN
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
-            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files)
-        if head_handler and file_status!=FileStatus.EXISTING:
+            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files,orig_url=orig_url,ignore_patterns=ignore_patterns)
+        if head_handler and file_status!=FileStatus.EXISTING and file_status!=FileStatus.SKIPPED:
             head_handler.handle(response, depth, previous_url, local_name)
 
         if content_type == "text/html":
@@ -95,7 +100,7 @@ class Crawler:
                 urls = self.get_urls(response)
                 #self.handled.add(final_url)
                 for next_url in urls:
-                    self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'])
+                    self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'],orig_url=orig_url,ignore_patterns=ignore_patterns)
         else:
             self.handled.add(final_url)
 

@@ -5,12 +5,14 @@ from urllib.parse import urlparse
 import psutil       
 from crawler.helper import get_content_type
 from enum import IntEnum
+import difflib
 
 class FileStatus(IntEnum):
     UNKNOWN  = 0
     NEW      = 1
     MODIFIED = 2
     EXISTING = 4
+    SKIPPED  = 5
 
 class LocalStorageHandler:
 
@@ -26,6 +28,13 @@ class LocalStorageHandler:
         directory = os.path.join(self.directory, subdirectory)
         os.makedirs(directory, exist_ok=True)
         file_status = FileStatus.NEW
+
+        if kwargs.get('orig_url'):
+            orig_domain = urlparse(kwargs.get('orig_url')).netloc
+            if ext == ".html" and orig_domain not in parsed.netloc:
+                print("skipping HTML content that is out of domain",parsed.netloc,"vs",orig_domain)
+                return None , FileStatus.SKIPPED
+
         if kwargs.get('old_files'):
             has_similar_file = False
             similar_file = None
@@ -33,12 +42,15 @@ class LocalStorageHandler:
                 if not os.path.isfile(old_file):
                     continue
                 try:
-                    with open(old_file,'r') as old_fp:
+                    with open(old_file,'rb') as old_fp:
                         old_content = old_fp.read()
                         if old_content == response.content:
                             has_similar_file = True
                             similar_file = old_file
                             break
+                        else:
+                            #https://stackoverflow.com/questions/17904097/python-difference-between-two-strings
+                            pass
                 except:
                     print("Error opening file",old_file)
             if has_similar_file:

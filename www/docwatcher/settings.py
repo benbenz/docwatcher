@@ -135,4 +135,4 @@ HAYSTACK_CONNECTIONS = {
 }
 
 # IMPORTANT: this will cause a real time update of the haystack index ...
-HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
+# HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'

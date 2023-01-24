@@ -22,7 +22,7 @@ def crawl_rendered_all():
         
         url    = url_config.get("url")
         method = url_config.get('method') or "rendered-all"
-        depth  = url_config.get("depth") or 1
+        depth  = url_config.get("depth") or 4
         sleep  = url_config.get("sleep") or 5
 
         domain_name = urlparse(url).netloc
