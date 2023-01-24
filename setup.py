@@ -31,5 +31,4 @@ setup(
             'pdf-crawler = crawler:crawl',
         ],
     },
-    py_modules=[]
 )
