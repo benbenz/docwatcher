@@ -9,6 +9,19 @@ from enum import IntEnum
 import difflib
 from bs4 import BeautifulSoup
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    CEND      = '\33[0m'        
+
+
 class FileStatus(IntEnum):
     UNKNOWN  = 0
     NEW      = 1
@@ -70,13 +83,13 @@ class LocalStorageHandler:
                                     break
                             except Exception as e:
                                 print("Error while comparing files",e)
-
                 except:
                     print("Error opening file",old_file)
             if has_similar_file:
                 print("Skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file))
                 return similar_file , FileStatus.EXISTING
             else:
+                print(bcolors.WARNING,"We found a new version of the file",response.url,bcolors.CEND)
                 file_status = FileStatus.MODIFIED
 
         path = os.path.join(directory, filename)

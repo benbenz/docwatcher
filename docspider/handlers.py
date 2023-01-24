@@ -8,6 +8,8 @@ from docx import Document as WordDocument
 from pptx import Presentation
 # .rtf
 from striprtf.striprtf import rtf_to_text
+# .html
+from bs4 import BeautifulSoup
 
 import os
 import csv
@@ -104,6 +106,15 @@ class AllInOneHandler(LocalStorageHandler):
         
         elif doc_type == Document.DocumentType.RTF:
             body = rtf_to_text(body)
+
+        elif doc_type == Document.DocumentType.HTML:
+            try:
+                soup  = BeautifulSoup(body,'html.parser')
+                body  = soup.get_text()
+                title = soup.title.string
+            except Exception as e:
+                print("ERROR processing file",path,e)
+                traceback.print_exc()
 
         doc = Document(
             domain      = domain_name , 
