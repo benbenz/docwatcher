@@ -6,6 +6,9 @@ from PyPDF4 import PdfFileReader
 from docx import Document as WordDocument
 # .ppt , .pptx , .pptm
 from pptx import Presentation
+# .rtf
+from striprtf.striprtf import rtf_to_text
+
 import os
 import csv
 import uuid
@@ -71,7 +74,7 @@ class AllInOneHandler(LocalStorageHandler):
                     title       = information.title
                     body        = "\n".join([p.extract_text() for p in pdf.pages])
             except:
-                pass
+                print("ERROR processing file",path)
 
         elif doc_type in [Document.DocumentType.DOC , Document.DocumentType.DOCX]:
             try:
@@ -79,7 +82,7 @@ class AllInOneHandler(LocalStorageHandler):
                     worddoc  = Document(f)
                     body     = "\n".join([p.text for p in worddoc.paragraphs])
             except:
-                pass
+                print("ERROR processing file",path)
 
         elif doc_type in [Document.DocumentType.PPT , Document.DocumentType.PPTX , Document.DocumentType.PPTM]:
             try:
@@ -91,7 +94,10 @@ class AllInOneHandler(LocalStorageHandler):
                                 if hasattr(shape, "text"):
                                     body += shape.text + '\n'
             except:
-                pass
+                print("ERROR processing file",path)
+        
+        elif doc_type == Document.DocumentType.RTF:
+            body = rtf_to_text(body)
 
         doc = Document(
             domain      = domain_name , 

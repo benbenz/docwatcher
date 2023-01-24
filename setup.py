@@ -15,6 +15,7 @@ setup(
         'pypdf4',
         'python-pptx',
         'python-docx',
+        'striprtf',
         'django-haystack[whoosh]'
     ],
     extras_require={
