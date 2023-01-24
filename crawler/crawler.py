@@ -71,7 +71,7 @@ class Crawler:
         print(final_url)
 
         print("sleeping {0}s ...".format(self.sleep_time))
-        time.sleep(1) #self.sleep_time)
+        time.sleep(self.sleep_time)
 
         # Type of content on page at url
         content_type = get_content_type(response)
