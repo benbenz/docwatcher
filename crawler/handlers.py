@@ -1,11 +1,13 @@
 import csv
 import os
 import uuid
+import re
 from urllib.parse import urlparse
 import psutil       
 from crawler.helper import get_content_type
 from enum import IntEnum
 import difflib
+from bs4 import BeautifulSoup
 
 class FileStatus(IntEnum):
     UNKNOWN  = 0
@@ -29,6 +31,12 @@ class LocalStorageHandler:
         os.makedirs(directory, exist_ok=True)
         file_status = FileStatus.NEW
 
+        ignore_patterns = None
+        if kwargs.get('ignore_patterns'):
+            ignore_patterns = []
+            for pattern in kwargs.get('ignore_patterns'):
+                ignore_patterns.append(re.compile(pattern,re.IGNORECASE|re.MULTILINE))
+
         if kwargs.get('orig_url'):
             orig_domain = urlparse(kwargs.get('orig_url')).netloc
             if ext == ".html" and orig_domain not in parsed.netloc:
@@ -48,13 +56,25 @@ class LocalStorageHandler:
                             has_similar_file = True
                             similar_file = old_file
                             break
-                        else:
-                            #https://stackoverflow.com/questions/17904097/python-difference-between-two-strings
-                            pass
+                        elif ignore_patterns is not None:
+                            try:
+                                #https://stackoverflow.com/questions/17904097/python-difference-between-two-strings
+                                old_html = BeautifulSoup(old_content,'html.parser').prettify()
+                                new_html = BeautifulSoup(response.content,'html.parser').prettify()
+                                for pattern in ignore_patterns:
+                                    old_html = re.sub(pattern,"",old_html)
+                                    new_html = re.sub(pattern,"",new_html)
+                                if old_html == new_html:
+                                    has_similar_file = True
+                                    similar_file = old_file
+                                    break
+                            except Exception as e:
+                                print("Error while comparing files",e)
+
                 except:
                     print("Error opening file",old_file)
             if has_similar_file:
-                print("Skipping recording of file {0} because it has already a version of it: {1}".format(reponse.url,similar_file))
+                print("Skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file))
                 return similar_file , FileStatus.EXISTING
             else:
                 file_status = FileStatus.MODIFIED

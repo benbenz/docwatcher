@@ -21,9 +21,10 @@ def crawl_rendered_all():
     for url_config in cfg.get('urls'):
         
         url    = url_config.get("url")
-        method = url_config.get('method') or "rendered-all"
+        method = url_config.get("method") or "rendered-all"
         depth  = url_config.get("depth") or 4
         sleep  = url_config.get("sleep") or 5
+        ignore = url_config.get("ignore_patterns")
 
         domain_name = urlparse(url).netloc
 
@@ -63,7 +64,8 @@ def crawl_rendered_all():
                         depth=depth,
                         output_dir=output_dir,
                         method=method,
-                        gecko_path=gecko_path
+                        gecko_path=gecko_path,
+                        ignore_patterns=ignore
                     )
 
 if __name__ == '__main__':
