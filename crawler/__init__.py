@@ -20,7 +20,7 @@ logging.basicConfig(
 requests_downloader = RequestsDownloader()
 
 
-def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, ignore_patterns=None):
+def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, ignore_patterns=None,config=None):
     head_handlers = {}
     get_handlers = {}
 
@@ -64,4 +64,4 @@ def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="g
         process_handler=process_handler,
         sleep_time=sleep_time
     )
-    crawler.crawl(url, depth, ignore_patterns=ignore_patterns)
+    crawler.crawl(url, depth, ignore_patterns=ignore_patterns,config=config)

@@ -20,14 +20,25 @@ class RequestsDownloader:
         return session
 
     def _get_fake_headers(self):
+        # return {
+        #     'User-Agent': get_user_agent(),
+        #     'Accept': 'text/html,application/xhtml+xml,'
+        #               'application/xml;q=0.9,image/webp,*/*;q=0.8',
+        #     'Accept-Encoding': 'gzip, deflate, sdch',
+        #     'Accept-Language': 'en-US,en;q=0.5',
+        #     'Connection': 'keep-alive',
+        #     'Upgrade-Insecure-Requests': '1',
+        #     'Cache-Control': 'max-age=0',
+        #     'Pragma': 'no-cache',
+        # }
         return {
             'User-Agent': get_user_agent(),
-            'Accept': 'text/html,application/xhtml+xml,'
-                      'application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, sdch',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
             'Cache-Control': 'max-age=0',
             'Pragma': 'no-cache',
-        }
+            'TE': 'Trailers'
+        } 

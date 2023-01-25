@@ -2,7 +2,10 @@ from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 import datetime
 from crawler.downloaders import get_user_agent
+import re
+import random
 
+random.seed()
 
 class ProxyManager:
 
@@ -16,12 +19,12 @@ class ProxyManager:
         self.requests_counter = 0
         self.blacklisted = []
 
-    def get_list(self):
+    def get_list(self,force=False):
 
         ua = get_user_agent()
         
         # @benbenz
-        if len(self.proxies)>0:
+        if not force and len(self.proxies)>0 and random.random()<0.8:
             return
 
         self.proxies = []
@@ -33,22 +36,31 @@ class ProxyManager:
         proxies_doc = urlopen(proxies_req).read().decode('utf8')
 
         soup = BeautifulSoup(proxies_doc, 'html.parser')
-        proxies_table = soup.find(id='proxylisttable')
+        proxies_tables = soup.find_all('table')
 
-        if proxies_table is None:
-            return 
+        if proxies_tables:
 
-        if proxies_table:
-            for row in proxies_table.tbody.find_all('tr'):
+            for table in proxies_tables:
 
-                ip = row.find_all('td')[0].string
-                port = row.find_all('td')[1].string
+                if not table.tbody:
+                    continue
 
-                if ip not in self.blacklisted and ip not in [x['ip'] for x in self.proxies]:
-                    self.proxies.append({
-                        'ip': ip,
-                        'port': port,
-                    })
+                for row in table.tbody.find_all('tr'):
+
+                    tds = row.find_all('td')
+                    if not tds or len(tds)<2:
+                        continue
+
+                    ip   = tds[0].string
+                    port = tds[1].string
+
+                    if re.match(r'[0-9\.]+',ip) and re.match(r'[0-9]+',port):
+
+                        if ip not in self.blacklisted and ip not in [x['ip'] for x in self.proxies]:
+                            self.proxies.append({
+                                'ip': ip,
+                                'port': port,
+                            })
 
         self.last_updated = datetime.datetime.now()
 
@@ -61,7 +73,7 @@ class ProxyManager:
         self.requests_counter = 0
 
         if self.current_index >= len(self.proxies):
-            self.get_list()
+            self.get_list(True)
 
     def get_proxy(self):
 

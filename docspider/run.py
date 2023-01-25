@@ -5,6 +5,7 @@ import json
 import crawler
 import docspider.handlers as handlers
 from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor
 
 # change this to your geckodriver path
 gecko_path = "./geckodriver"
@@ -18,13 +19,20 @@ def crawl_rendered_all():
     with open('config.json','r') as jsonfile:
         cfg = json.load(jsonfile)
 
+    executor = ThreadPoolExecutor(max_workers=10)
+
+    solo = None #"https://www.achereslaforet.net/"
+
     for url_config in cfg.get('urls'):
-        
+
         url    = url_config.get("url")
         method = url_config.get("method") or "rendered-all"
         depth  = url_config.get("depth") or 4
         sleep  = url_config.get("sleep") or 5
         ignore = url_config.get("ignore_patterns")
+
+        if solo is not None and solo != url:
+            continue 
 
         domain_name = urlparse(url).netloc
 
@@ -56,17 +64,33 @@ def crawl_rendered_all():
             print("Skipping config entry: no URL found")
             continue
 
-        crawler.crawl(
-                        url=url,
-                        sleep_time=sleep,
-                        custom_get_handler=get_handlers,
-                        custom_stats_handler=head_handlers,
-                        depth=depth,
-                        output_dir=output_dir,
-                        method=method,
-                        gecko_path=gecko_path,
-                        ignore_patterns=ignore
-                    )
+        future = executor.submit(
+                crawler.crawl, 
+                url=url,
+                sleep_time=sleep,
+                custom_get_handler=get_handlers,
+                custom_stats_handler=head_handlers,
+                depth=depth,
+                output_dir=output_dir,
+                method=method,
+                gecko_path=gecko_path,
+                ignore_patterns=ignore,
+                config=cfg
+        )
+
+        # crawler.crawl(
+        #                 url=url,
+        #                 sleep_time=sleep,
+        #                 custom_get_handler=get_handlers,
+        #                 custom_stats_handler=head_handlers,
+        #                 depth=depth,
+        #                 output_dir=output_dir,
+        #                 method=method,
+        #                 gecko_path=gecko_path,
+        #                 ignore_patterns=ignore
+        #             )
+
+    executor.shutdown(True) # wait
 
 if __name__ == '__main__':
     crawl_rendered_all()

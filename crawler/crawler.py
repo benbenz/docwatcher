@@ -45,7 +45,7 @@ class Crawler:
             for handled_entry in handled_list:
                 self.handled.add(clean_url(handled_entry))
 
-    def crawl(self, url, depth, previous_url=None, follow=True, orig_url=None, ignore_patterns=None):
+    def crawl(self, url, depth, previous_url=None, follow=True, orig_url=None, ignore_patterns=None,config=None):
 
         url = clean_url(url)
 
@@ -64,7 +64,10 @@ class Crawler:
                     print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
                     return
 
-        response = call(self.session, url)
+        if config and config.get('use_proxy')==True:
+            response = call(self.session, url, use_proxy=True)
+        else:
+            response = call(self.session, url)
         if not response:
             return
 
@@ -89,7 +92,7 @@ class Crawler:
         file_status = FileStatus.UNKNOWN
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
-            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files,orig_url=orig_url,ignore_patterns=ignore_patterns)
+            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files,orig_url=orig_url,ignore_patterns=ignore_patterns,config=config)
         if head_handler and file_status!=FileStatus.EXISTING and file_status!=FileStatus.SKIPPED:
             head_handler.handle(response, depth, previous_url, local_name)
 
@@ -100,7 +103,7 @@ class Crawler:
                 urls = self.get_urls(response)
                 #self.handled.add(final_url)
                 for next_url in urls:
-                    self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'],orig_url=orig_url,ignore_patterns=ignore_patterns)
+                    self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'],orig_url=orig_url,ignore_patterns=ignore_patterns,config=config)
         else:
             self.handled.add(final_url)
 

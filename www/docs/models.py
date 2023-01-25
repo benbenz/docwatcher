@@ -43,3 +43,5 @@ class Document(models.Model):
     body        = models.TextField()
     num_pages   = models.IntegerField()
     size        = models.IntegerField()
+    needs_ocr   = models.BooleanField()
+    has_error   = models.BooleanField()

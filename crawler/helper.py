@@ -50,6 +50,7 @@ def call(session, url, use_proxy=False, retries=0):
                 response = session.get(url, timeout=5, proxies=proxy[0], verify=False)
                 response.raise_for_status()
             except Exception as e:
+                msg = str(e)
                 if retries <= 3:
                     pm.change_proxy(proxy[1])
                     return call(session, url, True, retries + 1)

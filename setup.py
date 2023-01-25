@@ -8,7 +8,7 @@ setup(
         'click',
         'requests',
         'selenium',
-        'requests_html',
+        'requests_html==0.10.0',
         'psutil',
         'django',
         'whoosh',

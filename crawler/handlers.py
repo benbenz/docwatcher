@@ -35,6 +35,16 @@ class LocalStorageHandler:
         self.directory = directory
         self.subdirectory = subdirectory
 
+    def get_url_config(self,config,response):
+        if not config:
+            return None
+        resp_domain = urlparse(response.url).netloc
+        for url_cfg in config.get('urls'):
+            url_domain = urlparse(url_cfg.get('url')).netloc
+            if url_domain == resp_domain:
+                return url_cfg
+        return None
+
     def handle(self, response, *args, **kwargs):
         parsed = urlparse(response.url)
         ext = get_extension(response)
@@ -45,10 +55,19 @@ class LocalStorageHandler:
         file_status = FileStatus.NEW
 
         ignore_patterns = None
-        if kwargs.get('ignore_patterns'):
-            ignore_patterns = []
-            for pattern in kwargs.get('ignore_patterns'):
-                ignore_patterns.append(re.compile(pattern,re.IGNORECASE|re.MULTILINE))
+        # if kwargs.get('ignore_patterns'):
+        #     ignore_patterns = []
+        #     for pattern in kwargs.get('ignore_patterns'):
+        #         ignore_patterns.append(re.compile(pattern,re.IGNORECASE|re.MULTILINE))
+        urlcfg = self.get_url_config(kwargs.get('config'),response)
+        if urlcfg:
+            more_ignore_patterns = urlcfg.get('ignore_patterns')
+            if more_ignore_patterns:
+                if not ignore_patterns:
+                    ignore_patterns = []
+                for patt in more_ignore_patterns:
+                    if not patt in ignore_patterns:
+                        ignore_patterns.append(patt)
 
         if kwargs.get('orig_url'):
             orig_domain = urlparse(kwargs.get('orig_url')).netloc
@@ -82,11 +101,11 @@ class LocalStorageHandler:
                                     similar_file = old_file
                                     break
                             except Exception as e:
-                                print("Error while comparing files",e)
+                                print(bcolors.FAIL,"Error while comparing files",e,bcolors.CEND)
                 except:
-                    print("Error opening file",old_file)
+                    print(bcolors.FAIL,"Error opening file",old_file,bcolors.CEND)
             if has_similar_file:
-                print("Skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file))
+                print(bcolors.OKCYAN,"Skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file),bcolors.CEND)
                 return similar_file , FileStatus.EXISTING
             else:
                 print(bcolors.WARNING,"We found a new version of the file",response.url,bcolors.CEND)
@@ -210,6 +229,27 @@ def get_extension(response):
         ext = ".pptx"
     elif content_type=="application/vnd.ms-powerpoint.presentation.macroEnabled.12":
         ext = ".pptm"
+
+    if ext == "":
+        try:
+            content = response.text.strip()
+            if "<!doctype html>" in content[:64]:
+                ext = ".html"
+            elif "%PDF-" in content[:32]:
+                ext = ".pdf"
+            elif "word/" in content[:32]:
+                ext = ".docx"
+        except:
+            pass
+    if ext == "":
+        try:
+            last_part = response.url.rsplit('/', 1)[-1]
+            file_name, file_extension = os.path.splitext(last_part)
+            if file_extension:
+                ext = file_extension
+        except:
+            pass
+    
     return ext  
 
 def get_filename(parsed_url,response):
