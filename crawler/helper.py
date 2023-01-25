@@ -8,6 +8,32 @@ from urllib.parse import urlparse,urlunparse
 pm = ProxyManager()
 log = logging.getLogger(__name__)
 
+
+#
+# ACTIVATE HTTP REQUESTS LOGIN
+#
+
+# These two lines enable debugging at httplib level (requests->urllib3->http.client)
+# You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
+# The only thing missing will be the response.body which is not logged.
+try:
+    import http.client as http_client
+except ImportError:
+    # Python 2
+    import httplib as http_client
+http_client.HTTPConnection.debuglevel = 1
+# You must initialize logging, otherwise you'll not see debug output.
+logging.basicConfig()
+logging.getLogger().setLevel(logging.DEBUG)
+requests_log = logging.getLogger("./requests.packages.urllib3")
+requests_log.setLevel(logging.DEBUG)
+requests_log.propagate = True
+
+#
+# (END OF) ACTIVATE HTTP REQUESTS LOGIN
+#
+
+
 def clean_url(url):
 
     parsed = urlparse(url)
@@ -47,7 +73,7 @@ def call(session, url, use_proxy=False, retries=0):
         proxy = pm.get_proxy()
         if proxy[0]:
             try:
-                response = session.get(url, timeout=5, proxies=proxy[0], verify=False)
+                response = session.get(url, timeout=10, proxies=proxy[0], verify=False)
                 response.raise_for_status()
             except Exception as e:
                 msg = str(e)
@@ -62,7 +88,7 @@ def call(session, url, use_proxy=False, retries=0):
             return None
     else:
         try:
-            response = session.get(url, timeout=5, verify=False)
+            response = session.get(url, timeout=10, verify=True)
             response.raise_for_status()
         except requests.exceptions.InvalidSchema as re:
             msg = str(re)

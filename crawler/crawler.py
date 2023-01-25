@@ -1,6 +1,6 @@
 from crawler.helper import get_content_type, call, clean_url
 from crawler.crawl_methods import get_hrefs_html, get_hrefs_js_simple, ClickCrawler
-from crawler.handlers import FileStatus
+from crawler.handlers import FileStatus , bcolors
 import time
 from urllib.parse import urlparse
 import json
@@ -9,13 +9,13 @@ K_DOMAINS_SKIP = 'domains_skip'
 K_URLS         = 'urls'
 
 class Crawler:
-    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=1, process_handler=None):
+    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=1, process_handler=None,safe=False):
 
         # Crawler internals
         self.downloader = downloader
         self.get_handlers = get_handlers or {}
         self.head_handlers = head_handlers or {}
-        self.session = self.downloader.session()
+        self.session = self.downloader.session(safe)
         self.process_handler = process_handler
         self.sleep_time = sleep_time
 
@@ -45,12 +45,12 @@ class Crawler:
             for handled_entry in handled_list:
                 self.handled.add(clean_url(handled_entry))
 
-    def crawl(self, url, depth, previous_url=None, follow=True, orig_url=None, ignore_patterns=None,config=None):
-
-        url = clean_url(url)
+    def crawl(self, url, depth, previous_url=None, follow=True, orig_url=None):
 
         if orig_url is None:
             orig_url = url
+
+        url = clean_url(url)
 
         if url in self.handled or url[-4:] in self.file_endings_exclude:
             print("url already handled: {0}".format(url))
@@ -64,16 +64,16 @@ class Crawler:
                     print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
                     return
 
-        if config and config.get('use_proxy')==True:
-            response = call(self.session, url, use_proxy=True)
-        else:
-            response = call(self.session, url)
+        response = call(self.session, url, use_proxy=self.config.get('use_proxy'))
+        
         if not response:
+            print(bcolors.FAIL,"No response received for",url,bcolors.CEND)
             return
 
         final_url = clean_url(response.url)
 
         if final_url in self.handled or final_url[-4:] in self.file_endings_exclude:
+            print("url already handled: {0}".format(final_url))
             return
 
         print(final_url)
@@ -92,7 +92,7 @@ class Crawler:
         file_status = FileStatus.UNKNOWN
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
-            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files,orig_url=orig_url,ignore_patterns=ignore_patterns,config=config)
+            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files,orig_url=orig_url)
         if head_handler and file_status!=FileStatus.EXISTING and file_status!=FileStatus.SKIPPED:
             head_handler.handle(response, depth, previous_url, local_name)
 
@@ -103,7 +103,7 @@ class Crawler:
                 urls = self.get_urls(response)
                 #self.handled.add(final_url)
                 for next_url in urls:
-                    self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'],orig_url=orig_url,ignore_patterns=ignore_patterns,config=config)
+                    self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'],orig_url=orig_url)
         else:
             self.handled.add(final_url)
 

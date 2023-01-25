@@ -55,10 +55,6 @@ class LocalStorageHandler:
         file_status = FileStatus.NEW
 
         ignore_patterns = None
-        # if kwargs.get('ignore_patterns'):
-        #     ignore_patterns = []
-        #     for pattern in kwargs.get('ignore_patterns'):
-        #         ignore_patterns.append(re.compile(pattern,re.IGNORECASE|re.MULTILINE))
         urlcfg = self.get_url_config(kwargs.get('config'),response)
         if urlcfg:
             more_ignore_patterns = urlcfg.get('ignore_patterns')

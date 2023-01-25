@@ -21,7 +21,7 @@ def crawl_rendered_all():
 
     executor = ThreadPoolExecutor(max_workers=10)
 
-    solo = None #"https://www.achereslaforet.net/"
+    solo = "https://recloses.fr/"
 
     for url_config in cfg.get('urls'):
 
@@ -29,7 +29,7 @@ def crawl_rendered_all():
         method = url_config.get("method") or "rendered-all"
         depth  = url_config.get("depth") or 4
         sleep  = url_config.get("sleep") or 5
-        ignore = url_config.get("ignore_patterns")
+        safe   = url_config.get("safe",False)
 
         if solo is not None and solo != url:
             continue 
@@ -74,8 +74,7 @@ def crawl_rendered_all():
                 output_dir=output_dir,
                 method=method,
                 gecko_path=gecko_path,
-                ignore_patterns=ignore,
-                config=cfg
+                safe=safe
         )
 
         # crawler.crawl(
@@ -86,8 +85,7 @@ def crawl_rendered_all():
         #                 depth=depth,
         #                 output_dir=output_dir,
         #                 method=method,
-        #                 gecko_path=gecko_path,
-        #                 ignore_patterns=ignore
+        #                 gecko_path=gecko_path
         #             )
 
     executor.shutdown(True) # wait
