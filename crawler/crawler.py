@@ -70,6 +70,30 @@ class Crawler:
             else:
                 return False 
 
+    def should_crawl(self,url,crawler_mode):
+        # file types that are ignored
+        if url[-4:] in self.file_endings_exclude:
+            return False
+
+        # url is handled within this crawl session
+        if url in self.handled:
+            return False
+
+        # url is handled by persistence/records
+        if self.is_handled(url,crawler_mode):
+            return False
+
+        urlinfo = urlparse(url)
+
+        # domain has to be skipped
+        if self.config.get(K_DOMAINS_SKIP):
+            for kdomain in self.config.get(K_DOMAINS_SKIP):
+                if kdomain == urlinfo.netloc or urlinfo.netloc.endswith(".{0}".format(kdomain)):
+                    print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
+                    return False
+
+        return True    
+
     def crawl(self, url, depth, previous_url=None, follow=True, orig_url=None,crawler_mode=CrawlerMode.CRAWL_NEW):
 
         url = clean_url(url)
@@ -77,22 +101,8 @@ class Crawler:
         if orig_url is None:
             orig_url = url
 
-        if url[-4:] in self.file_endings_exclude:
+        if not self.should_crawl(url,crawler_mode):
             return
-
-        if url in self.handled:
-            return
-
-        if self.is_handled(url,crawler_mode):
-            return
-
-        urlinfo = urlparse(url)
-
-        if self.config.get(K_DOMAINS_SKIP):
-            for kdomain in self.config.get(K_DOMAINS_SKIP):
-                if kdomain == urlinfo.netloc or urlinfo.netloc.endswith(".{0}".format(kdomain)):
-                    print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
-                    return
 
         response = call(self.session, url, use_proxy=self.config.get('use_proxy'))
         resp_url = response.url
@@ -105,21 +115,8 @@ class Crawler:
 
         final_url = clean_url(resp_url)
 
-        if final_url[-4:] in self.file_endings_exclude:
+        if not self.should_crawl(final_url,crawler_mode):
             return
-
-        if final_url in self.handled:
-            return
-        
-        if self.is_handled(final_url,crawler_mode):
-            return
-
-        finalurlinfo = urlparse(final_url)
-        if self.config.get(K_DOMAINS_SKIP):
-            for kdomain in self.config.get(K_DOMAINS_SKIP):
-                if kdomain == finalurlinfo.netloc or finalurlinfo.netloc.endswith(".{0}".format(kdomain)):
-                    print("skipping domain {0} for url {1} because of configuration".format(finalurlinfo.netloc,final_url))
-                    return
 
         print(final_url)
 
@@ -134,7 +131,7 @@ class Crawler:
         file_status = FileStatus.UNKNOWN
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
-            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files,orig_url=orig_url)
+            local_name , file_status = get_handler.handle(response,depth, previous_url,old_files=old_files,orig_url=orig_url,config=self.config)
         if head_handler and file_status!=FileStatus.EXISTING and file_status!=FileStatus.SKIPPED:
             head_handler.handle(response, depth, previous_url, local_name)
 
