@@ -77,17 +77,6 @@ def crawl_rendered_all():
                 safe=safe
         )
 
-        # crawler.crawl(
-        #                 url=url,
-        #                 sleep_time=sleep,
-        #                 custom_get_handler=get_handlers,
-        #                 custom_stats_handler=head_handlers,
-        #                 depth=depth,
-        #                 output_dir=output_dir,
-        #                 method=method,
-        #                 gecko_path=gecko_path
-        #             )
-
     executor.shutdown(True) # wait
 
 if __name__ == '__main__':

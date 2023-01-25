@@ -35,6 +35,9 @@ class Document(models.Model):
     depth       = models.IntegerField()
     record_date = models.DateTimeField(auto_now_add=True, blank=True)
     remote_name = models.CharField(max_length=200)
+    http_length   = models.IntegerField()
+    http_encoding = models.CharField(max_length=32)
+
 
     # Content: HTML/PDF + file
     local_file  = models.FileField(unique=True)    

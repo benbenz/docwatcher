@@ -1,12 +1,18 @@
-from crawler.helper import get_content_type, call, clean_url
+from crawler.helper import get_content_type, call, call_head , clean_url
 from crawler.crawl_methods import get_hrefs_html, get_hrefs_js_simple, ClickCrawler
 from crawler.handlers import FileStatus , bcolors
 import time
 from urllib.parse import urlparse
 import json
+from enum import IntEnum
+
 
 K_DOMAINS_SKIP = 'domains_skip'
 K_URLS         = 'urls'
+
+class CrawlerMode(IntEnum):
+    FULL_CRAWL  = 1
+    CRAWL_NEW   = 2
 
 class Crawler:
     def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=1, process_handler=None,safe=False):
@@ -40,20 +46,44 @@ class Crawler:
         self.crawl_method = crawl_method
 
         # load already handled files from folder if available
-        for k, Handler in self.head_handlers.items():
-            handled_list = Handler.get_handled_list()
-            for handled_entry in handled_list:
-                self.handled.add(clean_url(handled_entry))
+        # for k, Handler in self.head_handlers.items():
+        #     handled_list = Handler.get_handled_list()
+        #     for handled_entry in handled_list:
+        #         handled_entry['url'] = clean_url(handled_entry['url'])
+        #         self.handled.add(handled_entry)
 
-    def crawl(self, url, depth, previous_url=None, follow=True, orig_url=None):
+    def is_handled(self,url,crawler_mode):
+        # we are crawling/downloading everything no matter what
+        if crawler_mode == CrawlerMode.FULL_CRAWL:
+            return False 
+        # we are crawling only stuff that changed 
+        elif crawler_mode == CrawlerMode.CRAWL_NEW:
+            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'))
+            content_type = get_content_type(response)
+            if content_type == 'text/html':
+                return False # we still want to parkour the website...
+            
+            head_handler = self.head_handlers.get(content_type)
+            if head_handler:
+                matches = head_handler.find(response)
+                return matches and len(matches)>0
+            else:
+                return False 
+
+    def crawl(self, url, depth, previous_url=None, follow=True, orig_url=None,crawler_mode=CrawlerMode.CRAWL_NEW):
+
+        url = clean_url(url)
 
         if orig_url is None:
             orig_url = url
 
-        url = clean_url(url)
+        if url[-4:] in self.file_endings_exclude:
+            return
 
-        if url in self.handled or url[-4:] in self.file_endings_exclude:
-            print("url already handled: {0}".format(url))
+        if url in self.handled:
+            return
+
+        if self.is_handled(url,crawler_mode):
             return
 
         urlinfo = urlparse(url)
@@ -65,24 +95,36 @@ class Crawler:
                     return
 
         response = call(self.session, url, use_proxy=self.config.get('use_proxy'))
+        resp_url = response.url
+        # Type of content on page at url
+        content_type = get_content_type(response)
         
         if not response:
             print(bcolors.FAIL,"No response received for",url,bcolors.CEND)
             return
 
-        final_url = clean_url(response.url)
+        final_url = clean_url(resp_url)
 
-        if final_url in self.handled or final_url[-4:] in self.file_endings_exclude:
-            print("url already handled: {0}".format(final_url))
+        if final_url[-4:] in self.file_endings_exclude:
             return
+
+        if final_url in self.handled:
+            return
+        
+        if self.is_handled(final_url,crawler_mode):
+            return
+
+        finalurlinfo = urlparse(final_url)
+        if self.config.get(K_DOMAINS_SKIP):
+            for kdomain in self.config.get(K_DOMAINS_SKIP):
+                if kdomain == finalurlinfo.netloc or finalurlinfo.netloc.endswith(".{0}".format(kdomain)):
+                    print("skipping domain {0} for url {1} because of configuration".format(finalurlinfo.netloc,final_url))
+                    return
 
         print(final_url)
 
         print("sleeping {0}s ...".format(self.sleep_time))
         time.sleep(self.sleep_time)
-
-        # Type of content on page at url
-        content_type = get_content_type(response)
 
         # Name of pdf
         local_name = None
@@ -103,7 +145,7 @@ class Crawler:
                 urls = self.get_urls(response)
                 #self.handled.add(final_url)
                 for next_url in urls:
-                    self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'],orig_url=orig_url)
+                    self.crawl(next_url['url'], depth, previous_url=url, follow=next_url['follow'],orig_url=orig_url,crawler_mode=crawler_mode)
         else:
             self.handled.add(final_url)
 

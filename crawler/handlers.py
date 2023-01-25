@@ -65,11 +65,11 @@ class LocalStorageHandler:
                     if not patt in ignore_patterns:
                         ignore_patterns.append(patt)
 
-        if kwargs.get('orig_url'):
-            orig_domain = urlparse(kwargs.get('orig_url')).netloc
-            if ext == ".html" and orig_domain not in parsed.netloc:
-                print("skipping HTML content that is out of domain",parsed.netloc,"vs",orig_domain)
-                return None , FileStatus.SKIPPED
+        # if kwargs.get('orig_url'):
+        #     orig_domain = urlparse(kwargs.get('orig_url')).netloc
+        #     if ext == ".html" and orig_domain not in parsed.netloc:
+        #         print("skipping recording of HTML content that is out of domain",parsed.netloc,"vs",orig_domain)
+        #         return None , FileStatus.SKIPPED
 
         if kwargs.get('old_files'):
             has_similar_file = False
@@ -177,6 +177,9 @@ class CSVStatsHandler:
                     if row[2] == response.url:
                         result.append(row[1]) # local_name
         return result
+
+    def find(self,response):
+        return self.get_filenames(response)
 
 class ProcessHandler:
 

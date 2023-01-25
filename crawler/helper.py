@@ -76,7 +76,7 @@ def call(session, url, use_proxy=False, retries=0):
         proxy = pm.get_proxy()
         if proxy[0]:
             try:
-                response = session.get(url, timeout=10, proxies=proxy[0], verify=False)
+                response = session.get(url, timeout=10, proxies=proxy[0], verify=True)
                 response.raise_for_status()
             except Exception as e:
                 msg = str(e)
@@ -92,6 +92,41 @@ def call(session, url, use_proxy=False, retries=0):
     else:
         try:
             response = session.get(url, timeout=10, verify=True)
+            response.raise_for_status()
+        except requests.exceptions.InvalidSchema as re:
+            msg = str(re)
+            if url.startswith('tel:') or url.startswith('mailto:'):
+                pass
+            else:
+                print(re)
+        except Exception as e:
+            # try with proxy
+            return call(session,url,use_proxy=True)
+        else:
+            return response
+
+
+def call_head(session, url, use_proxy=False, retries=0):
+    if use_proxy:
+        proxy = pm.get_proxy()
+        if proxy[0]:
+            try:
+                response = session.head(url, timeout=10, proxies=proxy[0], verify=True)
+                response.raise_for_status()
+            except Exception as e:
+                msg = str(e)
+                if retries <= 3:
+                    pm.change_proxy(proxy[1])
+                    return call_head(session, url, True, retries + 1)
+                else:
+                    return None
+            else:
+                return response
+        else:
+            return None
+    else:
+        try:
+            response = session.head(url, timeout=10, verify=True)
             response.raise_for_status()
         except requests.exceptions.InvalidSchema as re:
             msg = str(re)

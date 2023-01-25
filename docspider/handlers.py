@@ -171,6 +171,7 @@ class AllInOneHandler(LocalStorageHandler):
                     title       = information.title or filename
                     body        = "\n".join([p.extractText() for p in pdf.pages])
                     if body == '':
+                        print(bcolors.WARNING,"file needs OCR",response.url,path,bcolors.CEND)
                         needs_ocr = True
             except Exception as e:
                 msg = str(e)
@@ -235,12 +236,14 @@ class AllInOneHandler(LocalStorageHandler):
             depth       = depth ,
 #            record_date = AUTO
             remote_name = filename ,
+            http_length = response.headers.get('Content-Length') or response.headers.get('content-length') or -1 ,
+            http_encoding = response.headers.get('Content-Encoding') or response.headers.get('content-encoding') or '' ,
 
             # Content: HTML/PDF + file
             doc_type    = doc_type ,
             title       = title or filename,
             body        = body ,
-            size        = response.headers.get('Content-Length') or len(response.content) ,
+            size        = len(response.content) ,
             num_pages   = num_pages ,
             needs_ocr   = needs_ocr ,
             has_error   = has_error ,
@@ -262,7 +265,7 @@ class DBStatsHandler:
         list_handled = []
         if self.domain:
             for doc in Document.objects.filter(domain=self.domain):
-                list_handled.append(doc.local_file.name)
+                list_handled.append(doc.url.name)
         return list_handled
 
     def handle(self, response, depth, previous_url, local_name, *args, **kwargs):
@@ -274,3 +277,13 @@ class DBStatsHandler:
         for doc in Document.objects.filter(url=response.url):
             result.append(doc.local_file.name)
         return result
+
+    def find(self,response):
+        http_length   = response.headers.get('Content-Length') or response.headers.get('content-length') or -1 ,
+        http_encoding = response.headers.get('Content-Encoding') or response.headers.get('content-encoding') or '' ,
+
+        results = Document.objects.filter(url=response.url,http_length=http_length,http_encoding=http_encoding)
+        r = []
+        for result in results:
+            r.append(result.local_file.name)
+        return r
