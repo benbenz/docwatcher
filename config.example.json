@@ -1,5 +1,7 @@
 {
 
+    "solo" : null ,
+
     "url_test": "http://url-test.com/" ,
 
     "domains_skip" : [
@@ -12,11 +14,12 @@
     "firefox" : null ,
 
     "urls" : [
-            { "url" : "http://url1.com/"      , "method" : "normal"       , "depth" : 7 , "ignore_patterns" : [ "<a href=\"mailto.*\"" ]} ,
-            { "url" : "https://url2.com/"     , "method" : "rendered"     , "depth" : 7 , "ignore_patterns" : [ "fuse_script\\\\.js\\\\?ver=[0-9]+" ] } ,
-            { "url" : "https://url3.com/"     , "method" : "rendered-all" , "depth" : 7 } ,
-            { "url" : "https://www.url4.com/" , "method" : "normal"       , "depth" : 7 } 
-    ] ,
+        { "url" : "http://www.url1.com/"  , "method" : "normal"       , "depth" : 7                , "ignore_patterns" : [ "<a href=\"mailto.*\"" ]} ,
+        { "url" : "https://www.url2.com/" , "method" : "rendered"     , "depth" : 7 , "sleep" : 10 , "ignore_patterns" : [ "fuse_script\\\\.js\\\\?ver=[0-9]+" ] } ,
+        { "url" : "https://www.url3.com/" , "method" : "rendered-all" , "depth" : 7 , "sleep" : 10 , "ignore_patterns" : [ "fuse_script\\\\.js\\\\?ver=[0-9]+" ] } ,
+        { "url" : "https://www.url4.com/" , "method" : "rendered"     , "depth" : 5 , "sleep" : 15 , "use_proxy" : true , "safe" : true } ,
+        { "url" : "https://www.url5.com/" , "method" : "normal"       , "depth" : 7 } 
+] ,
 
     "keywords" : [
         { "pattern" : "parsing"           , "raw" : false , "level" : 1 } ,

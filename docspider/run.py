@@ -21,7 +21,7 @@ def crawl_rendered_all():
 
     executor = ThreadPoolExecutor(max_workers=10)
 
-    solo = "https://recloses.fr/"
+    solo = cfg.get("solo",None) 
 
     for url_config in cfg.get('urls'):
 
