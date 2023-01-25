@@ -184,12 +184,12 @@ class AllInOneHandler(LocalStorageHandler):
                     except Exception as e2:
                         has_error = True
                         print(bcolors.FAIL,"ERROR recovering file",response.url,path,e2,bcolors.CEND)
-                        traceback.print_exc()
+                        #traceback.print_exc()
 
                 else:
                     has_error = True
                     print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
-                    traceback.print_exc()
+                    #traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.DOC , Document.DocumentType.DOCX]:
             try:
