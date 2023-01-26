@@ -10,12 +10,13 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/docspider/run.py",
+            "subProcess": true ,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [],
             "env": {
                 "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:$PYTHONPATH"
             }
-        }
+        } 
     ]
 }

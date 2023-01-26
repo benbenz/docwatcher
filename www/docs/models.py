@@ -28,16 +28,18 @@ class Document(models.Model):
 
     #user = models.ForeignKey(User)
 
-    # Fetch information
-    domain      = models.CharField(max_length=100)
-    url         = models.URLField(max_length=200)
+    # Crawl information
+    domain      = models.CharField(max_length=100,db_index=True)
+    url         = models.URLField(max_length=200,db_index=True)
     referer     = models.URLField(max_length=200)
     depth       = models.IntegerField()
     record_date = models.DateTimeField(auto_now_add=True, blank=True)
     remote_name = models.CharField(max_length=200)
-    http_length   = models.IntegerField()
-    http_encoding = models.CharField(max_length=32)
 
+    # HTTP headers
+    http_length        = models.IntegerField()
+    http_encoding      = models.CharField(max_length=32)
+    http_last_modified = models.DateTimeField(null=True,blank=True)
 
     # Content: HTML/PDF + file
     local_file  = models.FileField(unique=True)    

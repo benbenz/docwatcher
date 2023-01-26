@@ -2,12 +2,16 @@ import csv
 import os
 import uuid
 import re
+import sys
 from urllib.parse import urlparse
 import psutil       
 from crawler.helper import get_content_type
+from crawler.core import CrawlerMode
 from enum import IntEnum
 import difflib
 from bs4 import BeautifulSoup
+from lxml import etree
+import traceback
 
 class bcolors:
     HEADER = '\033[95m'
@@ -54,8 +58,9 @@ class LocalStorageHandler:
         os.makedirs(directory, exist_ok=True)
         file_status = FileStatus.NEW
 
+        config = kwargs.get('config') or dict()
+        urlcfg = self.get_url_config(config,response)
         ignore_patterns = None
-        urlcfg = self.get_url_config(kwargs.get('config'),response)
         if urlcfg:
             more_ignore_patterns = urlcfg.get('ignore_patterns')
             if more_ignore_patterns:
@@ -63,13 +68,24 @@ class LocalStorageHandler:
                     ignore_patterns = []
                 for patt in more_ignore_patterns:
                     if not patt in ignore_patterns:
-                        ignore_patterns.append(patt)
+                        ignore_patterns.append(re.compile(patt))
+
+        ignore_elements = None
+        if urlcfg:
+            more_ignore_elements = urlcfg.get('ignore_elements')
+            if more_ignore_elements:
+                ignore_elements = []
+                for ele in more_ignore_elements:
+                    if not ele in ignore_elements:
+                        ignore_elements.append(ele)                        
 
         # if kwargs.get('orig_url'):
         #     orig_domain = urlparse(kwargs.get('orig_url')).netloc
         #     if ext == ".html" and orig_domain not in parsed.netloc:
         #         print("skipping recording of HTML content that is out of domain",parsed.netloc,"vs",orig_domain)
         #         return None , FileStatus.SKIPPED
+
+        path = None
 
         if kwargs.get('old_files'):
             has_similar_file = False
@@ -84,31 +100,76 @@ class LocalStorageHandler:
                             has_similar_file = True
                             similar_file = old_file
                             break
-                        elif ignore_patterns is not None:
+                        elif ignore_patterns is not None or ignore_elements is not None:
                             try:
-                                #https://stackoverflow.com/questions/17904097/python-difference-between-two-strings
-                                old_html = BeautifulSoup(old_content,'html.parser').prettify()
-                                new_html = BeautifulSoup(response.content,'html.parser').prettify()
-                                for pattern in ignore_patterns:
+                                old_soup = BeautifulSoup(old_content,'html.parser')
+                                new_soup = BeautifulSoup(response.content,'html.parser')
+                                old_html = old_soup.prettify().strip()
+                                new_html = new_soup.prettify().strip()
+                                if ignore_elements is not None:
+                                    old_dom = etree.HTML(old_html)
+                                    new_dom = etree.HTML(new_html)
+                                    for xpath in ignore_elements:
+                                        old_ele = old_dom.xpath(xpath)
+                                        new_ele = new_dom.xpath(xpath)
+                                        if old_ele is not None:
+                                            for e in old_ele:
+                                                e.getparent().remove(e)
+                                        if new_ele is not None:
+                                            for e in new_ele:
+                                                e.getparent().remove(e)
+                                    old_html = etree.tostring(old_dom, pretty_print=True, xml_declaration=True)
+                                    new_html = etree.tostring(new_dom, pretty_print=True, xml_declaration=True)
+                                for pattern in (ignore_patterns or []):
+                                    if isinstance(old_html,bytes) or isinstance(old_html,bytearray):
+                                        old_html = old_html.decode()
+                                    if isinstance(new_html,bytes) or isinstance(new_html,bytearray):
+                                        new_html = new_html.decode()
                                     old_html = re.sub(pattern,"",old_html)
                                     new_html = re.sub(pattern,"",new_html)
                                 if old_html == new_html:
                                     has_similar_file = True
                                     similar_file = old_file
                                     break
+                                elif config.get('debug')==True:
+                                    if isinstance(old_html,bytes) or isinstance(old_html,bytearray):
+                                        old_html = old_html.decode()
+                                    if isinstance(new_html,bytes) or isinstance(new_html,bytearray):
+                                        new_html = new_html.decode()
+                                    # try maybe this ...
+                                    #https://stackoverflow.com/questions/17904097/python-difference-between-two-strings
+                                    with open(old_file+'.diff.html','wb') as diff_file:
+                                        htmldiff = difflib.HtmlDiff()
+                                        diff_file.write( htmldiff.make_file(old_html.splitlines(),new_html.splitlines(),context=True).encode() )
                             except Exception as e:
                                 print(bcolors.FAIL,"Error while comparing files",e,bcolors.CEND)
+                                traceback.print_exc()
+                        elif config.get('debug')==True:
+                            with open(old_file+'.diff.html','wb') as diff_file:
+                                htmldiff = difflib.HtmlDiff()
+                                if isinstance(old_content,bytes) or isinstance(old_content,bytearray):
+                                    old_content = old_content.decode()
+                                if isinstance(response.content,bytes) or isinstance(response.content,bytearray):
+                                    resp_content = response.content.decode()
+                                else:
+                                    resp_content = response.content
+                                diff_file.write( htmldiff.make_file(old_content.splitlines(),resp_content.splitlines(),context=True).encode() )
                 except:
                     print(bcolors.FAIL,"Error opening file",old_file,bcolors.CEND)
             if has_similar_file:
-                print(bcolors.OKCYAN,"Skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file),bcolors.CEND)
-                return similar_file , FileStatus.EXISTING
+                #print(bcolors.OKCYAN,"skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file),bcolors.CEND)
+                #return similar_file , FileStatus.EXISTING
+                # lets override
+                print(bcolors.OKCYAN,"overriding file {0} because it has non-relevant changes: {1}".format(response.url,similar_file),bcolors.CEND)
+                path = similar_file
+                file_status = FileStatus.EXISTING
             else:
-                print(bcolors.WARNING,"We found a new version of the file",response.url,bcolors.CEND)
+                print(bcolors.WARNING,"we found a new version of the file",response.url,bcolors.CEND)
                 file_status = FileStatus.MODIFIED
-
-        path = os.path.join(directory, filename)
-        path = _ensure_unique(path)
+        
+        if path is None:
+            path = os.path.join(directory, filename)
+            path = _ensure_unique(path)
         with open(path, 'wb') as f:
             f.write(response.content)
 
@@ -122,8 +183,13 @@ class CSVStatsHandler:
         self.name = name
         os.makedirs(directory, exist_ok=True)
 
-    def get_handled_list(self):
+    def get_handled_list(self,crawler_mode):
         list_handled = []
+
+        if crawler_mode == CrawlerMode.FULL_CRAWL:
+            return list_handled 
+        
+        # this will cause already crawled urls to not be crawled again !
         if self.name:
             file_name = os.path.join(self.directory, self.name + '.csv')
             if os.path.isfile(file_name):

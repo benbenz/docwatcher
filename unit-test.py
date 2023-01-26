@@ -18,6 +18,7 @@ def test_crawl_rendered_all():
         rmtree(output_dir)
 
     cfg = json.load("config.json")
+    # cfg = __import__('config').config    
 
     #crawler.crawl(url="https://simfin.com/crawlingtest",output_dir=output_dir,method="rendered-all",gecko_path=gecko_path,depth=3)
     crawler.crawl(url=cfg["url_test"],sleep_time=5,output_dir=output_dir,method="rendered-all",gecko_path=gecko_path,depth=10)

@@ -1,7 +1,5 @@
 thisdir=$(pwd)
 export PYTHONPATH=$thisdir:$thisdir/www:$PYTHONPATH
 python docspider/run.py
-cd www
-python manage.py rebuild_index --noinput
-cd $thisdir
+python www/manage.py rebuild_index --noinput
 python docspider/search.py

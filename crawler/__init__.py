@@ -1,8 +1,10 @@
 import logging
 import sys
 from urllib.parse import urlparse
+import signal
 
 from crawler.crawler import Crawler
+from crawler.core import CrawlerMode
 from crawler.downloaders import RequestsDownloader
 from crawler.handlers import (
     LocalStorageHandler,
@@ -18,9 +20,9 @@ logging.basicConfig(
 )
 
 requests_downloader = RequestsDownloader()
+crawlers = []
 
-
-def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False):
+def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_NEW):
     head_handlers = {}
     get_handlers = {}
 
@@ -63,6 +65,28 @@ def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="g
         gecko_path=gecko_path,
         process_handler=process_handler,
         sleep_time=sleep_time,
-        safe=safe
+        safe=safe,
+        crawler_mode=crawler_mode
     )
-    crawler.crawl(url, depth)
+
+    crawlers.append(crawler)
+
+    try:
+
+        crawler.crawl(url, depth)
+
+    except KeyboardInterrupt:
+
+        print("KeyboardInterrupt: cancelling task")
+
+    crawler.close()
+
+def exit_gracefully(signum,frame):
+    for crawler in crawlers:
+        crawler.close()
+
+
+def register_signals():
+    signal.signal(signal.SIGINT , exit_gracefully)
+    signal.signal(signal.SIGTERM, exit_gracefully)        
+

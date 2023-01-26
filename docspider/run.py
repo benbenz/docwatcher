@@ -3,25 +3,34 @@ from shutil import rmtree
 import csv
 import json
 import crawler
+import signal 
 import docspider.handlers as handlers
 from urllib.parse import urlparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor , ProcessPoolExecutor , as_completed
 
 # change this to your geckodriver path
 gecko_path = "./geckodriver"
 output_dir = "download"
 
+executor = None
+futures  = []
+
 def crawl_rendered_all():
+    global executor
 
     #if os.path.isdir(output_dir):
     #    rmtree(output_dir)
 
     with open('config.json','r') as jsonfile:
         cfg = json.load(jsonfile)
+    # cfg = __import__('config').config    
 
-    executor = ThreadPoolExecutor(max_workers=10)
+    # issue with html.render() in requests_html >> use ProcessPoolExecutor
+    executor = ProcessPoolExecutor(max_workers=10) #ThreadPoolExecutor(max_workers=10)
 
     solo = cfg.get("solo",None) 
+
+    #futures = []
 
     for url_config in cfg.get('urls'):
 
@@ -61,7 +70,7 @@ def crawl_rendered_all():
             head_handlers[handled_type] = head_handler
 
         if not url:
-            print("Skipping config entry: no URL found")
+            print("skipping config entry: no URL found")
             continue
 
         future = executor.submit(
@@ -77,7 +86,34 @@ def crawl_rendered_all():
                 safe=safe
         )
 
-    executor.shutdown(True) # wait
+        futures.append(future)
+
+    try:
+        for _ in as_completed(futures):
+            pass   
+    except KeyboardInterrupt:
+        for future in futures:
+            try:
+                future.cancel()
+            except:
+                pass
+        if executor:
+            executor.shutdown(wait=True,cancel_futures=True)
+
+def exit_gracefully(signum,frame):
+    signame = signal.Signals(signum).name
+    print(f'exit_gracefully() called with signal {signame} ({signum})')  
+    for future in futures:
+        try:
+            future.cancel()
+        except:
+            pass
+    if executor is not None:  
+        executor.shutdown(wait=True,cancel_futures=True)
+
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT , exit_gracefully)
+    signal.signal(signal.SIGTERM, exit_gracefully)     
+    crawler.register_signals()
     crawl_rendered_all()

@@ -1,5 +1,6 @@
 from urllib.parse import urlparse
 from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus , bcolors
+from crawler.core import CrawlerMode
 # .pdf
 from PyPDF4 import PdfFileReader
 # .doc , .docx
@@ -15,6 +16,8 @@ import os
 import csv
 import uuid
 import traceback
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timedelta
 
 # load django stuff
 # MAKE SURE ROOT/www is also in the PYTHONPATH !!!
@@ -24,6 +27,7 @@ application = get_wsgi_application()
 # now we can load the model :)
 # note that we don't have www.docs.models (because of PYTHONPATH)
 from docs.models import Document
+from django.db.models import Q
 
 def get_doctype_by_content(response):
     try:
@@ -136,6 +140,18 @@ def recover_PDF(path):
             raise e
     return None
 
+def get_header_http_last_modified(response):
+    last_modified = response.headers.get('Last-Modified') or response.headers.get('last-modified')
+    if last_modified:
+        last_modified = parsedate_to_datetime(last_modified)
+    return last_modified
+
+def get_header_http_length(response):
+    return response.headers.get('Content-Length') or response.headers.get('content-length') or -1    
+
+def get_header_http_encoding(response):
+    return response.headers.get('Content-Encoding') or response.headers.get('content-encoding') or '' 
+
 class AllInOneHandler(LocalStorageHandler):
 
     def __init__(self, directory, subdirectory):
@@ -229,6 +245,10 @@ class AllInOneHandler(LocalStorageHandler):
                 print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
                 traceback.print_exc()
 
+        last_modified = response.headers.get('Last-Modified') or response.headers.get('last-modified')
+        if last_modified:
+            last_modified = parsedate_to_datetime(last_modified)
+
         doc = Document(
             domain      = domain_name , 
             url         = response.url , 
@@ -236,8 +256,9 @@ class AllInOneHandler(LocalStorageHandler):
             depth       = depth ,
 #            record_date = AUTO
             remote_name = filename ,
-            http_length = response.headers.get('Content-Length') or response.headers.get('content-length') or -1 ,
-            http_encoding = response.headers.get('Content-Encoding') or response.headers.get('content-encoding') or '' ,
+            http_length =  get_header_http_length(response),
+            http_encoding = get_header_http_encoding(response),
+            http_last_modified = get_header_http_last_modified(response) ,
 
             # Content: HTML/PDF + file
             doc_type    = doc_type ,
@@ -261,10 +282,26 @@ class DBStatsHandler:
     def __init__(self,domain):
         self.domain = domain
 
-    def get_handled_list(self):
+    def get_handled_list(self,crawler_mode):
         list_handled = []
+        if crawler_mode == CrawlerMode.FULL_CRAWL:
+            return list_handled
+
+        # we're gonna consider that really old non-html documents won't change anymore (1y+)
+        # so we can add those to the 'handled_list' and avoid head() or even get() methods on those docs
+        # we have to discard HTML documents because we want to crawl them again
+        # unless they are very very old as well (3 years+) ! 
+        # this is all to minimize the footprint on the server....
+        date_today = datetime.today()
+        date_1y    = date_today - timedelta(years=1)
+        date_3y    = date_today - timedelta(years=3)
+        q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_3y)
+        q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_1y)
+        query   = Q(domain=self.domain) & (q_html | q_other)
         if self.domain:
-            for doc in Document.objects.filter(domain=self.domain):
+            queryset = Document.objects.filter(query)
+            print(queryset.query)
+            for doc in queryset:
                 list_handled.append(doc.url.name)
         return list_handled
 
@@ -279,10 +316,13 @@ class DBStatsHandler:
         return result
 
     def find(self,response):
-        http_length   = response.headers.get('Content-Length') or response.headers.get('content-length') or -1 ,
-        http_encoding = response.headers.get('Content-Encoding') or response.headers.get('content-encoding') or '' ,
-
-        results = Document.objects.filter(url=response.url,http_length=http_length,http_encoding=http_encoding)
+        http_length        = get_header_http_length(response)
+        http_encoding      = get_header_http_encoding(response)
+        http_last_modified = get_header_http_last_modified(response)
+        if http_last_modified:
+            results = Document.objects.filter(url=response.url,http_last_modified=http_last_modified)
+        else:
+            results = Document.objects.filter(url=response.url,http_length=http_length,http_encoding=http_encoding)
         r = []
         for result in results:
             r.append(result.local_file.name)

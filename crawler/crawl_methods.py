@@ -6,6 +6,7 @@ from selenium.common.exceptions import InvalidSessionIdException, ElementClickIn
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 import time
 import json
+from crawler.handlers import bcolors
 
 
 def get_hrefs_html(response, follow_foreign_hosts=False):
@@ -63,7 +64,14 @@ def get_hrefs_js_simple(response, follow_foreign_hosts=False):
     try:
         response.html.render(reload=False)
         urls_on_page = response.html.absolute_links
-    except Exception:
+    except RuntimeError as re:
+        msg = str(re)
+        if "event loop is already running" in msg:
+            return None
+        else:
+            print(msg.upper())
+    except Exception as e:
+        print(bcolors.WARNING,"Issue while rendering url",response.url,e,"... using simple method instead",bcolors.CEND)
         return get_hrefs_html(response, follow_foreign_hosts)
 
     return handle_url_list_js([], urls_on_page, parsed_response_url, follow_foreign_hosts)
@@ -112,6 +120,7 @@ class ClickCrawler:
         try:
             with open('config.json') as cfg_file:
                 self.config = json.load(cfg_file)
+            #elf.config = __import__('config').config
         except:
             self.config = dict()
 
@@ -233,7 +242,18 @@ class ClickCrawler:
 
             urls += handle_url_list_js(urls, new_urls_on_page, parsed_response_url, self.follow_foreign_hosts)
 
-        self.driver.close()
-        self.process_handler.kill_all()
+        #self.driver.close()
+        #self.process_handler.kill_all()
+        self.close()
 
         return urls
+
+    def close(self):
+        try:
+            self.driver.close()
+        except:
+            pass
+        try:
+            self.process_handler.kill_all()
+        except:
+            pass
