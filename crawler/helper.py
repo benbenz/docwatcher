@@ -85,12 +85,12 @@ def call(session, url, use_proxy=False, retries=0):
                     pm.change_proxy(proxy[1])
                     return call(session, url, True, retries + 1)
                 else:
-                    print(bcolors.FAIL,"Error fetching url",url)
+                    print(bcolors.FAIL,"Error fetching url",url,bcolors.CEND)
                     return None
             else:
                 return response
         else:
-            print(bcolors.FAIL,"Error fetching url. No Proxy available.",url)
+            print(bcolors.FAIL,"Error fetching url. No Proxy available.",url,bcolors.CEND)
             return None
     else:
         try:
