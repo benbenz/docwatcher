@@ -22,7 +22,7 @@ logging.basicConfig(
 requests_downloader = RequestsDownloader()
 crawlers = []
 
-def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_NEW):
+def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_THRU):
     head_handlers = {}
     get_handlers = {}
 
@@ -74,6 +74,8 @@ def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="g
     try:
 
         crawler.crawl(url, depth)
+        
+        print("DONE CRAWLING",url)
 
     except KeyboardInterrupt:
 

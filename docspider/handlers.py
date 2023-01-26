@@ -1,6 +1,7 @@
 from urllib.parse import urlparse
 from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus , bcolors
 from crawler.core import CrawlerMode
+from crawler.helper import clean_url
 # .pdf
 from PyPDF4 import PdfFileReader
 # .doc , .docx
@@ -159,14 +160,19 @@ class AllInOneHandler(LocalStorageHandler):
         #super().__init__(directory,subdirectory)
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
 
-    def handle(self, response, depth, previous_url, *args, **kwargs):
-        path , file_status = super().handle(response,*args,**kwargs)
+    def handle(self, response, depth, previous_url, previous_id, *args, **kwargs):
+        path , file_status , pathid = super().handle(response,*args,**kwargs)
 
         # the file already existed
-        if file_status == FileStatus.EXISTING:
-            return path , file_status 
-        elif file_status == FileStatus.SKIPPED:
-            return path , file_status
+        if file_status in [ FileStatus.EXISTING , FileStatus.SKIPPED ]:
+            try:
+                if previous_url:
+                    the_doc = Document.objects.get(local_file=path,referers__url=previous_url)
+                else:
+                    the_doc = Document.objects.get(local_file=path)
+                return path , file_status , the_doc.id
+            except:
+                return path , file_status , None
 
         parsed_url  = urlparse(response.url)
         domain_name = parsed_url.netloc
@@ -217,7 +223,7 @@ class AllInOneHandler(LocalStorageHandler):
             except Exception as e:
                 has_error = True
                 print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
-                traceback.print_exc()
+                #traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.PPT , Document.DocumentType.PPTX , Document.DocumentType.PPTM]:
             try:
@@ -231,7 +237,7 @@ class AllInOneHandler(LocalStorageHandler):
             except Exception as e:
                 has_error = True
                 print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
-                traceback.print_exc()
+                #traceback.print_exc()
         
         elif doc_type == Document.DocumentType.RTF:
             body = rtf_to_text(body)
@@ -240,11 +246,12 @@ class AllInOneHandler(LocalStorageHandler):
             try:
                 soup  = BeautifulSoup(body,'html.parser')
                 body  = soup.get_text()
-                title = soup.title.string
+                if soup.title:
+                    title = soup.title.string
             except Exception as e:
                 has_error = True
                 print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
-                traceback.print_exc()
+                #traceback.print_exc()
 
         last_modified = response.headers.get('Last-Modified') or response.headers.get('last-modified')
         if last_modified:
@@ -253,7 +260,7 @@ class AllInOneHandler(LocalStorageHandler):
         doc = Document(
             domain      = domain_name , 
             url         = response.url , 
-            referer     = previous_url or '' ,
+#            referer     = previous_url or '' ,
             depth       = depth ,
 #            record_date = AUTO
             remote_name = filename ,
@@ -271,12 +278,37 @@ class AllInOneHandler(LocalStorageHandler):
             has_error   = has_error ,
             local_file  = path #local_name
         )
+
         # save the new entry
         #print("saving new entry ...")
         doc.save()
         #print("done saving.")
 
-        return path , file_status  
+        # add the referer
+        added = None
+        if previous_id is not None:
+            added = False
+            try:
+                docreferer = Document.objects.get(pk=previous_id)
+                if not doc.referers.contains(docreferer):
+                    doc.referers.add(docreferer)
+                    added = True
+            except:
+                pass
+        elif previous_url is not None or added==False:
+            try:
+                docreferer = Document.objects.get(url=previous_url)
+                if not doc.referers.contains(docreferer):
+                    doc.referers.add(docreferer)
+                    added = True
+            except:
+                pass
+
+        # save the relationship
+        if added:
+            doc.save()
+
+        return path , file_status , doc.id
 
 class DBStatsHandler:
 
@@ -285,25 +317,42 @@ class DBStatsHandler:
 
     def get_handled_list(self,crawler_mode):
         list_handled = []
-        if crawler_mode == CrawlerMode.FULL_CRAWL:
-            return list_handled
+        
+        if crawler_mode == CrawlerMode.CRAWL_FULL:
+        
+            pass
 
-        # we're gonna consider that really old non-html documents won't change anymore (2y+)
-        # we can add those documents to the 'handled_list' and avoid head() or even get() requests
-        # we have to discard HTML documents because we want to crawl them again
-        # unless they are very very old as well (3 years+) ! 
-        # this is all to minimize the footprint on the server....
-        date_today = datetime.today()
-        date_html  = make_aware( date_today - timedelta(days=3*365) ) # 3 years
-        date_other = make_aware( date_today - timedelta(days=2*365) ) # 2 years 
-        q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_html)
-        q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_other)
-        query   = Q(domain=self.domain) & (q_html | q_other)
-        if self.domain:
-            queryset = Document.objects.filter(query)
-            #print(queryset.query)
-            for doc in queryset:
-                list_handled.append(doc.url.name)
+        elif crawler_mode == CrawlerMode.CRAWL_THRU:
+            # we're gonna consider that really old non-html documents won't change anymore (2y+)
+            # we can add those documents to the 'handled_list' and avoid head() or even get() requests
+            # we have to discard HTML documents because we want to crawl them again
+            # unless they are very very old as well (3 years+) ! 
+            # this is all to minimize the footprint on the server....
+            date_today = datetime.today()
+            date_html  = make_aware( date_today - timedelta(days=3*365) ) # 3 years
+            date_other = make_aware( date_today - timedelta(days=2*365) ) # 2 years 
+            q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_html)
+            q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_other)
+            query   = Q(domain=self.domain) & (q_html | q_other)
+            if self.domain:
+                queryset = Document.objects.filter(query)
+                #print(queryset.query)
+                for doc in queryset:
+                    list_handled.append(doc.url.name)
+
+        elif crawler_mode == CrawlerMode.CRAWL_LIGHT:
+            # we're gonna consider more documents as being done ...
+            date_today = datetime.today()
+            date_html  = make_aware( date_today - timedelta(days=1*365) ) # 2 years
+            date_other = make_aware( date_today - timedelta(days=1*365) ) # 2 years
+            q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_html)
+            q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_other)
+            query   = Q(domain=self.domain) & (q_html | q_other)
+            if self.domain:
+                queryset = Document.objects.filter(query)
+                for doc in queryset:
+                    list_handled.append(doc.url.name)
+
         return list_handled
 
     def handle(self, response, depth, previous_url, local_name, *args, **kwargs):
@@ -326,5 +375,26 @@ class DBStatsHandler:
             results = Document.objects.filter(url=response.url,http_length=http_length,http_encoding=http_encoding)
         r = []
         for result in results:
-            r.append(result.local_file.name)
-        return r
+            #r.append(result.local_file.name)
+            r.append(result.id)
+        #return r
+        if len(r)>0:
+            return r[0]
+        else:
+            return None
+
+    def get_urls_by_referer(self,referer,objid=None):
+        result = []
+
+        if objid is None:
+            referer_clean = clean_url(referer)
+            if referer_clean != referer:
+                queryset = Document.objects.filter(Q(referers__url=referer)|Q(referers__url=referer_clean))
+            else:
+                queryset = Document.objects.filter(referers__url=referer)
+        else:
+            queryset = Document.objects.get(pk=objid).links.all()
+
+        for doc in queryset:
+            result.append({"url": doc.url, "follow": True})
+        return result

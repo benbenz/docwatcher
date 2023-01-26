@@ -173,7 +173,7 @@ class LocalStorageHandler:
         with open(path, 'wb') as f:
             f.write(response.content)
 
-        return path , file_status  
+        return path , file_status , path # id is path
 
 class CSVStatsHandler:
     _FIELDNAMES = ['filename', 'local_name', 'url', 'linking_page_url', 'size', 'depth']
@@ -186,18 +186,18 @@ class CSVStatsHandler:
     def get_handled_list(self,crawler_mode):
         list_handled = []
 
-        if crawler_mode == CrawlerMode.FULL_CRAWL:
-            return list_handled 
-        
-        # this will cause already crawled urls to not be crawled again !
-        if self.name:
-            file_name = os.path.join(self.directory, self.name + '.csv')
-            if os.path.isfile(file_name):
-                with open(file_name, newline='') as csvfile:
-                    reader = csv.reader(csvfile)
-                    for k, row in enumerate(reader):
-                        if k > 0:
-                            list_handled.append(row[2])
+        if crawler_mode in [ CrawlerMode.CRAWL_FULL , CrawlerMode.CRAWL_THRU] :
+            pass
+        else:
+            # this will cause already crawled urls to not be crawled again !
+            if self.name:
+                file_name = os.path.join(self.directory, self.name + '.csv')
+                if os.path.isfile(file_name):
+                    with open(file_name, newline='') as csvfile:
+                        reader = csv.reader(csvfile)
+                        for k, row in enumerate(reader):
+                            if k > 0:
+                                list_handled.append(row[2])
         return list_handled
 
     def handle(self, response, depth, previous_url, local_name, *args, **kwargs):
@@ -244,8 +244,26 @@ class CSVStatsHandler:
                         result.append(row[1]) # local_name
         return result
 
+    def get_urls_by_referer(self,referer,objid=None):
+        parsed_url = urlparse(referer)
+        name = self.name or parsed_url.netloc
+        output = os.path.join(self.directory, name + '.csv')
+        if not os.path.isfile(output):
+            return None
+        result = []
+        with open(output, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for k, row in enumerate(reader):
+                if k > 0:
+                    if row[3] == referer:
+                        result.append({"url": row[2], "follow": True}) # url
+        return result        
+
     def find(self,response):
-        return self.get_filenames(response)
+        res = self.get_filenames(response)
+        if res and len(res)>0:
+            return res[0]
+        return None
 
 class ProcessHandler:
 

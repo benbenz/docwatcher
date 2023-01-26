@@ -1,6 +1,5 @@
 import os
 from shutil import rmtree
-import csv
 import json
 import crawler
 import signal 
@@ -83,7 +82,8 @@ def crawl_rendered_all():
                 output_dir=output_dir,
                 method=method,
                 gecko_path=gecko_path,
-                safe=safe
+                safe=safe,
+                crawler_mode=crawler.CrawlerMode.CRAWL_LIGHT
         )
 
         futures.append(future)
