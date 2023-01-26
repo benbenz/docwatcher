@@ -77,7 +77,7 @@ def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="g
 
         crawler.crawl(url, depth)
         
-        print("DONE CRAWLING",url)
+        print(bcolors.OKCYAN,"DONE CRAWLING",url,bcolors.CEND)
 
     except KeyboardInterrupt:
 
