@@ -167,11 +167,15 @@ class AllInOneHandler(LocalStorageHandler):
         if file_status in [ FileStatus.EXISTING , FileStatus.SKIPPED ]:
             try:
                 if previous_url:
-                    the_doc = Document.objects.get(local_file=path,referers__url=previous_url)
+                    try:
+                        the_doc = Document.objects.get(local_file=path,referers__url=previous_url)
+                    except:
+                        the_doc = Document.objects.get(local_file=path)
                 else:
                     the_doc = Document.objects.get(local_file=path)
                 return path , file_status , the_doc.id
             except:
+                print(bcolors.FAIL,"INTERNAL Error: an existing file is not registered in the database!",bcolors.CEND)
                 return path , file_status , None
 
         parsed_url  = urlparse(response.url)

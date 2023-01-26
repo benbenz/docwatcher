@@ -210,9 +210,12 @@ class Crawler:
         file_status = FileStatus.UNKNOWN
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
-            local_name , file_status , objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config)
+            local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config)
         if head_handler and file_status!=FileStatus.EXISTING and file_status!=FileStatus.SKIPPED:
             head_handler.handle(response, depth, previous_url, local_name)
+
+        if nu_objid is not None:
+            objid = nu_objid
 
         if content_type == "text/html":
             self.handled.add(final_url)
