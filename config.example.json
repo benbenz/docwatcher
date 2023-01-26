@@ -36,7 +36,7 @@
 
     "urls" : [
         { "url" : "http://www.url1.com/" , "method" : "normal"  , "depth" : 0 , "ignore_patterns" : [ "<a href=\"mailto.*\"" ] , "ignore_urls" : [ "http://www.url1.com/FOO" , ".*url1.com/.*foo.*" ] } ,
-        { "url" : "https://www.url2.com/"      , "method" : "normal"  , "depth" : 7 , "sleep" : 15 , "ignore_patterns" : [ ] } ,
+        { "url" : "https://www.url2.com/"      , "method" : "normal"  , "depth" : 7 , "sleep" : 15 , "ignore_patterns" : [ ] , "crawler_mode" : "CRAWL_LIGHT" } ,
         { "url" : "https://www.url3.com/" , "method" : "normal"  , "depth" : 7 , "sleep" : 15 , "ignore_patterns" : [ "fuse_script\\.js\\?ver=[0-9]+" , "data-nonce=\"\\w+\"" , "\"_nonce\":\"\\w+\"" , "\"consent_expire_time\":\"\\d+\"","\"consent_time\":\"\\d+\"" ] } ,
         { "url" : "https://www.url4.com/"                , "method" : "normal"  , "depth" : 7 , "ignore_elements" : [ "//h2[contains(@class,'widgettitle')]" , "//div[contains(@class,'fest_item')]" , "//script[contains(@src,'image_zoom')]" , "//script[contains(text(),'with_woocommerce')]"] , "ignore_patterns" : [ "class=\"collapseomatic\" id=\"\\w+\"" , "class=\"colomat-swap\" id=\"[\\w\\-]+\"" , "class=\"collapseomatic_content\" id=\"[\\w\\-]+\"" ] } ,
         { "url" : "https://www.url5.com/"    , "method" : "normal"  , "depth" : 7 , "sleep" : 10 } ,

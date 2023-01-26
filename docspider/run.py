@@ -38,6 +38,9 @@ def crawl_rendered_all():
         depth  = url_config.get("depth") or 4
         sleep  = url_config.get("sleep") or 5
         safe   = url_config.get("safe",False)
+        c_mode = url_config.get("crawler_mode")
+
+        crawler_mode = crawler.CrawlerMode[c_mode] if c_mode else crawler.CrawlerMode.CRAWL_THRU
 
         if solo is not None and solo != url:
             continue 
@@ -83,7 +86,8 @@ def crawl_rendered_all():
                 method=method,
                 gecko_path=gecko_path,
                 safe=safe,
-                crawler_mode=crawler.CrawlerMode.CRAWL_LIGHT
+                crawler_mode=crawler_mode,
+                domain=domain_name
         )
 
         futures.append(future)

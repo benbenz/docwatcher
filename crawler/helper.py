@@ -1,6 +1,7 @@
 import logging
 from functools import lru_cache
 from crawler.proxy import ProxyManager
+from crawler.core import bcolors
 import re
 import requests
 from urllib.parse import urlparse,urlunparse
@@ -84,10 +85,12 @@ def call(session, url, use_proxy=False, retries=0):
                     pm.change_proxy(proxy[1])
                     return call(session, url, True, retries + 1)
                 else:
+                    print(bcolors.FAIL,"Error fetching url",url)
                     return None
             else:
                 return response
         else:
+            print(bcolors.FAIL,"Error fetching url. No Proxy available.",url)
             return None
     else:
         try:
@@ -119,6 +122,7 @@ def call_head(session, url, use_proxy=False, retries=0):
                     pm.change_proxy(proxy[1])
                     return call_head(session, url, True, retries + 1)
                 else:
+                    print()
                     return None
             else:
                 return response

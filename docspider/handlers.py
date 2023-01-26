@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
-from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus , bcolors
-from crawler.core import CrawlerMode
+from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus 
+from crawler.core import CrawlerMode, bcolors
 from crawler.helper import clean_url
 # .pdf
 from PyPDF4 import PdfFileReader

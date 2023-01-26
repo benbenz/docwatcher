@@ -6,7 +6,7 @@ from selenium.common.exceptions import InvalidSessionIdException, ElementClickIn
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 import time
 import json
-from crawler.handlers import bcolors
+from crawler.core import bcolors
 
 
 def get_hrefs_html(response, follow_foreign_hosts=False):

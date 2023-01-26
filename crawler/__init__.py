@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import signal
 
 from crawler.crawler import Crawler
-from crawler.core import CrawlerMode
+from crawler.core import CrawlerMode , bcolors
 from crawler.downloaders import RequestsDownloader
 from crawler.handlers import (
     LocalStorageHandler,
@@ -22,7 +22,7 @@ logging.basicConfig(
 requests_downloader = RequestsDownloader()
 crawlers = []
 
-def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_THRU):
+def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_THRU,domain=None):
     head_handlers = {}
     get_handlers = {}
 
@@ -70,6 +70,8 @@ def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="g
     )
 
     crawlers.append(crawler)
+
+    print(bcolors.OKCYAN,"Crawler created with mode '{0}' for domain {1}. We have {2} urls that are already handled".format(crawler.get_mode().name,domain,crawler.get_handled_len()),bcolors.CEND)
 
     try:
 

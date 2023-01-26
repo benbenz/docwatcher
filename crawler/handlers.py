@@ -6,25 +6,12 @@ import sys
 from urllib.parse import urlparse
 import psutil       
 from crawler.helper import get_content_type
-from crawler.core import CrawlerMode
+from crawler.core import CrawlerMode, bcolors
 from enum import IntEnum
 import difflib
 from bs4 import BeautifulSoup
 from lxml import etree
 import traceback
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    CEND      = '\33[0m'        
-
 
 class FileStatus(IntEnum):
     UNKNOWN  = 0

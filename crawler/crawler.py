@@ -1,7 +1,7 @@
 from crawler.helper import get_content_type, call, call_head , clean_url
-from crawler.core import CrawlerMode
+from crawler.core import CrawlerMode, bcolors
 from crawler.crawl_methods import get_hrefs_html, get_hrefs_js_simple, ClickCrawler
-from crawler.handlers import FileStatus , bcolors
+from crawler.handlers import FileStatus 
 import time
 from urllib.parse import urlparse
 import json
@@ -53,7 +53,11 @@ class Crawler:
                 handled_entry['url'] = clean_url(handled_entry['url'])
                 self.handled.add(handled_entry)
 
-        print(bcolors.OKCYAN,"Crawler created with mode '{0}'. We have {1} urls that are already handled".format(self.crawler_mode.name,len(self.handled)),bcolors.CEND)
+    def get_handled_len(self):
+        return len(self.handled)
+
+    def get_mode(self):
+        return self.crawler_mode
 
     def close(self):
         if self.session:
