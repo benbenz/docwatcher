@@ -18,6 +18,7 @@ import uuid
 import traceback
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
+from django.utils.timezone import make_aware
 
 # load django stuff
 # MAKE SURE ROOT/www is also in the PYTHONPATH !!!
@@ -287,20 +288,20 @@ class DBStatsHandler:
         if crawler_mode == CrawlerMode.FULL_CRAWL:
             return list_handled
 
-        # we're gonna consider that really old non-html documents won't change anymore (1y+)
-        # so we can add those to the 'handled_list' and avoid head() or even get() methods on those docs
+        # we're gonna consider that really old non-html documents won't change anymore (2y+)
+        # we can add those documents to the 'handled_list' and avoid head() or even get() requests
         # we have to discard HTML documents because we want to crawl them again
         # unless they are very very old as well (3 years+) ! 
         # this is all to minimize the footprint on the server....
         date_today = datetime.today()
-        date_1y    = date_today - timedelta(years=1)
-        date_3y    = date_today - timedelta(years=3)
-        q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_3y)
-        q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_1y)
+        date_html  = make_aware( date_today - timedelta(days=3*365) ) # 3 years
+        date_other = make_aware( date_today - timedelta(days=2*365) ) # 2 years 
+        q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_html)
+        q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_other)
         query   = Q(domain=self.domain) & (q_html | q_other)
         if self.domain:
             queryset = Document.objects.filter(query)
-            print(queryset.query)
+            #print(queryset.query)
             for doc in queryset:
                 list_handled.append(doc.url.name)
         return list_handled

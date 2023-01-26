@@ -101,6 +101,8 @@ class Crawler:
             return False
 
         # url is handled within this crawl session
+        # this set can be initiated with old/non-changing documents at startup (in has_document)
+        # this avoid the head() request triggered below...
         if url in self.handled:
             return False
 
