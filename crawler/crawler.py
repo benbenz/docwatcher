@@ -131,7 +131,7 @@ class Crawler:
 
         urlcfg = self.get_url_config(url)
         for iurl in urlcfg.get('ignore_urls') or []:
-            if re.match(iurl,url,flags=re.IGNORECASE):
+            if re.match(iurl,url.strip(),flags=re.IGNORECASE):
                 return False , None , None
 
         # domain has to be skipped
