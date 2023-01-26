@@ -13,7 +13,7 @@
             "subProcess": true ,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "args": [],
+            "args": [ ],
             "env": {
                 "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:$PYTHONPATH"
             }

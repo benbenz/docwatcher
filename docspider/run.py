@@ -3,6 +3,7 @@ from shutil import rmtree
 import json
 import crawler
 import signal 
+import argparse
 import docspider.handlers as handlers
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor , ProcessPoolExecutor , as_completed
@@ -14,7 +15,7 @@ output_dir = "download"
 executor = None
 futures  = []
 
-def crawl_rendered_all():
+def crawl_rendered_all(crawler_mode0):
     global executor
 
     #if os.path.isdir(output_dir):
@@ -25,11 +26,14 @@ def crawl_rendered_all():
     # cfg = __import__('config').config    
 
     # issue with html.render() in requests_html >> use ProcessPoolExecutor
-    executor = ProcessPoolExecutor(max_workers=10) #ThreadPoolExecutor(max_workers=10)
+    executor = ProcessPoolExecutor(max_workers=10)
+    #executor = ThreadPoolExecutor(max_workers=10)
 
     solo = cfg.get("solo",None) 
 
     #futures = []
+    if crawler_mode0 is not None: 
+        crawler_mode0 = crawler.CrawlerMode[crawler_mode0]
 
     for url_config in cfg.get('urls'):
 
@@ -41,6 +45,10 @@ def crawl_rendered_all():
         c_mode = url_config.get("crawler_mode")
 
         crawler_mode = crawler.CrawlerMode[c_mode] if c_mode else crawler.CrawlerMode.CRAWL_THRU
+
+        # use the least agressive crawler?
+        if crawler_mode0 is not None: #>crawler_mode:        
+            crawler_mode = crawler_mode0
 
         if solo is not None and solo != url:
             continue 
@@ -120,4 +128,8 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT , exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)     
     crawler.register_signals()
-    crawl_rendered_all()
+
+    parser = argparse.ArgumentParser(prog = 'DocWatcher',description = 'Watch for new docs',epilog = '=)')
+    parser.add_argument('-m','--mode',choices=['CRAWL_FULL','CRAWL_THRU','CRAWL_LIGHT'],help="This option forces the crawlers to use the provided mode.")
+    args = parser.parse_args()    
+    crawl_rendered_all(args.mode)
