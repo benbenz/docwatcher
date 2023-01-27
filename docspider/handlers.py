@@ -14,6 +14,7 @@ from striprtf.striprtf import rtf_to_text
 from bs4 import BeautifulSoup
 
 import os
+import re
 import csv
 import uuid
 import traceback
@@ -162,12 +163,15 @@ class AllInOneHandler(LocalStorageHandler):
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
 
     def proces_response(self,response):
-        doc_type    = get_doctype(response)
-        title       = filename
-        num_pages   = -1 
-        body        = response.content
-        needs_ocr   = False
-        has_error   = False
+        parsed_url    = urlparse(response.url)
+        domain_name   = parsed_url.netloc
+        filename      = get_filename(parsed_url,response)
+        doc_type      = get_doctype(response)
+        title         = filename
+        num_pages     = -1 
+        body          = response.content
+        needs_ocr     = False
+        has_error     = False
 
         if doc_type == Document.DocumentType.PDF:
             try:
@@ -179,6 +183,9 @@ class AllInOneHandler(LocalStorageHandler):
                     body        = "\n".join([p.extractText() for p in pdf.pages])
                     if body == '':
                         print(bcolors.WARNING,"file needs OCR",response.url,path,bcolors.CEND)
+                        # 1) https://github.com/JaidedAI/EasyOCR
+                        # 2) https://github.com/PaddlePaddle/PaddleOCR
+                        # 3) https://github.com/madmaze/pytesseract
                         needs_ocr = True
             except Exception as e:
                 msg = str(e)
@@ -238,7 +245,11 @@ class AllInOneHandler(LocalStorageHandler):
                 #traceback.print_exc()        
         last_modified = get_header_http_last_modified(response)
 
-        return doc_type , title , body , num_pages, needs_ocr , has_error , last_modified
+        # cleanup extraneous spaces
+        if body:
+            body = re.sub(r'([\s]{10,}|[\n]{3,})','\n\n',body)
+
+        return domain_name , filename , doc_type , title , body , num_pages, needs_ocr , has_error , last_modified
 
 
     def handle(self, response, depth, previous_url, previous_id, *args, **kwargs):
@@ -252,7 +263,7 @@ class AllInOneHandler(LocalStorageHandler):
 
                 # let's also update the content to match the file (unless it's exactly the same file)
                 if file_status & FileStatus.EXACT == 0:
-                    doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.proces_response(response)
+                    domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.proces_response(response)
                     the_doc.body  = body 
                     the_doc.title = title
                     the_doc.num_pages = num_pages
@@ -265,11 +276,7 @@ class AllInOneHandler(LocalStorageHandler):
                 print(bcolors.FAIL,"INTERNAL Error: an existing file is not registered in the database!",bcolors.CEND)
                 return path , file_status , None
 
-        parsed_url    = urlparse(response.url)
-        domain_name   = parsed_url.netloc
-        filename      = get_filename(parsed_url,response)
-
-        doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.proces_response(response)
+        domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.proces_response(response)
 
 
         doc = Document(

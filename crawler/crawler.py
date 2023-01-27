@@ -121,18 +121,18 @@ class Crawler:
     def should_crawl(self,url):
         # file types that are ignored
         if url[-4:] in self.file_endings_exclude:
-            return False , None , None
+            return False 
 
         # url is handled within this crawl session
         # this set can be initiated with old/non-changing documents at startup (in has_document)
         # this avoid the head() request triggered below...
         if url in self.handled:
-            return False , None , None
+            return False 
 
         urlcfg = self.get_url_config(url)
         for iurl in urlcfg.get('ignore_urls') or []:
             if re.fullmatch(iurl,url.strip(),flags=re.IGNORECASE):
-                return False , None , None
+                return False 
 
         # domain has to be skipped
         urlinfo = urlparse(url)
@@ -140,15 +140,43 @@ class Crawler:
             for kdomain in self.config.get(K_DOMAINS_SKIP):
                 if kdomain == urlinfo.netloc or urlinfo.netloc.endswith(".{0}".format(kdomain)):
                     #print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
-                    return False , None , None
+                    return False 
+
+        return True 
+
+    def handle_local(self,url):
+        
+        # check if url should be skipped
+        should_crawl = self.should_crawl(url)
+
+        # let's just skip it
+        if not should_crawl:
+            return True , None
 
         # url is handled by persistence/records
-        has_doc , content_type , objid = self.has_document(url)
+        has_doc , content_type , objid = self.has_document(url) # HEAD request potentially
         if has_doc:
             self.handled.add(url) # also had it to the crawled urls
-            return False , content_type , objid
-
-        return True , content_type , None
+            # we may be in light mode
+            # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
+            if self.crawler_mode == CrawlerMode.CRAWL_LIGHT and content_type == 'text/html':
+                urls = self.get_urls_by_referer(url,objid) 
+                if urls is None: # we dont have a handler to help with LIGHT mode ...
+                    print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_THRU.name,"!!!")
+                    self.crawler_mode = CrawlerMode.CRAWL_THRU
+                    return False , objid
+                else:
+                    self.handled.add(url)
+                    for next_url in urls:
+                        if self.do_stop:
+                            return
+                        if depth and follow:
+                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
+                    return True , objid
+            else:
+                return True , objid
+        
+        return False , objid
 
     def crawl(self, url, depth, previous_url=None, previous_id=None, follow=True, orig_url=None):
 
@@ -168,25 +196,9 @@ class Crawler:
         if self.do_stop:
             return
 
-        should_crawl , content_type , objid = self.should_crawl(url) # HEAD request potentially
-        if not should_crawl:
-            # we may be in light mode
-            # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
-            if self.crawler_mode == CrawlerMode.CRAWL_LIGHT and content_type == 'text/html':
-                urls = self.get_urls_by_referer(url,objid) 
-                if urls is None: # we dont have a handler to help with LIGHT mode ...
-                    print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_THRU.name,"!!!")
-                    self.crawler_mode = CrawlerMode.CRAWL_THRU
-                else:
-                    self.handled.add(url)
-                    for next_url in urls:
-                        if self.do_stop:
-                            return
-                        if depth and follow:
-                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
-                    return
-            else:
-                return
+        is_handled , objid = self.handle_local(url)
+        if is_handled:
+            return
 
         response = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
         # Type of content on page at url
@@ -198,9 +210,12 @@ class Crawler:
 
         final_url = clean_url(response.url)
 
-        should_crawl , content_type , objid = self.should_crawl(final_url)
-        if not should_crawl:
-            return
+        # check again
+        if final_url != url:
+            print(bcolors.WARNING,"final url is different from url:",final_url,url,bcolors.CEND)
+            is_handled , objid = self.handle_local(final_url)
+            if is_handled:
+                return
 
         print(final_url) 
 
