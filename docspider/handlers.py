@@ -277,9 +277,8 @@ class AllInOneHandler(LocalStorageHandler):
             # found_extra_text = has_extra_text or found_extra_text
             page_count += 1
 
-        executor.shutdown(wait=True,cancel_futures=False)
-        for f in futures:
-            page_body , has_extra_text = future.result()
+        for f in as_completed(futures):
+            page_body , has_extra_text = f.result()
             if page_body:
                body += page_body + '\n'
             found_extra_text = has_extra_text or found_extra_text
