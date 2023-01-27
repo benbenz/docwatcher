@@ -250,7 +250,7 @@ class AllInOneHandler(LocalStorageHandler):
                 with open(path, 'rb') as f:
                     pdf         = PdfReader(f) #PdfFileReader(f)
                     information = pdf.metadata #pdf.getDocumentInfo()
-                    num_pages   = len(reader.pages) #pdf.getNumPages()
+                    num_pages   = len(pdf.pages) #pdf.getNumPages()
                     title       = information.title or filename
                     body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
             except Exception as e:
@@ -259,7 +259,7 @@ class AllInOneHandler(LocalStorageHandler):
                     try:
                         pdf         = recover_PDF(path)
                         information = pdf.metadata #pdf.getDocumentInfo()
-                        num_pages   = len(reader.pages) #pdf.getNumPages()
+                        num_pages   = len(pdf.pages) #pdf.getNumPages()
                         title       = information.title or filename
                         body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
                     except Exception as e2:
