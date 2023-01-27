@@ -18,7 +18,7 @@ class FileStatus(IntEnum):
     NEW      = 1
     MODIFIED = 2
     EXISTING = 4
-    SKIPPED  = 5
+    EXACT    = 8 
 
 class LocalStorageHandler:
 
@@ -66,17 +66,12 @@ class LocalStorageHandler:
                     if not ele in ignore_elements:
                         ignore_elements.append(ele)                        
 
-        # if kwargs.get('orig_url'):
-        #     orig_domain = urlparse(kwargs.get('orig_url')).netloc
-        #     if ext == ".html" and orig_domain not in parsed.netloc:
-        #         print("skipping recording of HTML content that is out of domain",parsed.netloc,"vs",orig_domain)
-        #         return None , FileStatus.SKIPPED
-
         path = None
 
         if kwargs.get('old_files'):
             has_similar_file = False
             similar_file = None
+            exact_file = False
             for old_file in kwargs.get('old_files'):
                 if not os.path.isfile(old_file):
                     continue
@@ -86,6 +81,7 @@ class LocalStorageHandler:
                         if old_content == response.content:
                             has_similar_file = True
                             similar_file = old_file
+                            exact_file = True
                             break
                         elif ignore_patterns is not None or ignore_elements is not None:
                             try:
@@ -147,9 +143,14 @@ class LocalStorageHandler:
                 #print(bcolors.OKCYAN,"skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file),bcolors.CEND)
                 #return similar_file , FileStatus.EXISTING
                 # lets override
-                print(bcolors.OKCYAN,"overriding file {0} because it has non-relevant changes: {1}".format(response.url,similar_file),bcolors.CEND)
                 path = similar_file
                 file_status = FileStatus.EXISTING
+                if exact_file:
+                    file_status |= FileStatus.EXACT
+                    return path , file_status , path # we're done here - let's save ourselves some I/O
+                else:
+                    print(bcolors.OKCYAN,"overriding file {0} because it has non-relevant changes: {1}".format(response.url,similar_file),bcolors.CEND)
+
             else:
                 print(bcolors.WARNING,"we found a new version of the file",response.url,bcolors.CEND)
                 file_status = FileStatus.MODIFIED

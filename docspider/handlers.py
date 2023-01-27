@@ -30,6 +30,7 @@ application = get_wsgi_application()
 # note that we don't have www.docs.models (because of PYTHONPATH)
 from docs.models import Document
 from django.db.models import Q
+from django.db import models
 
 def get_doctype_by_content(response):
     try:
@@ -160,29 +161,8 @@ class AllInOneHandler(LocalStorageHandler):
         #super().__init__(directory,subdirectory)
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
 
-    def handle(self, response, depth, previous_url, previous_id, *args, **kwargs):
-        path , file_status , pathid = super().handle(response,*args,**kwargs)
-
-        # the file already existed
-        if file_status in [ FileStatus.EXISTING , FileStatus.SKIPPED ]:
-            try:
-                if previous_url:
-                    try:
-                        the_doc = Document.objects.get(local_file=path,referers__url=previous_url)
-                    except:
-                        the_doc = Document.objects.get(local_file=path)
-                else:
-                    the_doc = Document.objects.get(local_file=path)
-                return path , file_status , the_doc.id
-            except:
-                print(bcolors.FAIL,"INTERNAL Error: an existing file is not registered in the database!",bcolors.CEND)
-                return path , file_status , None
-
-        parsed_url  = urlparse(response.url)
-        domain_name = parsed_url.netloc
-        filename    = get_filename(parsed_url,response)
+    def proces_response(self,response):
         doc_type    = get_doctype(response)
-
         title       = filename
         num_pages   = -1 
         body        = response.content
@@ -255,11 +235,42 @@ class AllInOneHandler(LocalStorageHandler):
             except Exception as e:
                 has_error = True
                 print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
-                #traceback.print_exc()
+                #traceback.print_exc()        
+        last_modified = get_header_http_last_modified(response)
 
-        last_modified = response.headers.get('Last-Modified') or response.headers.get('last-modified')
-        if last_modified:
-            last_modified = parsedate_to_datetime(last_modified)
+        return doc_type , title , body , num_pages, needs_ocr , has_error , last_modified
+
+
+    def handle(self, response, depth, previous_url, previous_id, *args, **kwargs):
+        path , file_status , path_as_id = super().handle(response,*args,**kwargs)
+
+        # the file already existed
+        if file_status & FileStatus.EXISTING :
+            try:
+                # local_file path is unique
+                the_doc = Document.objects.get(local_file=path)
+
+                # let's also update the content to match the file (unless it's exactly the same file)
+                if file_status & FileStatus.EXACT == 0:
+                    doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.proces_response(response)
+                    the_doc.body  = body 
+                    the_doc.title = title
+                    the_doc.num_pages = num_pages
+                    the_doc.needs_ocr = needs_ocr
+                    the_doc.has_error = has_error
+                    the_doc.last_modified = last_modified
+                    the_doc.save() 
+                return path , file_status , the_doc.id
+            except:
+                print(bcolors.FAIL,"INTERNAL Error: an existing file is not registered in the database!",bcolors.CEND)
+                return path , file_status , None
+
+        parsed_url    = urlparse(response.url)
+        domain_name   = parsed_url.netloc
+        filename      = get_filename(parsed_url,response)
+
+        doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.proces_response(response)
+
 
         doc = Document(
             domain      = domain_name , 
@@ -280,7 +291,8 @@ class AllInOneHandler(LocalStorageHandler):
             num_pages   = num_pages ,
             needs_ocr   = needs_ocr ,
             has_error   = has_error ,
-            local_file  = path #local_name
+            local_file  = path , 
+            file_status = file_status
         )
 
         # save the new entry
@@ -373,19 +385,31 @@ class DBStatsHandler:
         http_length        = get_header_http_length(response)
         http_encoding      = get_header_http_encoding(response)
         http_last_modified = get_header_http_last_modified(response)
-        if http_last_modified:
-            results = Document.objects.filter(url=response.url,http_last_modified=http_last_modified)
-        else:
-            results = Document.objects.filter(url=response.url,http_length=http_length,http_encoding=http_encoding)
-        r = []
-        for result in results:
-            #r.append(result.local_file.name)
-            r.append(result.id)
-        #return r
-        if len(r)>0:
-            return r[0]
-        else:
-            return None
+        try:
+            if http_last_modified:
+                result = Document.objects.get(url=response.url,http_last_modified=http_last_modified).only()
+            else:
+                result = Document.objects.get(url=response.url,http_length=http_length,http_encoding=http_encoding).only()
+            return result.id
+        except models.Model.DoesNotExist:
+            pass
+        except models.Model.MultipleObjectsReturned:
+            try:
+                results = Document.objects.find( url=response.url,
+                                                http_last_modified=http_last_modified,
+                                                http_length=http_length,
+                                                http_encoding=http_encoding,
+                                                ).order_by('-record_date').only()
+                if results.count()>0:
+                    return results[0].id
+            except:
+                pass
+        except:
+            pass
+        return None
+
+
+
 
     def get_urls_by_referer(self,referer,objid=None):
         result = []

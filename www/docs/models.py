@@ -33,7 +33,7 @@ class Document(models.Model):
     http_last_modified = models.DateTimeField(null=True,blank=True)
 
     # Content: HTML/PDF + file
-    local_file  = models.FileField(unique=True)    
+    local_file  = models.FileField(unique=True,db_index=True)    
     doc_type    = models.CharField(max_length=4,choices=DocumentType.choices,default=DocumentType.TEXT)    
     title       = models.CharField(max_length=200)
     body        = models.TextField()
@@ -41,7 +41,7 @@ class Document(models.Model):
     size        = models.IntegerField()
     needs_ocr   = models.BooleanField()
     has_error   = models.BooleanField()
-
+    file_status = models.SmallIntegerField()
 
 class DocumentSearch(models.Model):
 

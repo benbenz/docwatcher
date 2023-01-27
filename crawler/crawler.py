@@ -12,7 +12,7 @@ K_DOMAINS_SKIP = 'domains_skip'
 K_URLS         = 'urls'
 
 class Crawler:
-    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=1, process_handler=None,safe=False,crawler_mode=CrawlerMode.CRAWL_THRU):
+    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=5, process_handler=None,safe=False,crawler_mode=CrawlerMode.CRAWL_THRU):
 
         # Crawler internals
         self.downloader = downloader
@@ -131,7 +131,7 @@ class Crawler:
 
         urlcfg = self.get_url_config(url)
         for iurl in urlcfg.get('ignore_urls') or []:
-            if re.match(iurl,url.strip(),flags=re.IGNORECASE):
+            if re.fullmatch(iurl,url.strip(),flags=re.IGNORECASE):
                 return False , None , None
 
         # domain has to be skipped
@@ -165,6 +165,8 @@ class Crawler:
 
         # sleep now before any kind of request
         time.sleep(self.sleep_time)
+        if self.do_stop:
+            return
 
         should_crawl , content_type , objid = self.should_crawl(url) # HEAD request potentially
         if not should_crawl:
@@ -200,7 +202,7 @@ class Crawler:
         if not should_crawl:
             return
 
-        print(final_url,"...") 
+        print(final_url) 
 
         # Name of pdf
         local_name = None
@@ -211,7 +213,7 @@ class Crawler:
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
             local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config)
-        if head_handler and file_status!=FileStatus.EXISTING and file_status!=FileStatus.SKIPPED:
+        if head_handler and file_status&FileStatus.EXISTING == 0:
             head_handler.handle(response, depth, previous_url, local_name)
 
         if nu_objid is not None:

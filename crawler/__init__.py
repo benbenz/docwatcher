@@ -22,7 +22,7 @@ logging.basicConfig(
 requests_downloader = RequestsDownloader()
 crawlers = []
 
-def crawl(url, output_dir, depth=2, sleep_time=1, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_THRU,domain=None):
+def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_THRU,domain=None):
     head_handlers = {}
     get_handlers = {}
 
