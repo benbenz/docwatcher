@@ -177,7 +177,7 @@ class AllInOneHandler(LocalStorageHandler):
             print(e)
             #traceback.print_exc()
 
-    def process_PDF_body_NO_OCR(self,url,path,pdf,f):
+    def process_PDF_body_NO_OCR(self,url,path,pdf):
         needs_ocr = False
         
         body = "\n".join([p.extract_text() for p in pdf.pages])
@@ -188,7 +188,7 @@ class AllInOneHandler(LocalStorageHandler):
 
         return body , needs_ocr 
 
-    def process_PDF_page_with_OCR(self,path,page,page_count,f):
+    def process_PDF_page_with_OCR(self,path,page,page_count):
         
         if page is None:
             pdf  = PdfReader(f)
@@ -248,7 +248,7 @@ class AllInOneHandler(LocalStorageHandler):
         
         return page_body , found_extra_text
 
-    def process_PDF_body_with_OCR(self,url,path,pdf,f):
+    def process_PDF_body_with_OCR(self,url,path,pdf):
 
         default_body = "\n".join([p.extract_text() for p in pdf.pages])
                     
@@ -274,8 +274,7 @@ class AllInOneHandler(LocalStorageHandler):
                 self.process_PDF_page_with_OCR,
                 path,
                 None,
-                page_count,
-                f
+                page_count
             )
             futures.append(future)
             # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count)
@@ -313,7 +312,7 @@ class AllInOneHandler(LocalStorageHandler):
                     information = pdf.metadata #pdf.getDocumentInfo()
                     num_pages   = len(pdf.pages) #pdf.getNumPages()
                     title       = information.title or filename
-                    body , needs_ocr = self.process_PDF_body(response.url,path,pdf,f)
+                    body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
