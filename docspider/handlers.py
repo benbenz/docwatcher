@@ -2,6 +2,7 @@ from urllib.parse import urlparse
 from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus 
 from crawler.core import CrawlerMode, bcolors
 from crawler.helper import clean_url
+from concurrent.futures import ThreadPoolExecutor , as_completed
 # .pdf
 #from PyPDF4 import PdfFileReader
 from pypdf import PdfReader
@@ -170,15 +171,10 @@ class AllInOneHandler(LocalStorageHandler):
             print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_with_OCR
             self.using_ocr = True
-        except ImportError as ie:
+        except (ImportError,ModuleNotFoundError) as e:
             print(bcolors.WARNING,"NOT using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_NO_OCR
-            print(ie)
-            #traceback.print_exc()
-        except ModuleNotFoundError as me:
-            print(bcolors.WARNING,"NOT using OCR",bcolors.CEND)
-            self.process_PDF_body = self.process_PDF_body_NO_OCR
-            print(me)
+            print(e)
             #traceback.print_exc()
 
     def process_PDF_body_NO_OCR(self,url,path,pdf):
@@ -191,6 +187,60 @@ class AllInOneHandler(LocalStorageHandler):
             needs_ocr = True        
 
         return body , needs_ocr 
+
+    def process_PDF_page_with_OCR(self,page,page_count):
+        debug = False
+        if debug:
+            print("processing page",page_count)
+        page_body = page.extract_text()
+        img_count = 0
+        rotation  = page.get('/Rotate')
+        for image in page.images:
+            if debug:
+                print("processing image",img_count)
+            filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
+            with open(image.name, "wb") as fp:
+                fp.write(image.data)
+            im0 = Image.open(image.name)
+            t_img_name = "t"+image.name+".png"
+            best_text  = None
+            best_proba = -1
+            for rotate in [-90,0,90] : # lets assume the document is not reversed....
+                if debug:
+                    print("rotation",rotate)
+                im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
+                im1.save(t_img_name)
+                try:
+                    result = reader.readtext(t_img_name)
+                    proba_total = 0
+                    text_total  = ''
+                    num = 0 
+                    for position , text , proba in result:
+                        if proba > 0.3:
+                            if debug:
+                                print("text={0} (proba={1})".format(text,proba))
+                            proba_total += proba
+                            found_extra_text = True
+                            text_total += text + '\n'
+                            num += 1
+                    if num>0:
+                        proba_total /= num
+                    proba_total *= len(text_total) # we gotta reward the fact we recognized more characters
+                    if proba_total > best_proba:
+                        best_proba = proba_total
+                        best_text  = text_total
+                except Exception as e:
+                    print("Error while processing image",t_img_name,e)
+                    #traceback.print_exc()
+            if best_text is not None:
+                if debug:
+                    print("Found text:",best_text)
+                page_body += '\n' + best_text 
+            os.remove(image.name)
+            os.remove(t_img_name)
+            img_count += 1
+
+        return page_body
 
     def process_PDF_body_with_OCR(self,url,path,pdf):
 
@@ -206,64 +256,15 @@ class AllInOneHandler(LocalStorageHandler):
 
         found_extra_text = False
 
-        debug = False
-
         # https://stackoverflow.com/questions/63983531/use-tesseract-ocr-to-extract-text-from-a-scanned-pdf-folders
         file_root = str(uuid.uuid4())[:8]
         page_count = 0
         body = ''
         # Iterate through all the pages stored above 
         for page in pdf.pages: 
-            if debug:
-                print("processing page",page_count)
-            page_body = page.extract_text()
-            img_count = 0
-            rotation  = page.get('/Rotate')
-            for image in page.images:
-                if debug:
-                    print("processing image",img_count)
-                filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
-                with open(image.name, "wb") as fp:
-                    fp.write(image.data)
-                im0 = Image.open(image.name)
-                t_img_name = "t"+image.name+".png"
-                best_text  = None
-                best_proba = -1
-                for rotate in [-90,0,90] : # lets assume the document is not reversed....
-                    if debug:
-                        print("rotation",rotate)
-                    im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
-                    im1.save(t_img_name)
-                    try:
-                        result = reader.readtext(t_img_name)
-                        proba_total = 0
-                        text_total  = ''
-                        num = 0 
-                        for position , text , proba in result:
-                            if proba > 0.3:
-                                if debug:
-                                    print("text={0} (proba={1})".format(text,proba))
-                                proba_total += proba
-                                found_extra_text = True
-                                text_total += text + '\n'
-                                num += 1
-                        if num>0:
-                            proba_total /= num
-                        proba_total *= len(text_total) # we gotta reward the fact we recognized more characters
-                        if proba_total > best_proba:
-                            best_proba = proba_total
-                            best_text  = text_total
-                    except Exception as e:
-                        print("Error while processing image",t_img_name,e)
-                        #traceback.print_exc()
-                if best_text is not None:
-                    if debug:
-                        print("Found text:",best_text)
-                    page_body += '\n' + best_text 
-                os.remove(image.name)
-                os.remove(t_img_name)
-                img_count += 1
-            body += page_body
+            page_body = self.process_PDF_page_with_OCR(page,page_count)
+            if page_body:
+                body += page_body + '\n'
             page_count += 1
             
         if not found_extra_text:
