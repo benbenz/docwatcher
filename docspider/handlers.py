@@ -224,8 +224,8 @@ class AllInOneHandler(LocalStorageHandler):
                 t_img_name = "t"+image.name+".png"
                 best_text  = ''
                 best_proba = -1
-                for i in range(4):
-                    im1 = im0.rotate(i*90, Image.NEAREST, expand = 1)
+                for rotate in [-90,0,90] : # lets assume the document is not reversed....
+                    im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
                     im1.save(t_img_name)
                     try:
                         result = reader.readtext(t_img_name)
