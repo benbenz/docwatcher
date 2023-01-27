@@ -223,7 +223,7 @@ class AllInOneHandler(LocalStorageHandler):
                     fp.write(image.data)
                 im0 = Image.open(image.name)
                 t_img_name = "t"+image.name+".png"
-                best_text  = ''
+                best_text  = None
                 best_proba = -1
                 for rotate in [-90,0,90] : # lets assume the document is not reversed....
                     print("rotation",rotate)
@@ -246,10 +246,11 @@ class AllInOneHandler(LocalStorageHandler):
                         if proba_total > best_proba:
                             best_proba = proba_total
                             best_text  = text_total
+                            print("best text=",best_text,best_proba)
                     except Exception as e:
                         print("Error while processing image",t_img_name,e)
                         #traceback.print_exc()
-                if best_text != '':
+                if best_text is not None:
                     print("Found text:",text)
                     page_body += '\n\n' + best_text 
                 os.remove(image.name)
