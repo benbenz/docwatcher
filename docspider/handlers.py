@@ -177,7 +177,7 @@ class AllInOneHandler(LocalStorageHandler):
             print(e)
             #traceback.print_exc()
 
-    def process_PDF_body_NO_OCR(self,url,path,pdf):
+    def process_PDF_body_NO_OCR(self,url,path,pdf,f):
         needs_ocr = False
         
         body = "\n".join([p.extract_text() for p in pdf.pages])
@@ -274,7 +274,8 @@ class AllInOneHandler(LocalStorageHandler):
                 self.process_PDF_page_with_OCR,
                 path,
                 None,
-                page_count
+                page_count,
+                f
             )
             futures.append(future)
             # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count)
