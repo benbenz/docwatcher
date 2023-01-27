@@ -242,6 +242,7 @@ class AllInOneHandler(LocalStorageHandler):
                             best_text  = text_total
                     except Exception as e:
                         print("Error while processing image",t_img_name,e)
+                        traceback.print_exc()
                 if best_text:
                     page_body += '\n\n' + best_text 
                 os.remove(image.name)
