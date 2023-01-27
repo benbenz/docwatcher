@@ -212,11 +212,12 @@ class AllInOneHandler(LocalStorageHandler):
         body = ''
         # Iterate through all the pages stored above 
         for page in pdf.pages: 
-            print("processing page ",page_count)
+            print("processing page",page_count)
             page_body = page.extract_text()
             img_count = 0
             rotation  = page.get('/Rotate')
             for image in page.images:
+                print("processing image",img_count)
                 filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
                 with open(image.name, "wb") as fp:
                     fp.write(image.data)
@@ -233,6 +234,7 @@ class AllInOneHandler(LocalStorageHandler):
                         text_total  = ''
                         for position , text , proba in result:
                             if proba > 0.3:
+                                print("text={0} (proba={1})".format(text,proba))
                                 proba_total += proba
                                 found_extra_text = True
                                 text_total += text + '\n\n'
