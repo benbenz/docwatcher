@@ -166,7 +166,7 @@ class AllInOneHandler(LocalStorageHandler):
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
         self.using_ocr = False
         try:
-            #import easyocr.easyocr
+            import easyocr.easyocr
             print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_with_OCR
             self.using_ocr = True
