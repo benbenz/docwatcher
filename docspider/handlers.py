@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus 
 from crawler.core import CrawlerMode, bcolors
 from crawler.helper import clean_url
-from concurrent.futures import ThreadPoolExecutor , as_completed
+from concurrent.futures import ProcessPoolExecutor , as_completed
 # .pdf
 #from PyPDF4 import PdfFileReader
 from pypdf import PdfReader
@@ -189,7 +189,7 @@ class AllInOneHandler(LocalStorageHandler):
         return body , needs_ocr 
 
     def process_PDF_page_with_OCR(self,page,page_count):
-        debug = False
+        debug = True
         if debug:
             print("processing page",page_count)
         page_body = page.extract_text()
@@ -260,11 +260,18 @@ class AllInOneHandler(LocalStorageHandler):
         file_root = str(uuid.uuid4())[:8]
         page_count = 0
         body = ''
-        # Iterate through all the pages stored above 
+
+        #executor = ProcessPoolExecutor(max_workers=2)
+
         for page in pdf.pages: 
+            # executor.submit( 
+            #     self.process_PDF_page_with_OCR,
+            #     page,
+            #     page_count
+            # )
             page_body = self.process_PDF_page_with_OCR(page,page_count)
             if page_body:
-                body += page_body + '\n'
+               body += page_body + '\n'
             page_count += 1
             
         if not found_extra_text:
