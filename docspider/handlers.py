@@ -206,18 +206,22 @@ class AllInOneHandler(LocalStorageHandler):
 
         found_extra_text = False
 
+        debug = False
+
         # https://stackoverflow.com/questions/63983531/use-tesseract-ocr-to-extract-text-from-a-scanned-pdf-folders
         file_root = str(uuid.uuid4())[:8]
         page_count = 0
         body = ''
         # Iterate through all the pages stored above 
         for page in pdf.pages: 
-            print("processing page",page_count)
+            if debug:
+                print("processing page",page_count)
             page_body = page.extract_text()
             img_count = 0
             rotation  = page.get('/Rotate')
             for image in page.images:
-                print("processing image",img_count)
+                if debug:
+                    print("processing image",img_count)
                 filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
                 with open(image.name, "wb") as fp:
                     fp.write(image.data)
@@ -226,7 +230,8 @@ class AllInOneHandler(LocalStorageHandler):
                 best_text  = None
                 best_proba = -1
                 for rotate in [-90,0,90] : # lets assume the document is not reversed....
-                    print("rotation",rotate)
+                    if debug:
+                        print("rotation",rotate)
                     im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
                     im1.save(t_img_name)
                     try:
@@ -236,7 +241,8 @@ class AllInOneHandler(LocalStorageHandler):
                         num = 0 
                         for position , text , proba in result:
                             if proba > 0.3:
-                                print("text={0} (proba={1})".format(text,proba))
+                                if debug:
+                                    print("text={0} (proba={1})".format(text,proba))
                                 proba_total += proba
                                 found_extra_text = True
                                 text_total += text + '\n'
@@ -247,12 +253,12 @@ class AllInOneHandler(LocalStorageHandler):
                         if proba_total > best_proba:
                             best_proba = proba_total
                             best_text  = text_total
-                            #print("best text=",best_text,best_proba)
                     except Exception as e:
                         print("Error while processing image",t_img_name,e)
                         #traceback.print_exc()
                 if best_text is not None:
-                    print("Found text:",best_text)
+                    if debug:
+                        print("Found text:",best_text)
                     page_body += '\n' + best_text 
                 os.remove(image.name)
                 os.remove(t_img_name)
