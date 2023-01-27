@@ -195,6 +195,7 @@ class AllInOneHandler(LocalStorageHandler):
         page_body = page.extract_text()
         img_count = 0
         rotation  = page.get('/Rotate')
+        found_extra_text = False
         for image in page.images:
             if debug:
                 print("processing image",img_count)
@@ -240,7 +241,7 @@ class AllInOneHandler(LocalStorageHandler):
             os.remove(t_img_name)
             img_count += 1
 
-        return page_body
+        return page_body , found_extra_text
 
     def process_PDF_body_with_OCR(self,url,path,pdf):
 
@@ -261,18 +262,27 @@ class AllInOneHandler(LocalStorageHandler):
         page_count = 0
         body = ''
 
-        #executor = ProcessPoolExecutor(max_workers=2)
-
+        executor = ProcessPoolExecutor(max_workers=2)
+        futures  = []
         for page in pdf.pages: 
-            # executor.submit( 
-            #     self.process_PDF_page_with_OCR,
-            #     page,
-            #     page_count
-            # )
-            page_body = self.process_PDF_page_with_OCR(page,page_count)
+            future = executor.submit( 
+                self.process_PDF_page_with_OCR,
+                page,
+                page_count
+            )
+            futures.append(future)
+            # page_body , has_extra_text = self.process_PDF_page_with_OCR(page,page_count)
+            # if page_body:
+            #    body += page_body + '\n'
+            # found_extra_text = has_extra_text or found_extra_text
+            page_count += 1
+
+        executor.shutdown(wait=True,cancel_futures=False)
+        for f in futures:
+            page_body , has_extra_text = future.result()
             if page_body:
                body += page_body + '\n'
-            page_count += 1
+            found_extra_text = has_extra_text or found_extra_text
             
         if not found_extra_text:
             return default_body , False
