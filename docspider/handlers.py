@@ -13,6 +13,8 @@ from pptx import Presentation
 from striprtf.striprtf import rtf_to_text
 # .html
 from bs4 import BeautifulSoup
+# PDF image treatment
+from PIL import Image
 
 import os
 import re
@@ -162,11 +164,12 @@ class AllInOneHandler(LocalStorageHandler):
     def __init__(self, directory, subdirectory):
         #super().__init__(directory,subdirectory)
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
-
+        self.using_ocr = False
         try:
-            import easyocr.easyocr
+            #import easyocr.easyocr
             print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_with_OCR
+            self.using_ocr = True
         except ImportError as ie:
             print(bcolors.WARNING,"NOT using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_NO_OCR
@@ -212,19 +215,37 @@ class AllInOneHandler(LocalStorageHandler):
             print("processing page ",page_count)
             page_body = page.extract_text()
             img_count = 0
+            rotation  = page.get('/Rotate')
             for image in page.images:
                 filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
                 with open(image.name, "wb") as fp:
                     fp.write(image.data)
-                    #result = reader.readtext(filename)
-                    result = reader.readtext(image.name)
-                    for position , text , proba in result:
-                        if proba > 0.3:
-                            found_extra_text = True
-                            page_body += '\n\n' + text
-                            print("Found text:",text)
-                #os.remove(filename)
+                im0 = Image.open(image.name)
+                t_img_name = "t"+image.name
+                best_text  = ''
+                best_proba = -1
+                for i in range(4):
+                    im1 = im0.rotate(i*90, Image.NEAREST, expand = 1)
+                    im1.save(t_img_name)
+                    try:
+                        result = reader.readtext(t_img_name)
+                        proba_total = 0
+                        text_total  = ''
+                        for position , text , proba in result:
+                            if proba > 0.3:
+                                proba_total += proba
+                                found_extra_text = True
+                                text_total += text + '\n\n'
+                                print("Found text:",text)
+                        if proba_total > best_proba:
+                            best_proba = proba_total
+                            best_text  = text_total
+                    except Exception as e:
+                        print("Error while processing image",t_img_name,e)
+                if best_text:
+                    page_body += '\n\n' + best_text 
                 os.remove(image.name)
+                os.remove(t_img_name)
                 img_count += 1
             body += page_body
             page_count += 1

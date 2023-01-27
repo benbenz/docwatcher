@@ -18,6 +18,7 @@ setup(
         'python-docx',
         'striprtf',
         'django-haystack[whoosh]',
+        'Pillow'
         
         
         # FOR OPEN CV
