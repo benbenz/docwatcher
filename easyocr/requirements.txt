@@ -1,10 +1,12 @@
 # for only CPU version:
-# pip3 install torch==1.13.1+cpu torchvision==0.14.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-torch
-torchvision>=0.5
+# !!! RUN pip3 install torch==1.13.0+cpu torchvision==0.14.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+# torch
+# torchvision>=0.5
+# !!! RUN opencv-python-headless==3.4.8.29
 #opencv-python-headless<=4.5.4.60
 #opencv-python<=4.5.4.60
-scipy
+# !!! RUN python -m pip install --only-binary=:all: scipy
+# scipy
 numpy
 Pillow
 scikit-image

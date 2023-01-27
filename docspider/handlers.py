@@ -208,6 +208,7 @@ class AllInOneHandler(LocalStorageHandler):
         body = ''
         # Iterate through all the pages stored above 
         for page in pdf.pages: 
+            print("processing page ",img_count)
             page_body = page.extractText()
             # save as file
             filename = file_root + "_p"+str(img_count)+".jpg"
@@ -218,6 +219,7 @@ class AllInOneHandler(LocalStorageHandler):
                 if proba > 0.3:
                     found_extra_text = True
                     page_body += '\n\n' + text
+                    print("Found text:",text)
             
         if not found_extra_text:
             return default_body , False
