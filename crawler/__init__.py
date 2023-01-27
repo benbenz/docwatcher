@@ -2,6 +2,7 @@ import logging
 import sys
 from urllib.parse import urlparse
 import signal
+import traceback
 
 from crawler.crawler import Crawler
 from crawler.core import CrawlerMode , bcolors
@@ -82,6 +83,10 @@ def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="g
     except KeyboardInterrupt:
 
         print("KeyboardInterrupt: cancelling task")
+
+    except Exception:
+
+        traceback.print_exc()
 
     crawler.close()
 

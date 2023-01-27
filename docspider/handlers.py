@@ -163,7 +163,7 @@ class AllInOneHandler(LocalStorageHandler):
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
 
         try:
-            import easyocr
+            import easyocr.easyocr
             print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_with_OCR
         except ImportError as ie:
@@ -177,18 +177,18 @@ class AllInOneHandler(LocalStorageHandler):
             print(me)
             #traceback.print_exc()
 
-    def process_PDF_body_NO_OCR(self,pdf):
+    def process_PDF_body_NO_OCR(self,url,path,pdf):
         needs_ocr = False
         
         body = "\n".join([p.extractText() for p in pdf.pages])
         
         if body == '':
-            print(bcolors.WARNING,"file needs OCR",response.url,path,bcolors.CEND)
+            print(bcolors.WARNING,"file needs OCR",bcolors.CEND)
             needs_ocr = True        
 
         return body , needs_ocr 
 
-    def process_PDF_body_with_OCR(self,pdf):
+    def process_PDF_body_with_OCR(self,url,path,pdf):
 
         default_body = "\n".join([p.extractText() for p in pdf.pages])
                     
@@ -196,7 +196,7 @@ class AllInOneHandler(LocalStorageHandler):
         # 2) https://github.com/PaddlePaddle/PaddleOCR
         # 3) https://github.com/madmaze/pytesseract
 
-        import easyocr
+        import easyocr.easyocr as easyocr
         reader = easyocr.Reader(['fr']) 
         result = reader.readtext('chinese.jpg')
 
@@ -226,7 +226,7 @@ class AllInOneHandler(LocalStorageHandler):
         else:
             return body , False
 
-    def process_response(self,response):
+    def process_response(self,path,response):
         parsed_url    = urlparse(response.url)
         domain_name   = parsed_url.netloc
         filename      = get_filename(parsed_url,response)
@@ -244,7 +244,7 @@ class AllInOneHandler(LocalStorageHandler):
                     information = pdf.getDocumentInfo()
                     num_pages   = pdf.getNumPages()
                     title       = information.title or filename
-                    body , needs_ocr = self.process_PDF_body(pdf)
+                    body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
@@ -253,7 +253,7 @@ class AllInOneHandler(LocalStorageHandler):
                         information = pdf.getDocumentInfo()
                         num_pages   = pdf.getNumPages()
                         title       = information.title or filename
-                        body , needs_ocr = self.process_PDF_body(pdf)
+                        body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
                     except Exception as e2:
                         has_error = True
                         print(bcolors.FAIL,"ERROR recovering file",response.url,path,e2,bcolors.CEND)
@@ -305,7 +305,8 @@ class AllInOneHandler(LocalStorageHandler):
 
         # cleanup extraneous spaces
         if body:
-            body = re.sub(r'([\s]{10,}|[\n]{3,})','\n\n',body)
+            if not isinstance(body,bytes) and not isinstance(body,bytearray):
+                body = re.sub(r'([\s]{10,}|[\n]{3,})','\n\n',body)
 
         return domain_name , filename , doc_type , title , body , num_pages, needs_ocr , has_error , last_modified
 
@@ -321,7 +322,7 @@ class AllInOneHandler(LocalStorageHandler):
 
                 # let's also update the content to match the file (unless it's exactly the same file)
                 if file_status & FileStatus.EXACT == 0:
-                    domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(response)
+                    domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(path,response)
                     the_doc.body  = body 
                     the_doc.title = title
                     the_doc.num_pages = num_pages
@@ -334,7 +335,7 @@ class AllInOneHandler(LocalStorageHandler):
                 print(bcolors.FAIL,"INTERNAL Error: an existing file is not registered in the database!",bcolors.CEND)
                 return path , file_status , None
 
-        domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(response)
+        domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(path,response)
 
 
         doc = Document(
@@ -419,7 +420,7 @@ class DBStatsHandler:
                 queryset = Document.objects.filter(query)
                 #print(queryset.query)
                 for doc in queryset:
-                    list_handled.append(doc.url.name)
+                    list_handled.append(doc.url if isinstance(doc.url,str) else doc.url.name)
 
         elif crawler_mode == CrawlerMode.CRAWL_LIGHT:
             # we're gonna consider more documents as being done ...
@@ -432,7 +433,7 @@ class DBStatsHandler:
             if self.domain:
                 queryset = Document.objects.filter(query)
                 for doc in queryset:
-                    list_handled.append(doc.url.name)
+                    list_handled.append(doc.url if isinstance(doc.url,str) else doc.url.name)
 
         return list_handled
 
@@ -456,9 +457,11 @@ class DBStatsHandler:
             else:
                 result = Document.objects.get(url=response.url,http_length=http_length,http_encoding=http_encoding).only()
             return result.id
-        except models.Model.DoesNotExist:
-            pass
-        except models.Model.MultipleObjectsReturned:
+        except Document.DoesNotExist:
+            # sometime some website will have http_last_modified to the latest time ... thats ok.
+            # we're just gonna fetch the page then
+            pass 
+        except Document.MultipleObjectsReturned:
             try:
                 results = Document.objects.find( url=response.url,
                                                 http_last_modified=http_last_modified,
