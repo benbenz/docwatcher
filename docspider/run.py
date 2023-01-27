@@ -110,7 +110,8 @@ def crawl_rendered_all(crawler_mode0):
             except:
                 pass
         if executor:
-            executor.shutdown(wait=True,cancel_futures=True)
+            #executor.shutdown(wait=True,cancel_futures=True)
+            executor.shutdown(wait=True)
 
 def exit_gracefully(signum,frame):
     signame = signal.Signals(signum).name
@@ -121,7 +122,8 @@ def exit_gracefully(signum,frame):
         except:
             pass
     if executor is not None:  
-        executor.shutdown(wait=True,cancel_futures=True)
+        #executor.shutdown(wait=True,cancel_futures=True)
+        executor.shutdown(wait=True)
 
 
 if __name__ == '__main__':
