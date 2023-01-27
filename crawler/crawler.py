@@ -38,7 +38,7 @@ class Crawler:
         self.follow_foreign = follow_foreign_hosts
         self.executable_path_gecko = gecko_path
         # these file endings are excluded to speed up the crawling (assumed that urls ending with these strings are actual files)
-        self.file_endings_exclude = [".mp3", ".wav", ".mkv", ".flv", ".vob", ".ogv", ".ogg", ".gif", ".avi", ".mov", ".wmv", ".mp4", ".mp3", ".mpg"]
+        self.file_endings_exclude = [".mp3", ".wav", ".mkv", ".flv", ".vob", ".ogv", ".ogg", ".gif", ".avi", ".mov", ".wmv", ".mp4", ".mp3", ".mpg" , ".jpg" , ".png"]
 
         # 3 possible values:
         # "normal" (default) => simple html crawling (no js),
@@ -120,7 +120,7 @@ class Crawler:
 
     def should_crawl(self,url):
         # file types that are ignored
-        if url[-4:] in self.file_endings_exclude:
+        if url[-4:].lower() in self.file_endings_exclude:
             return False 
 
         # url is handled within this crawl session
@@ -225,6 +225,7 @@ class Crawler:
         get_handler  = self.get_handlers.get(content_type)
         head_handler = self.head_handlers.get(content_type)
         file_status = FileStatus.UNKNOWN
+        nu_objid = None
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
             local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config)
