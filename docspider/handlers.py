@@ -221,7 +221,7 @@ class AllInOneHandler(LocalStorageHandler):
                 with open(image.name, "wb") as fp:
                     fp.write(image.data)
                 im0 = Image.open(image.name)
-                t_img_name = "t"+image.name
+                t_img_name = "t"+image.name+".png"
                 best_text  = ''
                 best_proba = -1
                 for i in range(4):
