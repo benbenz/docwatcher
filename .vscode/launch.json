@@ -15,7 +15,7 @@
             "cwd": "${workspaceFolder}",
             "args": [ ],
             "env": {
-                "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:$PYTHONPATH"
+                "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
             }
         } 
     ]

@@ -162,7 +162,65 @@ class AllInOneHandler(LocalStorageHandler):
         #super().__init__(directory,subdirectory)
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
 
-    def proces_response(self,response):
+        try:
+            import easyocr
+            print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
+            self.process_PDF_body = self.process_PDF_body_with_OCR
+        except ImportError:
+            print(bcolors.WARNING,"NOT using OCR",bcolors.CEND)
+            self.process_PDF_body = self.process_PDF_body_NO_OCR
+        except ModuleNotFoundError:
+            print(bcolors.WARNING,"NOT using OCR",bcolors.CEND)
+            self.process_PDF_body = self.process_PDF_body_NO_OCR
+
+    def process_PDF_body_NO_OCR(self,pdf):
+        needs_ocr = False
+        
+        body = "\n".join([p.extractText() for p in pdf.pages])
+        
+        if body == '':
+            print(bcolors.WARNING,"file needs OCR",response.url,path,bcolors.CEND)
+            needs_ocr = True        
+
+        return body , needs_ocr 
+
+    def process_PDF_body_with_OCR(self,pdf):
+
+        default_body = "\n".join([p.extractText() for p in pdf.pages])
+                    
+        # 1) https://github.com/JaidedAI/EasyOCR
+        # 2) https://github.com/PaddlePaddle/PaddleOCR
+        # 3) https://github.com/madmaze/pytesseract
+
+        import easyocr
+        reader = easyocr.Reader(['fr']) 
+        result = reader.readtext('chinese.jpg')
+
+        found_extra_text = False
+
+        # https://stackoverflow.com/questions/63983531/use-tesseract-ocr-to-extract-text-from-a-scanned-pdf-folders
+        file_root = str(uuid.uuid4())[:8]
+        img_count = 0
+        body = ''
+        # Iterate through all the pages stored above 
+        for page in pdf.pages: 
+            page_body = page.extractText()
+            # save as file
+            filename = file_root + "_p"+str(img_count)+".jpg"
+            page.save(filename, 'JPEG') 
+            img_count = img_count + 1
+            result = reader.readtext(filename)
+            for position , text , proba in result:
+                if proba > 0.3:
+                    found_extra_text = True
+                    page_body += '\n\n' + text
+            
+        if not found_extra_text:
+            return default_body , False
+        else:
+            return body , False
+
+    def process_response(self,response):
         parsed_url    = urlparse(response.url)
         domain_name   = parsed_url.netloc
         filename      = get_filename(parsed_url,response)
@@ -180,13 +238,7 @@ class AllInOneHandler(LocalStorageHandler):
                     information = pdf.getDocumentInfo()
                     num_pages   = pdf.getNumPages()
                     title       = information.title or filename
-                    body        = "\n".join([p.extractText() for p in pdf.pages])
-                    if body == '':
-                        print(bcolors.WARNING,"file needs OCR",response.url,path,bcolors.CEND)
-                        # 1) https://github.com/JaidedAI/EasyOCR
-                        # 2) https://github.com/PaddlePaddle/PaddleOCR
-                        # 3) https://github.com/madmaze/pytesseract
-                        needs_ocr = True
+                    body , needs_ocr = self.process_PDF_body(pdf)
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
@@ -195,7 +247,7 @@ class AllInOneHandler(LocalStorageHandler):
                         information = pdf.getDocumentInfo()
                         num_pages   = pdf.getNumPages()
                         title       = information.title or filename
-                        body        = "\n".join([p.extractText() for p in pdf.pages])    
+                        body , needs_ocr = self.process_PDF_body(pdf)
                     except Exception as e2:
                         has_error = True
                         print(bcolors.FAIL,"ERROR recovering file",response.url,path,e2,bcolors.CEND)
@@ -263,7 +315,7 @@ class AllInOneHandler(LocalStorageHandler):
 
                 # let's also update the content to match the file (unless it's exactly the same file)
                 if file_status & FileStatus.EXACT == 0:
-                    domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.proces_response(response)
+                    domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(response)
                     the_doc.body  = body 
                     the_doc.title = title
                     the_doc.num_pages = num_pages
@@ -276,7 +328,7 @@ class AllInOneHandler(LocalStorageHandler):
                 print(bcolors.FAIL,"INTERNAL Error: an existing file is not registered in the database!",bcolors.CEND)
                 return path , file_status , None
 
-        domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.proces_response(response)
+        domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(response)
 
 
         doc = Document(
