@@ -226,18 +226,23 @@ class AllInOneHandler(LocalStorageHandler):
                 best_text  = ''
                 best_proba = -1
                 for rotate in [-90,0,90] : # lets assume the document is not reversed....
+                    print("rotation",rotate)
                     im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
                     im1.save(t_img_name)
                     try:
                         result = reader.readtext(t_img_name)
                         proba_total = 0
                         text_total  = ''
+                        num = 0 
                         for position , text , proba in result:
                             if proba > 0.3:
                                 print("text={0} (proba={1})".format(text,proba))
                                 proba_total += proba
                                 found_extra_text = True
                                 text_total += text + '\n\n'
+                                num += 1
+                        if num>0:
+                            proba_total /= num
                         if proba_total > best_proba:
                             best_proba = proba_total
                             best_text  = text_total
