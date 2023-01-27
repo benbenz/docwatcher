@@ -249,7 +249,7 @@ class AllInOneHandler(LocalStorageHandler):
             try:
                 with open(path, 'rb') as f:
                     pdf         = PdfReader(f) #PdfFileReader(f)
-                    information = reader.metadata #pdf.getDocumentInfo()
+                    information = pdf.metadata #pdf.getDocumentInfo()
                     num_pages   = len(reader.pages) #pdf.getNumPages()
                     title       = information.title or filename
                     body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
@@ -258,7 +258,7 @@ class AllInOneHandler(LocalStorageHandler):
                 if "EOF" in msg:
                     try:
                         pdf         = recover_PDF(path)
-                        information = reader.metadata #pdf.getDocumentInfo()
+                        information = pdf.metadata #pdf.getDocumentInfo()
                         num_pages   = len(reader.pages) #pdf.getNumPages()
                         title       = information.title or filename
                         body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
