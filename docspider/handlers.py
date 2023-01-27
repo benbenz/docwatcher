@@ -239,20 +239,21 @@ class AllInOneHandler(LocalStorageHandler):
                                 print("text={0} (proba={1})".format(text,proba))
                                 proba_total += proba
                                 found_extra_text = True
-                                text_total += text + '\n\n'
+                                text_total += text + '\n'
                                 num += 1
                         if num>0:
                             proba_total /= num
+                        proba_total *= len(text_total) # we gotta reward the fact we recognized more characters
                         if proba_total > best_proba:
                             best_proba = proba_total
                             best_text  = text_total
-                            print("best text=",best_text,best_proba)
+                            #print("best text=",best_text,best_proba)
                     except Exception as e:
                         print("Error while processing image",t_img_name,e)
                         #traceback.print_exc()
                 if best_text is not None:
-                    print("Found text:",text)
-                    page_body += '\n\n' + best_text 
+                    print("Found text:",best_text)
+                    page_body += '\n' + best_text 
                 os.remove(image.name)
                 os.remove(t_img_name)
                 img_count += 1
