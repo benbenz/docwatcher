@@ -236,14 +236,14 @@ class AllInOneHandler(LocalStorageHandler):
                                 proba_total += proba
                                 found_extra_text = True
                                 text_total += text + '\n\n'
-                                print("Found text:",text)
                         if proba_total > best_proba:
                             best_proba = proba_total
                             best_text  = text_total
                     except Exception as e:
                         print("Error while processing image",t_img_name,e)
                         traceback.print_exc()
-                if best_text:
+                if best_text != '':
+                    print("Found text:",text)
                     page_body += '\n\n' + best_text 
                 os.remove(image.name)
                 os.remove(t_img_name)
