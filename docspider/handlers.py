@@ -170,12 +170,12 @@ class AllInOneHandler(LocalStorageHandler):
             print(bcolors.WARNING,"NOT using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_NO_OCR
             print(ie)
-            traceback.print_exc()
+            #traceback.print_exc()
         except ModuleNotFoundError as me:
             print(bcolors.WARNING,"NOT using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_NO_OCR
             print(me)
-            traceback.print_exc()
+            #traceback.print_exc()
 
     def process_PDF_body_NO_OCR(self,pdf):
         needs_ocr = False
