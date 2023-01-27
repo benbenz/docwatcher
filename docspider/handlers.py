@@ -188,12 +188,10 @@ class AllInOneHandler(LocalStorageHandler):
 
         return body , needs_ocr 
 
-    def process_PDF_page_with_OCR(self,path,page,page_count):
+    def process_PDF_page_with_OCR(self,path,page,page_count,f):
         
-        pdf_file = None
         if page is None:
-            pdf_file = open(path, 'rb')
-            pdf  = PdfReader(pdf_file)
+            pdf  = PdfReader(f)
             page = pdf.pages[page_count]
         
         debug = True
@@ -248,12 +246,9 @@ class AllInOneHandler(LocalStorageHandler):
             os.remove(t_img_name)
             img_count += 1
         
-        if pdf_file:
-            pdf_file.close()
-
         return page_body , found_extra_text
 
-    def process_PDF_body_with_OCR(self,url,path,pdf):
+    def process_PDF_body_with_OCR(self,url,path,pdf,f):
 
         default_body = "\n".join([p.extract_text() for p in pdf.pages])
                     
@@ -317,7 +312,7 @@ class AllInOneHandler(LocalStorageHandler):
                     information = pdf.metadata #pdf.getDocumentInfo()
                     num_pages   = len(pdf.pages) #pdf.getNumPages()
                     title       = information.title or filename
-                    body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
+                    body , needs_ocr = self.process_PDF_body(response.url,path,pdf,f)
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
