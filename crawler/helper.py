@@ -66,6 +66,8 @@ def clean_url(url):
 
 
 def get_content_type(response):
+    if not response or not response.headers:
+        return None
     content_type = response.headers.get("content-type")
     if content_type:
         return content_type.split(';')[0]
