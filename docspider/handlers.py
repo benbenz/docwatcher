@@ -3,7 +3,8 @@ from crawler.handlers import get_filename , get_content_type , LocalStorageHandl
 from crawler.core import CrawlerMode, bcolors
 from crawler.helper import clean_url
 # .pdf
-from PyPDF4 import PdfFileReader
+#from PyPDF4 import PdfFileReader
+from pypdf import PdfReader
 # .doc , .docx
 from docx import Document as WordDocument
 # .ppt , .pptx , .pptm
@@ -136,7 +137,7 @@ def recover_PDF(path):
         with open(tmp_file, 'wb') as tmpf:
             tmpf.writelines(txtx)
         try:
-            pdf = PdfFileReader(tmp_file)
+            pdf = PdfReader(tmp_file) #PdfFileReader(tmp_file)
             os.remove(tmp_file)
             return pdf
         except Exception as e:
@@ -180,7 +181,7 @@ class AllInOneHandler(LocalStorageHandler):
     def process_PDF_body_NO_OCR(self,url,path,pdf):
         needs_ocr = False
         
-        body = "\n".join([p.extractText() for p in pdf.pages])
+        body = "\n".join([p.extract_text() for p in pdf.pages])
         
         if body == '':
             print(bcolors.WARNING,"file needs OCR",bcolors.CEND)
@@ -190,7 +191,7 @@ class AllInOneHandler(LocalStorageHandler):
 
     def process_PDF_body_with_OCR(self,url,path,pdf):
 
-        default_body = "\n".join([p.extractText() for p in pdf.pages])
+        default_body = "\n".join([p.extract_text() for p in pdf.pages])
                     
         # 1) https://github.com/JaidedAI/EasyOCR
         # 2) https://github.com/PaddlePaddle/PaddleOCR
@@ -209,7 +210,7 @@ class AllInOneHandler(LocalStorageHandler):
         # Iterate through all the pages stored above 
         for page in pdf.pages: 
             print("processing page ",page_count)
-            page_body = page.extractText()
+            page_body = page.extract_text()
             img_count = 0
             for image in page.images:
                 filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
@@ -247,7 +248,7 @@ class AllInOneHandler(LocalStorageHandler):
         if doc_type == Document.DocumentType.PDF:
             try:
                 with open(path, 'rb') as f:
-                    pdf         = PdfFileReader(f)
+                    pdf         = PdfReader(f) #PdfFileReader(f)
                     information = pdf.getDocumentInfo()
                     num_pages   = pdf.getNumPages()
                     title       = information.title or filename
