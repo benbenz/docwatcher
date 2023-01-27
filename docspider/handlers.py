@@ -196,9 +196,9 @@ class AllInOneHandler(LocalStorageHandler):
         # 2) https://github.com/PaddlePaddle/PaddleOCR
         # 3) https://github.com/madmaze/pytesseract
 
+        #import easyocr 
         import easyocr.easyocr as easyocr
         reader = easyocr.Reader(['fr']) 
-        result = reader.readtext('chinese.jpg')
 
         found_extra_text = False
 
@@ -220,6 +220,7 @@ class AllInOneHandler(LocalStorageHandler):
                     found_extra_text = True
                     page_body += '\n\n' + text
                     print("Found text:",text)
+            os.remove(filename)
             
         if not found_extra_text:
             return default_body , False
