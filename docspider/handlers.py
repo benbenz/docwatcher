@@ -204,23 +204,29 @@ class AllInOneHandler(LocalStorageHandler):
 
         # https://stackoverflow.com/questions/63983531/use-tesseract-ocr-to-extract-text-from-a-scanned-pdf-folders
         file_root = str(uuid.uuid4())[:8]
-        img_count = 0
+        page_count = 0
         body = ''
         # Iterate through all the pages stored above 
         for page in pdf.pages: 
-            print("processing page ",img_count)
+            print("processing page ",page_count)
             page_body = page.extractText()
-            # save as file
-            filename = file_root + "_p"+str(img_count)+".jpg"
-            page.save(filename, 'JPEG') 
-            img_count = img_count + 1
-            result = reader.readtext(filename)
-            for position , text , proba in result:
-                if proba > 0.3:
-                    found_extra_text = True
-                    page_body += '\n\n' + text
-                    print("Found text:",text)
-            os.remove(filename)
+            img_count = 0
+            for image in page.images:
+                filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
+                with open(image.name, "wb") as fp:
+                    fp.write(image.data)
+                    #result = reader.readtext(filename)
+                    result = reader.readtext(image.name)
+                    for position , text , proba in result:
+                        if proba > 0.3:
+                            found_extra_text = True
+                            page_body += '\n\n' + text
+                            print("Found text:",text)
+                #os.remove(filename)
+                os.remove(image.name)
+                img_count += 1
+            body += page_body
+            page_count += 1
             
         if not found_extra_text:
             return default_body , False
