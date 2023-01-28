@@ -190,11 +190,11 @@ class AllInOneHandler(LocalStorageHandler):
 
     def process_PDF_page_with_OCR(self,path,page,page_count):
         
-        f = None
+        pdffile = None
 
         if page is None:
-            f    = open(path,'rb')
-            pdf  = PdfReader(f)
+            pdffile = open(path,'rb')
+            pdf  = PdfReader(pdffile)
             page = pdf.pages[page_count]
         
         debug = True
@@ -249,8 +249,8 @@ class AllInOneHandler(LocalStorageHandler):
             os.remove(t_img_name)
             img_count += 1
         
-        if f is not None:
-            f.close()
+        if pdffile is not None:
+            pdffile.close()
         
         return page_body , found_extra_text
 
