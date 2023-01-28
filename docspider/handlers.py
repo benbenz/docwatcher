@@ -204,6 +204,8 @@ class AllInOneHandler(LocalStorageHandler):
         img_count = 0
         rotation  = page.get('/Rotate')
         found_extra_text = False
+        file_root = str(uuid.uuid4())[:8]
+
         for image in page.images:
             if debug:
                 print("processing image",img_count)
@@ -269,7 +271,6 @@ class AllInOneHandler(LocalStorageHandler):
         found_extra_text = False
 
         # https://stackoverflow.com/questions/63983531/use-tesseract-ocr-to-extract-text-from-a-scanned-pdf-folders
-        file_root = str(uuid.uuid4())[:8]
         page_count = 0
         body = ''
 
