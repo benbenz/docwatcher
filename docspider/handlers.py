@@ -188,7 +188,7 @@ class AllInOneHandler(LocalStorageHandler):
 
         return body , needs_ocr 
 
-    def process_PDF_page_with_OCR(self,path,page,page_count):
+    def process_PDF_page_with_OCR(self,path,page,page_count,reader):
         
         pdffile = None
 
@@ -196,6 +196,10 @@ class AllInOneHandler(LocalStorageHandler):
             pdffile = open(path,'rb')
             pdf  = PdfReader(pdffile)
             page = pdf.pages[page_count]
+
+        if reader is None:
+            import easyocr.easyocr as easyocr
+            reader = easyocr.Reader(['fr']) 
         
         debug = True
         if debug:
@@ -281,7 +285,8 @@ class AllInOneHandler(LocalStorageHandler):
                 self.process_PDF_page_with_OCR,
                 path,
                 None,
-                page_count
+                page_count,
+                None
             )
             futures.append(future)
             # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count)
