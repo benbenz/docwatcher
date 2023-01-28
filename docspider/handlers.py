@@ -190,7 +190,10 @@ class AllInOneHandler(LocalStorageHandler):
 
     def process_PDF_page_with_OCR(self,path,page,page_count):
         
+        f = None
+
         if page is None:
+            f    = open(path,'rb')
             pdf  = PdfReader(f)
             page = pdf.pages[page_count]
         
@@ -246,6 +249,9 @@ class AllInOneHandler(LocalStorageHandler):
             os.remove(t_img_name)
             img_count += 1
         
+        if f is not None:
+            f.close()
+        
         return page_body , found_extra_text
 
     def process_PDF_body_with_OCR(self,url,path,pdf):
@@ -288,6 +294,8 @@ class AllInOneHandler(LocalStorageHandler):
             if page_body:
                body += page_body + '\n'
             found_extra_text = has_extra_text or found_extra_text
+
+        executor.shutdown(wait=True)
             
         if not found_extra_text:
             return default_body , False
@@ -313,6 +321,7 @@ class AllInOneHandler(LocalStorageHandler):
                     num_pages   = len(pdf.pages) #pdf.getNumPages()
                     title       = information.title or filename
                     body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
+                print("CLOSED FILE")
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
@@ -330,7 +339,7 @@ class AllInOneHandler(LocalStorageHandler):
                 else:
                     has_error = True
                     print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
-                    #traceback.print_exc()
+                    traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.DOC , Document.DocumentType.DOCX]:
             try:
