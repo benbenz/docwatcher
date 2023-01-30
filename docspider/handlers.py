@@ -247,7 +247,7 @@ class AllInOneHandler(LocalStorageHandler):
                                 line=line.replace(b'RESULT=',b'')
                                 byte_array = bytearray.fromhex(line.decode())
                                 str_dump = byte_array.decode('utf-8')
-                                json_result = json.loads(line)
+                                json_result = json.loads(str_dump)
                                 result = []
                                 for jr in json_result:
                                     result.append( jr['text'] , jr['proba'] )
