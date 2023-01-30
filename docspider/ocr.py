@@ -12,7 +12,7 @@ parser.add_argument('img_path')
 args = parser.parse_args()
 
 ocr_reader = easyocr.Reader(['fr']) 
-result     = ocr_reader.readtext(t_img_name)
+result     = ocr_reader.readtext(args.img_path)
 
 print(json.dumps(result))
 
