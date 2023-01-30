@@ -250,9 +250,9 @@ class AllInOneHandler(LocalStorageHandler):
                                 for jr in json_result:
                                     result.append( jr['text'] , jr['proba'] )
                                 break
-                        print(stderr,ex_code,bytes_in.getvalue(),result)
+                        print(stderr,ex_code,result)
                     except:
-                        print("Error running process",process_args,stdout,result)
+                        print("Error running process",process_args,stdout,stderr,result)
                         traceback.print_exc()  
                         continue
 
