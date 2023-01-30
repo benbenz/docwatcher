@@ -10,8 +10,8 @@ parser.add_argument('img_path')
 args = parser.parse_args()
 
 ocr_reader  = easyocr.Reader(['fr']) 
-im0 = Image.open(args.img_name)
-t_img_name = "t"+args.img_name+".png"
+im0 = Image.open(args.img_path)
+t_img_name = "t"+args.img_path+".png"
 best_text  = None
 best_proba = -1
 for rotate in [-90,0,90] : # lets assume the document is not reversed....
