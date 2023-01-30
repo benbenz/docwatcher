@@ -17,8 +17,6 @@ class NpEncoder(json.JSONEncoder):
             return [hint_tuples(e) for e in item]
         elif isinstance(item, dict):
             return {key: hint_tuples(value) for key, value in item.items()}
-        else:
-            return item
         return super(NpEncoder, self).default(obj)
 
 def nullable_string(val):
