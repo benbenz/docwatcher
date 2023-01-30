@@ -221,9 +221,14 @@ class AllInOneHandler(LocalStorageHandler):
                     try:
                         process_args = ['python','docspider/ocr.py',t_img_name]
                         process = subprocess.run(process_args,capture_output=False)
-                        stdout  = process.stdout.read() if process.stdout else ""
+                        lines   = process.stdout.read() if process.stdout else []
                         stderr  = process.stderr.read() if process.stderr else ""
                         ex_code = process.returncode
+                        for line in lines:
+                            if not line.startswith("RESULT="):
+                                continue
+                            line = line.replace("RESULT=","")
+                            result = json.loads(line)
                         print(stdout,stderr,ex_code)
                     except:
                         print("Error running process",process_args)
