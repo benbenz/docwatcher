@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus 
 from crawler.core import CrawlerMode, bcolors
 from crawler.helper import clean_url
-from concurrent.futures import ProcessPoolExecutor , as_completed
+from concurrent.futures import ProcessPoolExecutor , ThreadPoolExecutor , as_completed
 # .pdf
 #from PyPDF4 import PdfFileReader
 from pypdf import PdfReader
