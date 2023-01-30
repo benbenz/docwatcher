@@ -19,5 +19,5 @@ bytes_out   = BytesIO()
 numpy.save(bytes_out,result,allow_pickle=True)
 #print(bytes_out.getvalue())
 print("RESULT/")
-print(bytes_out.getbuffer().decode('latin-1')) # NUMPY v1 or v2 are in latin-1
+print(bytes_out.getvalue().decode('latin-1')) # NUMPY v1 or v2 are in latin-1
 print("/RESULT")

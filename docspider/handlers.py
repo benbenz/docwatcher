@@ -245,6 +245,7 @@ class AllInOneHandler(LocalStorageHandler):
                         ex_code = process.returncode
                         in_data = False
                         bytes_in = BytesIO()
+                        print(stdout)
                         for line in stdout.split(b'\n'):
                             if line.startswith(b'RESULT/'):
                                 in_data = True
