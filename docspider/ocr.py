@@ -11,12 +11,12 @@ class NpEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
-        elif isinstance(item, tuple):
-            return {'__tuple__': True, 'items': item}
-        elif isinstance(item, list):
-            return [hint_tuples(e) for e in item]
-        elif isinstance(item, dict):
-            return {key: hint_tuples(value) for key, value in item.items()}
+        # elif isinstance(item, tuple):
+        #     return {'__tuple__': True, 'items': item}
+        # elif isinstance(item, list):
+        #     return [hint_tuples(e) for e in item]
+        # elif isinstance(item, dict):
+        #     return {key: hint_tuples(value) for key, value in item.items()}
         return super(NpEncoder, self).default(obj)
 
 def nullable_string(val):
@@ -37,6 +37,6 @@ for position , text , proba in result:
         'position' : position ,
         'text' : text
     })
-print("RESULT="+json.dumps({'result':json_result}))
+print("RESULT="+json.dumps({'result':json_result},cls=NpEncoder))
 
 
