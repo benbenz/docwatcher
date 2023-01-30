@@ -247,8 +247,8 @@ class AllInOneHandler(LocalStorageHandler):
                             if not line.startswith("RESULT="):
                                 continue
                             line = line.replace("RESULT=","")
-                            bytes_in = BytesIO(initial_bytes=line.encode())
-                            result = numpy.load(bytes_in)
+                            bytes_in = BytesIO(initial_bytes=line.encode('ASCII'))
+                            result = numpy.load(bytes_in,allow_pickle=True)
                             break
                         print(lines,stderr,ex_code,result)
                     except:
