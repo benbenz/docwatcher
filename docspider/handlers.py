@@ -221,8 +221,8 @@ class AllInOneHandler(LocalStorageHandler):
                     try:
                         process_args = ['python','docspider/ocr.py',t_img_name]
                         process = subprocess.run(process_args,capture_output=True)
-                        lines   = process.stdout.readlines() 
-                        stderr  = process.stderr.read() 
+                        lines   = process.stdout.decode().split()
+                        stderr  = process.stderr
                         ex_code = process.returncode
                         for line in lines:
                             if not line.startswith("RESULT="):
