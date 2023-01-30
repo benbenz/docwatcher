@@ -22,7 +22,8 @@ import csv
 import uuid
 import traceback
 import subprocess
-import json
+import numpy
+from io import BytesIO
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
@@ -237,11 +238,8 @@ class AllInOneHandler(LocalStorageHandler):
                             if not line.startswith("RESULT="):
                                 continue
                             line = line.replace("RESULT=","")
-                            json_result = json.loads(line)
-                            json_result = json_result.result
-                            result = []
-                            for jres in json_result:
-                                result.append(jres['position'],jres['text'],jres['proba'])
+                            bytes_in = BytesIO(initial_bytes=line.encode())
+                            result = numpy.load(bytes_in)
                             break
                         print(lines,stderr,ex_code,result)
                     except:
