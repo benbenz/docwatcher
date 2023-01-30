@@ -287,11 +287,15 @@ class AllInOneHandler(LocalStorageHandler):
                     path,
                     str(page_count)
             ]
-            process = subprocess.run(process_args,capture_output=False)
-            stdout  = process.stdout.read() if process.stdout else ""
-            stderr  = process.stderr.read() if process.stderr else ""
-            ex_code = process.returncode
-            print(stdout,stderr,ex_code)
+            try:
+                process = subprocess.run(process_args,capture_output=False)
+                stdout  = process.stdout.read() if process.stdout else ""
+                stderr  = process.stderr.read() if process.stderr else ""
+                ex_code = process.returncode
+                print(stdout,stderr,ex_code)
+            except:
+                print("Error running process",process_args)
+                traceback.print_exc()
             # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
             # if page_body:
             #    body += page_body + '\n'
