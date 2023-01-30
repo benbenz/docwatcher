@@ -190,17 +190,6 @@ class AllInOneHandler(LocalStorageHandler):
 
     def process_PDF_page_with_OCR(self,path,page,page_count,ocr_reader):
         
-        pdffile = None
-
-        if page is None:
-            pdffile = open(path,'rb')
-            pdf  = PdfReader(pdffile)
-            page = pdf.pages[page_count]
-
-        if ocr_reader is None:
-            import easyocr.easyocr as easyocr
-            ocr_reader = easyocr.Reader(['fr']) 
-        
         debug = True
         if debug:
             print("processing page",page_count)
@@ -226,7 +215,20 @@ class AllInOneHandler(LocalStorageHandler):
                 im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
                 im1.save(t_img_name)
                 try:
-                    result = ocr_reader.readtext(t_img_name)
+                    #result = ocr_reader.readtext(t_img_name)
+
+                    # spawn the process out (it can crash)
+                    try:
+                        process_args = ['python','docspider/ocr.py',t_img_name]
+                        process = subprocess.run(process_args,capture_output=False)
+                        stdout  = process.stdout.read() if process.stdout else ""
+                        stderr  = process.stderr.read() if process.stderr else ""
+                        ex_code = process.returncode
+                        print(stdout,stderr,ex_code)
+                    except:
+                        print("Error running process",process_args)
+                        traceback.print_exc()  
+
                     proba_total = 0
                     text_total  = ''
                     num = 0 
@@ -255,9 +257,6 @@ class AllInOneHandler(LocalStorageHandler):
             os.remove(t_img_name)
             img_count += 1
         
-        if pdffile is not None:
-            pdffile.close()
-        
         return page_body , found_extra_text
 
     def process_PDF_body_with_OCR(self,url,path,pdf):
@@ -279,27 +278,10 @@ class AllInOneHandler(LocalStorageHandler):
         body = ''
 
         for page in pdf.pages: 
-            process_args = [
-                    'python',
-                    'docspider/ocr.py',
-                    self.directory or '',
-                    self.subdirectory or '',
-                    path,
-                    str(page_count)
-            ]
-            try:
-                process = subprocess.run(process_args,capture_output=False)
-                stdout  = process.stdout.read() if process.stdout else ""
-                stderr  = process.stderr.read() if process.stderr else ""
-                ex_code = process.returncode
-                print(stdout,stderr,ex_code)
-            except:
-                print("Error running process",process_args)
-                traceback.print_exc()
-            # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
-            # if page_body:
-            #    body += page_body + '\n'
-            # found_extra_text = has_extra_text or found_extra_text
+            page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
+            if page_body:
+               body += page_body + '\n'
+            found_extra_text = has_extra_text or found_extra_text
             page_count += 1
             
         if not found_extra_text:

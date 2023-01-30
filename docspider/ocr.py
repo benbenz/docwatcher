@@ -1,5 +1,6 @@
 import argparse
-from docspider.handlers import AllInOneHandler
+import json
+import easyocr.easyocr as easyocr
 
 def nullable_string(val):
     if not val:
@@ -7,12 +8,12 @@ def nullable_string(val):
     return val
 
 parser = argparse.ArgumentParser(prog = 'ProcessOCR',description = 'process document with ocr')
-parser.add_argument('directory',type=nullable_string)
-parser.add_argument('subdirectory',type=nullable_string)
-parser.add_argument('path')
-parser.add_argument('page_count',type=int)
+parser.add_argument('img_path')
 args = parser.parse_args()
 
-print(args)
+ocr_reader = easyocr.Reader(['fr']) 
+result     = ocr_reader.readtext(t_img_name)
 
-handler = AllInOneHandler(args.directory,args.subdirectory)
+print(json.dumps(result))
+
+
