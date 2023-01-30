@@ -231,7 +231,7 @@ class AllInOneHandler(LocalStorageHandler):
                         best_text = json_result.get('best_text')
                         break
                 if ex_code != 0:
-                    print(bcolors.WARNING,"Error processing image#{0} page #{1}): exit code = {3}".format(img_count,page_count,ex_code),bcolors.CEND)
+                    print(bcolors.WARNING,"Error processing image#{0} page #{1}): exit code = {2}".format(img_count,page_count,ex_code),bcolors.CEND)
             except:
                 print("Error running process",process_args,stdout,stderr,best_text)
                 traceback.print_exc()  

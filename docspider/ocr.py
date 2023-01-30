@@ -2,6 +2,8 @@ import argparse
 import easyocr.easyocr as easyocr
 import numpy
 import json
+from PIL import Image
+
 
 parser = argparse.ArgumentParser(prog = 'ProcessOCR',description = 'process document with ocr')
 parser.add_argument('img_path')
@@ -21,6 +23,7 @@ for rotate in [-90,0,90] : # lets assume the document is not reversed....
 
         if not result:
             continue
+
         proba_total = 0
         text_total  = ''
         num = 0 
