@@ -25,6 +25,6 @@ args = parser.parse_args()
 ocr_reader = easyocr.Reader(['fr']) 
 result     = ocr_reader.readtext(args.img_path)
 
-print("RESULT="+json.dumps(result,cls=NpEncoder))
+print("RESULT="+json.dumps({'result':result},cls=NpEncoder))
 
 

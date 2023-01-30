@@ -220,6 +220,7 @@ class AllInOneHandler(LocalStorageHandler):
 
                     # spawn the process out (it can crash)
                     try:
+                        lines   = None
                         process_args = ['python','docspider/ocr.py',t_img_name]
                         process = subprocess.run(process_args,capture_output=True)
                         lines   = process.stdout.decode().split()
@@ -230,9 +231,10 @@ class AllInOneHandler(LocalStorageHandler):
                                 continue
                             line = line.replace("RESULT=","")
                             result = json.loads(line)
-                        print(lines,stderr,ex_code)
+                            result = result.result
+                        #print(lines,stderr,ex_code)
                     except:
-                        print("Error running process",process_args)
+                        print("Error running process",process_args,lines)
                         traceback.print_exc()  
                         continue
 
