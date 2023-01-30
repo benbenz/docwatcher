@@ -2,7 +2,6 @@ from urllib.parse import urlparse
 from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus 
 from crawler.core import CrawlerMode, bcolors
 from crawler.helper import clean_url
-from concurrent.futures import ProcessPoolExecutor , ThreadPoolExecutor , as_completed
 # .pdf
 #from PyPDF4 import PdfFileReader
 from pypdf import PdfReader
@@ -22,6 +21,7 @@ import re
 import csv
 import uuid
 import traceback
+import subprocess
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
@@ -278,30 +278,25 @@ class AllInOneHandler(LocalStorageHandler):
         page_count = 0
         body = ''
 
-        executor = ProcessPoolExecutor(max_workers=2)
-        futures  = []
         for page in pdf.pages: 
-            future = executor.submit( 
-                self.process_PDF_page_with_OCR,
-                path,
-                None,
-                page_count,
-                None
-            )
-            futures.append(future)
+            process_args = [
+                    'python',
+                    'docspider/ocr.py',
+                    self.directory or '',
+                    self.subdirectory or '',
+                    path,
+                    page_count
+            ]
+            process = subprocess.run(process_args,capture_output=False)
+            stdout  = process.stdout.read()
+            stderr  = process.stderr.read()
+            ex_code = process.returncode
+            print(stdout,stderr,ex_code)
             # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
             # if page_body:
             #    body += page_body + '\n'
             # found_extra_text = has_extra_text or found_extra_text
             page_count += 1
-
-        for f in as_completed(futures):
-            page_body , has_extra_text = f.result()
-            if page_body:
-               body += page_body + '\n'
-            found_extra_text = has_extra_text or found_extra_text
-
-        executor.shutdown(wait=True)
             
         if not found_extra_text:
             return default_body , False
