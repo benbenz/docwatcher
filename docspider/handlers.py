@@ -197,9 +197,9 @@ class AllInOneHandler(LocalStorageHandler):
             pdf  = PdfReader(pdffile)
             page = pdf.pages[page_count]
 
-        if reader is None:
+        if ocr_reader is None:
             import easyocr.easyocr as easyocr
-            reader = easyocr.Reader(['fr']) 
+            ocr_reader = easyocr.Reader(['fr']) 
         
         debug = True
         if debug:
