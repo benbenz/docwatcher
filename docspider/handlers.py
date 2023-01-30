@@ -278,7 +278,7 @@ class AllInOneHandler(LocalStorageHandler):
         page_count = 0
         body = ''
 
-        executor = ThreadPoolExecutor(max_workers=2)
+        executor = ProcessPoolExecutor(max_workers=2)
         futures  = []
         for page in pdf.pages: 
             future = executor.submit( 
