@@ -237,12 +237,15 @@ class AllInOneHandler(LocalStorageHandler):
                             if not line.startswith("RESULT="):
                                 continue
                             line = line.replace("RESULT=","")
-                            result = json.loads(line,object_hook=hinted_tuple_hook)
-                            result = result.result
+                            json_result = json.loads(line)
+                            json_result = json_result.result
+                            result = []
+                            for jres in json_result:
+                                result.append(jres['position'],jres['text'],jres['proba'])
                             break
                         #print(lines,stderr,ex_code)
                     except:
-                        print("Error running process",process_args,lines)
+                        print("Error running process",process_args,lines,result)
                         traceback.print_exc()  
                         continue
 

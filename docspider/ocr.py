@@ -28,9 +28,15 @@ parser = argparse.ArgumentParser(prog = 'ProcessOCR',description = 'process docu
 parser.add_argument('img_path')
 args = parser.parse_args()
 
-ocr_reader = easyocr.Reader(['fr']) 
-result     = ocr_reader.readtext(args.img_path)
-
-print("RESULT="+json.dumps({'result':result},cls=NpEncoder))
+ocr_reader  = easyocr.Reader(['fr']) 
+result      = ocr_reader.readtext(args.img_path)
+json_result = []
+for position , text , proba in result:
+    json_result.append({
+        'proba' : proba,
+        'position' : position ,
+        'text' : text
+    })
+print("RESULT="+json.dumps({'result':json_result}))
 
 
