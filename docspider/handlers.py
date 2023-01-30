@@ -22,8 +22,7 @@ import csv
 import uuid
 import traceback
 import subprocess
-import numpy
-from io import BytesIO
+import json
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
@@ -236,7 +235,6 @@ class AllInOneHandler(LocalStorageHandler):
 
                     # spawn the process out (it can crash)
                     try:
-                        lines   = None
                         result = None
                         process_args = ['python','docspider/ocr.py',t_img_name]
                         process = subprocess.run(process_args,capture_output=True)
@@ -244,18 +242,15 @@ class AllInOneHandler(LocalStorageHandler):
                         stderr  = process.stderr
                         ex_code = process.returncode
                         in_data = False
-                        bytes_in = BytesIO()
-                        print(stdout)
                         for line in stdout.split(b'\n'):
-                            if line.startswith(b'RESULT/'):
-                                in_data = True
-                            elif line.startswith(b'/RESULT'):
-                                in_data = False
+                            if line.startswith(b'RESULT='):
+                                line.replace(b'RESULT=',b'')
+                                json_result = json.loads(line.decode())
+                                result = []
+                                for jr in json_result:
+                                    result.append( jr['text'] , jr['proba'] )
                                 break
-                            elif in_data==True:
-                                bytes_in.write(line)
-                        result = numpy.load(bytes_in,allow_pickle=True)    
-                        print(lines,stderr,ex_code,bytes_view.getvalue(),result)
+                        print(stderr,ex_code,bytes_in.getvalue(),result)
                     except:
                         print("Error running process",process_args,stdout,result)
                         traceback.print_exc()  
@@ -266,7 +261,7 @@ class AllInOneHandler(LocalStorageHandler):
                     proba_total = 0
                     text_total  = ''
                     num = 0 
-                    for position , text , proba in result:
+                    for text , proba in result:
                         if proba > 0.3:
                             if debug:
                                 print("text={0} (proba={1})".format(text,proba))
