@@ -244,14 +244,12 @@ class AllInOneHandler(LocalStorageHandler):
                         stderr  = process.stderr
                         ex_code = process.returncode
                         in_data = False
-                        bytes_view = None
+                        bytes_in = BytesIO()
                         for line in lines:
                             if not line.startswith("RESULT=") and not in_data:
                                 continue
-                            if line.startswith("RESULT="):
+                            if line.startswith("RESULT/"):
                                 in_data = True
-                                line = line.replace("RESULT=","")
-                                bytes_in = BytesIO(initial_bytes=line.encode('latin-1'))
                             elif line.startswith("/RESULT"):
                                 in_data = False
                                 break
