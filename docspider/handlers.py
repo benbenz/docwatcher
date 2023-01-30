@@ -174,14 +174,13 @@ class AllInOneHandler(LocalStorageHandler):
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
         self.using_ocr = False
         try:
-            import easyocr.easyocr
+            #import easyocr.easyocr
             print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_with_OCR
             self.using_ocr = True
         except (ImportError,ModuleNotFoundError) as e:
-            print(bcolors.WARNING,"NOT using OCR",bcolors.CEND)
+            print(bcolors.WARNING,"NOT using OCR {0}".format(e),bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_NO_OCR
-            print(e)
             #traceback.print_exc()
 
     def process_PDF_body_NO_OCR(self,url,path,pdf):
@@ -197,9 +196,8 @@ class AllInOneHandler(LocalStorageHandler):
 
     def process_PDF_page_with_OCR(self,path,page,page_count,ocr_reader):
         
-        debug = True
-        if debug:
-            print("processing page",page_count)
+        debug = False
+        print("processing page",page_count)
         page_body = page.extract_text()
         img_count = 0
         rotation  = page.get('/Rotate')
@@ -252,7 +250,8 @@ class AllInOneHandler(LocalStorageHandler):
                                 for jr in json_result:
                                     result.append( (jr['text'] , jr['proba']) )
                                 break
-                        print(stderr,ex_code,result)
+                        if ex_code != 0:
+                            print(bcolors.WARNING,"Error processing image#{0} page #{1} rotation({2}): exit code = {3}".format(img_count,page_count,rotate,ex_code),bcolors.CEND)
                     except:
                         print("Error running process",process_args,stdout,stderr,result)
                         traceback.print_exc()  
@@ -299,8 +298,9 @@ class AllInOneHandler(LocalStorageHandler):
         # 3) https://github.com/madmaze/pytesseract
 
         #import easyocr 
-        import easyocr.easyocr as easyocr
-        ocr_reader = easyocr.Reader(['fr']) 
+        #import easyocr.easyocr as easyocr
+        #ocr_reader = easyocr.Reader(['fr']) 
+        ocr_reader = None
 
         found_extra_text = False
 
@@ -339,7 +339,6 @@ class AllInOneHandler(LocalStorageHandler):
                     num_pages   = len(pdf.pages) #pdf.getNumPages()
                     title       = information.title or filename
                     body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
-                print("CLOSED FILE")
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
