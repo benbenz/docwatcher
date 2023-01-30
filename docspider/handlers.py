@@ -240,7 +240,8 @@ class AllInOneHandler(LocalStorageHandler):
                         result = None
                         process_args = ['python','docspider/ocr.py',t_img_name]
                         process = subprocess.run(process_args,capture_output=True)
-                        lines   = process.stdout.decode().split()
+                        print(process.stdout)
+                        lines   = process.stdout.decode('latin-1').split()
                         stderr  = process.stderr
                         ex_code = process.returncode
                         in_data = False
