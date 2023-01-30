@@ -240,27 +240,23 @@ class AllInOneHandler(LocalStorageHandler):
                         result = None
                         process_args = ['python','docspider/ocr.py',t_img_name]
                         process = subprocess.run(process_args,capture_output=True)
-                        print(process.stdout)
-                        lines   = process.stdout.decode('latin-1').split()
+                        stdout  = process.stdout
                         stderr  = process.stderr
                         ex_code = process.returncode
                         in_data = False
                         bytes_in = BytesIO()
-                        for line in lines:
-                            if not line.startswith("RESULT=") and not in_data:
-                                continue
-                            if line.startswith("RESULT/"):
+                        for line in stdout.split(b'\n'):
+                            if line.startswith(b'RESULT/'):
                                 in_data = True
-                            elif line.startswith("/RESULT"):
+                            elif line.startswith(b'/RESULT'):
                                 in_data = False
                                 break
                             elif in_data==True:
-                                bytes_in.write(line.encode('latin-1'))
-                                
+                                bytes_in.write(line)
                         result = numpy.load(bytes_in,allow_pickle=True)    
                         print(lines,stderr,ex_code,bytes_view.getvalue(),result)
                     except:
-                        print("Error running process",process_args,lines,result)
+                        print("Error running process",process_args,stdout,result)
                         traceback.print_exc()  
                         continue
 
