@@ -25,6 +25,10 @@ class LocalStorageHandler:
     def __init__(self, directory, subdirectory):
         self.directory = directory
         self.subdirectory = subdirectory
+        self.do_stop = False
+
+    def stop(self):
+        self.do_stop = True
 
     def get_url_config(self,config,response):
         if not config:

@@ -60,6 +60,9 @@ class Crawler:
         return self.crawler_mode
 
     def close(self):
+        for k, Handler in self.get_handlers.items():
+            Handler.stop()
+
         if self.session:
             try:
                 self.do_stop = True

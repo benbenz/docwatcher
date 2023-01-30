@@ -17,6 +17,7 @@ ocr_reader  = easyocr.Reader(['fr'])
 result      = ocr_reader.readtext(args.img_path)
 bytes_out   = BytesIO()
 numpy.save(bytes_out,result)
+print(bytes_out.getvalue())
 print("RESULT="+bytes_out.getvalue().decode())
 
 

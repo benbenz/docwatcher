@@ -218,6 +218,8 @@ class AllInOneHandler(LocalStorageHandler):
             best_text  = None
             best_proba = -1
             for rotate in [-90,0,90] : # lets assume the document is not reversed....
+                if self.do_stop:
+                    return
                 if debug:
                     print("rotation",rotate)
                 im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
