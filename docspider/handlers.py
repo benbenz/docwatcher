@@ -228,6 +228,7 @@ class AllInOneHandler(LocalStorageHandler):
                     except:
                         print("Error running process",process_args)
                         traceback.print_exc()  
+                        continue
 
                     proba_total = 0
                     text_total  = ''
