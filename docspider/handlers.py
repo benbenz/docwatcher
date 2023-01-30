@@ -285,11 +285,11 @@ class AllInOneHandler(LocalStorageHandler):
                     self.directory or '',
                     self.subdirectory or '',
                     path,
-                    page_count
+                    str(page_count)
             ]
             process = subprocess.run(process_args,capture_output=False)
-            stdout  = process.stdout.read()
-            stderr  = process.stderr.read()
+            stdout  = process.stdout.read() if process.stdout else ""
+            stderr  = process.stderr.read() if process.stderr else ""
             ex_code = process.returncode
             print(stdout,stderr,ex_code)
             # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
