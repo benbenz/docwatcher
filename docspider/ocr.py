@@ -7,10 +7,18 @@ class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
-        if isinstance(obj, np.floating):
+        elif isinstance(obj, np.floating):
             return float(obj)
-        if isinstance(obj, np.ndarray):
+        elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(item, tuple):
+            return {'__tuple__': True, 'items': item}
+        elif isinstance(item, list):
+            return [hint_tuples(e) for e in item]
+        elif isinstance(item, dict):
+            return {key: hint_tuples(value) for key, value in item.items()}
+        else:
+            return item
         return super(NpEncoder, self).default(obj)
 
 def nullable_string(val):

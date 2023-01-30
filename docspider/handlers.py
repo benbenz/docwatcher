@@ -38,6 +38,12 @@ from docs.models import Document
 from django.db.models import Q
 from django.db import models
 
+def hinted_tuple_hook(obj):
+    if '__tuple__' in obj:
+        return tuple(obj['items'])
+    else:
+        return obj
+
 def get_doctype_by_content(response):
     try:
         content = response.text.strip()
@@ -221,6 +227,7 @@ class AllInOneHandler(LocalStorageHandler):
                     # spawn the process out (it can crash)
                     try:
                         lines   = None
+                        result = None
                         process_args = ['python','docspider/ocr.py',t_img_name]
                         process = subprocess.run(process_args,capture_output=True)
                         lines   = process.stdout.decode().split()
@@ -230,14 +237,17 @@ class AllInOneHandler(LocalStorageHandler):
                             if not line.startswith("RESULT="):
                                 continue
                             line = line.replace("RESULT=","")
-                            result = json.loads(line)
+                            result = json.loads(line,object_hook=hinted_tuple_hook)
                             result = result.result
+                            break
                         #print(lines,stderr,ex_code)
                     except:
                         print("Error running process",process_args,lines)
                         traceback.print_exc()  
                         continue
 
+                    if not result:
+                        continue
                     proba_total = 0
                     text_total  = ''
                     num = 0 
