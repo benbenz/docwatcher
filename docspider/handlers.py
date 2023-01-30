@@ -188,7 +188,7 @@ class AllInOneHandler(LocalStorageHandler):
 
         return body , needs_ocr 
 
-    def process_PDF_page_with_OCR(self,path,page,page_count,reader):
+    def process_PDF_page_with_OCR(self,path,page,page_count,ocr_reader):
         
         pdffile = None
 
@@ -226,7 +226,7 @@ class AllInOneHandler(LocalStorageHandler):
                 im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
                 im1.save(t_img_name)
                 try:
-                    result = reader.readtext(t_img_name)
+                    result = ocr_reader.readtext(t_img_name)
                     proba_total = 0
                     text_total  = ''
                     num = 0 
@@ -270,7 +270,7 @@ class AllInOneHandler(LocalStorageHandler):
 
         #import easyocr 
         import easyocr.easyocr as easyocr
-        reader = easyocr.Reader(['fr']) 
+        ocr_reader = easyocr.Reader(['fr']) 
 
         found_extra_text = False
 
@@ -278,7 +278,7 @@ class AllInOneHandler(LocalStorageHandler):
         page_count = 0
         body = ''
 
-        executor = ProcessPoolExecutor(max_workers=2)
+        executor = ThreadPoolExecutor(max_workers=2)
         futures  = []
         for page in pdf.pages: 
             future = executor.submit( 
@@ -289,7 +289,7 @@ class AllInOneHandler(LocalStorageHandler):
                 None
             )
             futures.append(future)
-            # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count)
+            # page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
             # if page_body:
             #    body += page_body + '\n'
             # found_extra_text = has_extra_text or found_extra_text
