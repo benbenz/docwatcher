@@ -213,78 +213,35 @@ class AllInOneHandler(LocalStorageHandler):
             with open(image.name, "wb") as fp:
                 fp.write(image.data)
             im0 = Image.open(image.name)
-            t_img_name = "t"+image.name+".png"
-            best_text  = None
-            best_proba = -1
-            for rotate in [-90,0,90] : # lets assume the document is not reversed....
-                if self.do_stop:
-                    try:
-                        os.remove(image.name)
-                        os.remove(t_img_name)
-                    except:
-                        pass
-                    return
-                if debug:
-                    print("rotation",rotate)
-                im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
-                im1.save(t_img_name)
-                try:
-                    #result = ocr_reader.readtext(t_img_name)
+            best_text = None
+            # spawn the process out (it can crash)
+            try:
+                process_args = ['python','docspider/ocr.py',image.name]
+                process = subprocess.run(process_args,capture_output=True)
+                stdout  = process.stdout
+                stderr  = process.stderr
+                ex_code = process.returncode
+                in_data = False
+                for line in stdout.split(b'\n'):
+                    if line.startswith(b'RESULT='):
+                        line=line.replace(b'RESULT=',b'')
+                        byte_array = bytearray.fromhex(line.decode())
+                        str_dump = byte_array.decode('utf-8')
+                        json_result = json.loads(str_dump)
+                        best_text = json_result.get('best_text')
+                        break
+                if ex_code != 0:
+                    print(bcolors.WARNING,"Error processing image#{0} page #{1}): exit code = {3}".format(img_count,page_count,ex_code),bcolors.CEND)
+            except:
+                print("Error running process",process_args,stdout,stderr,result)
+                traceback.print_exc()  
+                continue
 
-                    # spawn the process out (it can crash)
-                    try:
-                        result = None
-                        process_args = ['python','docspider/ocr.py',t_img_name]
-                        process = subprocess.run(process_args,capture_output=True)
-                        stdout  = process.stdout
-                        stderr  = process.stderr
-                        ex_code = process.returncode
-                        in_data = False
-                        for line in stdout.split(b'\n'):
-                            if line.startswith(b'RESULT='):
-                                line=line.replace(b'RESULT=',b'')
-                                byte_array = bytearray.fromhex(line.decode())
-                                str_dump = byte_array.decode('utf-8')
-                                json_result = json.loads(str_dump)
-                                result = []
-                                for jr in json_result:
-                                    result.append( (jr['text'] , jr['proba']) )
-                                break
-                        if ex_code != 0:
-                            print(bcolors.WARNING,"Error processing image#{0} page #{1} rotation({2}): exit code = {3}".format(img_count,page_count,rotate,ex_code),bcolors.CEND)
-                    except:
-                        print("Error running process",process_args,stdout,stderr,result)
-                        traceback.print_exc()  
-                        continue
-
-                    if not result:
-                        continue
-                    proba_total = 0
-                    text_total  = ''
-                    num = 0 
-                    for text , proba in result:
-                        if proba > 0.3:
-                            if debug:
-                                print("text={0} (proba={1})".format(text,proba))
-                            proba_total += proba
-                            found_extra_text = True
-                            text_total += text + '\n'
-                            num += 1
-                    if num>0:
-                        proba_total /= num
-                    proba_total *= len(text_total) # we gotta reward the fact we recognized more characters
-                    if proba_total > best_proba:
-                        best_proba = proba_total
-                        best_text  = text_total
-                except Exception as e:
-                    print("Error while processing image",t_img_name,e)
-                    #traceback.print_exc()
-            if best_text is not None:
+            if best_text is not None and best_text:
                 if debug:
                     print("Found text:",best_text)
                 page_body += '\n' + best_text 
             os.remove(image.name)
-            os.remove(t_img_name)
             img_count += 1
         
         return page_body , found_extra_text
