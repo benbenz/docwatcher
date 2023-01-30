@@ -23,7 +23,7 @@ import uuid
 import traceback
 import subprocess
 import numpy
-from io import StringIO
+from io import BytesIO
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
@@ -247,7 +247,7 @@ class AllInOneHandler(LocalStorageHandler):
                             if not line.startswith("RESULT="):
                                 continue
                             line = line.replace("RESULT=","")
-                            bytes_in = StringIO(line)
+                            bytes_in = BytesIO(initial_bytes=line.encode('latin-1'))
                             result = numpy.load(bytes_in,allow_pickle=True)
                             break
                         print(lines,stderr,ex_code,result)

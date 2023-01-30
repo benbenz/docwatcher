@@ -1,7 +1,7 @@
 import argparse
 import easyocr.easyocr as easyocr
 import numpy
-from io import StringIO
+from io import BytesIO
 
 
 def nullable_string(val):
@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 ocr_reader  = easyocr.Reader(['fr']) 
 result      = ocr_reader.readtext(args.img_path)
-fileout     = StringIO()
-numpy.save(fileout,result,allow_pickle=True)
+bytes_out   = BytesIO()
+numpy.save(bytes_out,result,allow_pickle=True)
 #print(bytes_out.getvalue())
-print("RESULT="+fileout.getvalue().decode())
+print("RESULT="=bytes_out.getbuffer().decode('latin-1')) # NUMPY v1 or v2 are in latin-1
