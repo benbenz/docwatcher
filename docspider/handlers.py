@@ -196,8 +196,9 @@ class AllInOneHandler(LocalStorageHandler):
 
     def process_PDF_page_with_OCR(self,path,page,page_count,ocr_reader):
         
-        debug = False
-        print("processing page",page_count)
+        debug = True
+        if debug:
+            print("processing page",page_count)
         page_body = page.extract_text()
         img_count = 0
         rotation  = page.get('/Rotate')
