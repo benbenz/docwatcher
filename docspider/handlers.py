@@ -244,7 +244,7 @@ class AllInOneHandler(LocalStorageHandler):
                         in_data = False
                         for line in stdout.split(b'\n'):
                             if line.startswith(b'RESULT='):
-                                line.replace(b'RESULT=',b'')
+                                line=line.replace(b'RESULT=',b'')
                                 byte_array = bytearray.fromhex(line.decode())
                                 str_dump = byte_array.decode('utf-8')
                                 json_result = json.loads(line)
