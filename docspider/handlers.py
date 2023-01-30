@@ -243,7 +243,7 @@ class AllInOneHandler(LocalStorageHandler):
                             for jres in json_result:
                                 result.append(jres['position'],jres['text'],jres['proba'])
                             break
-                        #print(lines,stderr,ex_code)
+                        print(lines,stderr,ex_code,result)
                     except:
                         print("Error running process",process_args,lines,result)
                         traceback.print_exc()  
