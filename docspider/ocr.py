@@ -12,4 +12,4 @@ result      = ocr_reader.readtext(args.img_path)
 json_result = []
 for position,text,proba in result:
     json_result.append({'text':str(text),'proba':float(proba)})
-print("RESULT="+json.dumps(json_result)))
+print("RESULT="+json.dumps(json_result))
