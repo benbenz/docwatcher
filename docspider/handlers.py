@@ -208,6 +208,8 @@ class AllInOneHandler(LocalStorageHandler):
         file_root = str(uuid.uuid4())[:8]
 
         for image in page.images:
+            if self.do_stop:
+                return
             if debug:
                 print("processing image",img_count)
             filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
@@ -219,6 +221,11 @@ class AllInOneHandler(LocalStorageHandler):
             best_proba = -1
             for rotate in [-90,0,90] : # lets assume the document is not reversed....
                 if self.do_stop:
+                    try:
+                        os.remove(image.name)
+                        os.remove(t_img_name)
+                    except:
+                        pass
                     return
                 if debug:
                     print("rotation",rotate)
