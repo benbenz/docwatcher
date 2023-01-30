@@ -245,7 +245,9 @@ class AllInOneHandler(LocalStorageHandler):
                         for line in stdout.split(b'\n'):
                             if line.startswith(b'RESULT='):
                                 line.replace(b'RESULT=',b'')
-                                json_result = json.loads(line.decode())
+                                line = line.decode().replace('__QUOTE__','\"')
+                                print(line)
+                                json_result = json.loads(line)
                                 result = []
                                 for jr in json_result:
                                     result.append( jr['text'] , jr['proba'] )
