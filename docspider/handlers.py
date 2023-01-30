@@ -250,7 +250,7 @@ class AllInOneHandler(LocalStorageHandler):
                                 json_result = json.loads(str_dump)
                                 result = []
                                 for jr in json_result:
-                                    result.append( jr['text'] , jr['proba'] )
+                                    result.append( (jr['text'] , jr['proba']) )
                                 break
                         print(stderr,ex_code,result)
                     except:
