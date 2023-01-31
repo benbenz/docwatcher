@@ -48,6 +48,5 @@ class Document(models.Model):
 
 class DocumentSearch(models.Model):
 
-    search_params = models.JSONField("SearchParams",unique=True)
-    hits          = models.ManyToManyField('Document', related_name='searches', symmetrical=False, blank=True)
-
+    params = models.JSONField("SearchParams",unique=True)
+    hits   = models.ManyToManyField('Document', related_name='searches', symmetrical=False, blank=True)

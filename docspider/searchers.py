@@ -31,31 +31,41 @@ class DocumentSearcher:
     
 
     def get_search(self,search):
-        canon_search = jcs.canonicalize(search)
+        canon_search = json.loads(jcs.canonicalize(search))
         try:
-            return DocumentSearch.objects.get(search_params=canon_search)
+            return DocumentSearch.objects.get(params=canon_search)
         except DocumentSearch.DoesNotExist:
             return None
 
     def save_search(self,search):
-        canon_search = jcs.canonicalize(search)
+        canon_search = json.loads(jcs.canonicalize(search))
         doc_search = DocumentSearch()
-        doc_search.search_params = canon_search
-        doc_search.hit_count     = 0 
+        doc_search.params = canon_search
+        doc_search.hit_count = 0 
         doc_search.save()
         return doc_search
 
     def perform_search(self,search_obj):
-        patterns   = search_obj.search_params.get('patterns',None)
-        patterns_x = search_obj.search_params.get('exclude_patterns',None)
-        is_raw     = search_obj.search_params.get('raw',False)
-        domains    = search_obj.search_params.get('domains',None)
-        domains_x  = search_obj.search_params.get('exclude_domains',None)
-        doc_types  = search_obj.search_params.get('doc_types',None)
-        level      = search_obj.search_params.get('level',1)
+        patterns   = search_obj.params.get('patterns',None)
+        patterns_x = search_obj.params.get('exclude_patterns',None)
+        domains    = search_obj.params.get('domains',None)
+        domains_x  = search_obj.params.get('exclude_domains',None)
+        doc_types  = search_obj.params.get('doc_types',None)
+        level      = search_obj.params.get('level',1)
 
-        if not pattern:
+        if not patterns:
             return None
 
-        query_set = SearchQuerySet()
-        if pa
+        queryset = SearchQuerySet()
+        for pattern in patterns or []:
+            queryset.filter(content=pattern)
+        for pattern_x in patterns_x or []:
+            queryset.exclude(content=pattern_x)
+        for domain in domains or []:
+            queryset.filter(domain=domain)
+        for domain_x in domains_x or []:
+            queryset.exclude(domain=domain)
+        for doc_type in doc_types or []:
+            queryset.filter(doc_type=doc_type)
+
+        return queryset

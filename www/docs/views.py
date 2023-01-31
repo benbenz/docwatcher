@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from .models import Document
+from .models import Document , DocumentSearch
 from django.contrib.auth import authenticate
 from django.http import Http404
 import os
@@ -24,10 +24,18 @@ def detail(request, doc_id):
                         cached_page = f.read()
                 except Exception as e:
                     logger.info(e)
-
-    except Question.DoesNotExist:
+    except Document.DoesNotExist:
         raise Http404("Document does not exist")
     return render(request, 'docs/detail.html', {'document': document,'cached_page':cached_page})    
+
+def search_results(request, search_id):
+    if not request.user.is_authenticated:
+        raise Http404("page does not exist") # we hide it as a does not exist ...
+    try:
+        search = DocumentSearch.objects.get(pk=search_id)
+    except DocumentSearch.DoesNotExist:
+        raise Http404("Document Search does not exist")
+    return render(request, 'docs/search_detail.html', {'search': search})        
 
 def all_searches(request):
     if not request.user.is_authenticated:
