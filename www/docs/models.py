@@ -33,7 +33,7 @@ class Document(models.Model):
     http_last_modified = models.DateTimeField(null=True,blank=True)
 
     # Content: HTML/PDF + file
-    local_file  = models.FileField(unique=True,db_index=True)    
+    local_file  = models.FilePathField(unique=True,db_index=True)    
     doc_type    = models.CharField(max_length=4,choices=DocumentType.choices,default=DocumentType.TEXT)    
     title       = models.CharField(max_length=200)
     body        = models.TextField()
@@ -43,8 +43,11 @@ class Document(models.Model):
     has_error   = models.BooleanField()
     file_status = models.SmallIntegerField()
 
+    def get_absolute_url(self):
+        return "/docs/%i/" % self.id        
+
 class DocumentSearch(models.Model):
 
-    rank           = models.IntegerField()
-    search_pattern = models.CharField(max_length=200,unique=True)
-    hits_count     = models.IntegerField()
+    search_params = models.JSONField("SearchParams",unique=True)
+    hits          = models.ManyToManyField('Document', related_name='searches', symmetrical=False, blank=True)
+

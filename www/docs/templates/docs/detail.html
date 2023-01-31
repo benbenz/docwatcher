@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>infos</h2>
+    <ul class="infos">
+        <li><span class="infos_label">type</span> {{ document.doc_type }}</li>
+        <li><span class="infos_label">domain</span> {{ document.domain }}</li>
+        <li><span class="infos_label">title</span> {{ document.title }}</li>
+        <li><span class="infos_label">last modified</span> {{ document.http_last_modified }}</li>
+        <li><span class="infos_label">record date</span> {{ document.record_date }}</li>
+        <li><span class="infos_label">link</span> <a referrerpolicy="no-referrer"  href="{{document.url}}">{{ document.title }}</a></li>
+    </ul>
+    <h2>live page</h2>
+    <iframe referrerpolicy="no-referrer" style="document_preview" src="javascript:window.location.replace('{{ document.url }}')"></iframe>
+    {% if cached_page %}
+    <h2>cached page</h2>
+    <iframe referrerpolicy="no-referrer" id="FileFrame" src="about:blank"></iframe>
+    <script type="text/javascript">
+        var doc = document.getElementById('FileFrame').contentWindow.document;
+        doc.open();
+        doc.write(" {{cached_page | safe }} ");
+        doc.close();
+     </script>
+     {% endif %}
+    <h2>raw text</h2>
+    <div>
+    {{ document.body | safe }}
+    </div>
+
+
+{% endblock %}

@@ -4,5 +4,8 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('search/', include('haystack.urls')),
+    path('<int:doc_id>/', views.detail, name="detail"),
+    path('search/', views.HighlightedSearchView(), name="search"),
+    path('all_searches/', views.all_searches, name="all_searches"),
+    path('search_native/', include('haystack.urls')),
 ]

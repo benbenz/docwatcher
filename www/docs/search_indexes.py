@@ -1,6 +1,7 @@
 import datetime
 from haystack import indexes
 from docs.models import Document
+from django.utils.timezone import make_aware
 
 
 class DocumentIndex(indexes.SearchIndex, indexes.Indexable):
@@ -12,4 +13,4 @@ class DocumentIndex(indexes.SearchIndex, indexes.Indexable):
 
     def index_queryset(self, using=None):
         """Used when the entire index for model is updated."""
-        return self.get_model().objects.filter(record_date__lte=datetime.datetime.now())
+        return self.get_model().objects.filter(record_date__lte=make_aware(datetime.datetime.now()))

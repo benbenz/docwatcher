@@ -215,7 +215,7 @@ class Crawler:
 
         # check again
         if final_url != url:
-            print(bcolors.WARNING,"final url is different from url:",final_url,url,bcolors.CEND)
+            print(bcolors.WARNING,"final url is different from url:",final_url,"VS",url,bcolors.CEND)
             is_handled , objid = self.handle_local(final_url)
             if is_handled:
                 return

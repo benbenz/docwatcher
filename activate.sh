@@ -6,4 +6,5 @@ rm www/db.sqlite3
 rm -rf www/docs/migrations
 python www/manage.py makemigrations docs
 python www/manage.py migrate
+python docspider/init.py
 python docspider/run.py

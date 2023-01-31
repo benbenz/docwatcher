@@ -34,15 +34,9 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 # now we can load the model :)
 # note that we don't have www.docs.models (because of PYTHONPATH)
-from docs.models import Document
+from docs.models import Document 
 from django.db.models import Q
 from django.db import models
-
-def hinted_tuple_hook(obj):
-    if '__tuple__' in obj:
-        return tuple(obj['items'])
-    else:
-        return obj
 
 def get_doctype_by_content(response):
     try:
@@ -179,7 +173,7 @@ class AllInOneHandler(LocalStorageHandler):
             self.process_PDF_body = self.process_PDF_body_with_OCR
             self.using_ocr = True
         except (ImportError,ModuleNotFoundError) as e:
-            print(bcolors.WARNING,"NOT using OCR {0}".format(e),bcolors.CEND)
+            print(bcolors.WARNING,"NOT using OCR ({0})".format(e),bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_NO_OCR
             #traceback.print_exc()
 
@@ -295,7 +289,7 @@ class AllInOneHandler(LocalStorageHandler):
                     pdf         = PdfReader(f) #PdfFileReader(f)
                     information = pdf.metadata #pdf.getDocumentInfo()
                     num_pages   = len(pdf.pages) #pdf.getNumPages()
-                    title       = information.title or filename
+                    title       = information.title if information and information.title else filename
                     body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
             except Exception as e:
                 msg = str(e)
@@ -304,7 +298,7 @@ class AllInOneHandler(LocalStorageHandler):
                         pdf         = recover_PDF(path)
                         information = pdf.metadata #pdf.getDocumentInfo()
                         num_pages   = len(pdf.pages) #pdf.getNumPages()
-                        title       = information.title or filename
+                        title       = information.title if information and information.title else filename
                         body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
                     except Exception as e2:
                         has_error = True
@@ -319,7 +313,7 @@ class AllInOneHandler(LocalStorageHandler):
         elif doc_type in [Document.DocumentType.DOC , Document.DocumentType.DOCX]:
             try:
                 with open(path,'rb') as f:
-                    worddoc  = Document(f)
+                    worddoc  = WordDocument(f)
                     body     = "\n".join([p.text for p in worddoc.paragraphs])
             except Exception as e:
                 has_error = True
@@ -546,3 +540,4 @@ class DBStatsHandler:
         for doc in queryset:
             result.append({"url": doc.url, "follow": True})
         return result
+
