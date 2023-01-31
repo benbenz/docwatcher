@@ -24,17 +24,14 @@ def perform_search():
         results = searcher.perform_search(search_obj)
         print("search done for {0}: {1} result(s)".format(search_obj.params,results.count()))        
         for doc in results:
-            new_ids.add(doc.pk)
-
-        print(old_ids,new_ids)
+            new_ids.add(int(doc.pk)) # not sure why QuerySearchResult returns IDs as strings...
 
         if old_ids == new_ids:
-            print("results for {0} are the same".format(search_obj.params))
+            print("results are the same".format(search_obj.params))
         else:
-            print("results for {0} have changed".format(search_obj.params))
+            print("results have changed".format(search_obj.params))
             hits_add = new_ids.difference(old_ids)
             hits_rmv = old_ids.difference(new_ids)
-            print(hits_add,hits_rmv)
             for ha in hits_add:
                 search_obj.hits.add(ha)
             for hr in hits_rmv:
