@@ -33,7 +33,7 @@ class DocumentSearcher:
     def get_search(self,search):
         canon_search = json.loads(jcs.canonicalize(search))
         try:
-            return DocumentSearch.objects.get(params=canon_search)
+            return DocumentSearch.objects.prefetch_related('hits').get(params=canon_search)
         except DocumentSearch.DoesNotExist:
             return None
 
@@ -58,14 +58,14 @@ class DocumentSearcher:
 
         queryset = SearchQuerySet()
         for pattern in patterns or []:
-            queryset.filter(content=pattern)
+            queryset= queryset.filter(content=pattern)
         for pattern_x in patterns_x or []:
-            queryset.exclude(content=pattern_x)
+            queryset = queryset.exclude(content=pattern_x)
         for domain in domains or []:
-            queryset.filter(domain=domain)
+            queryset = queryset.filter(domain=domain)
         for domain_x in domains_x or []:
-            queryset.exclude(domain=domain)
+            queryset = queryset.exclude(domain=domain_x)
         for doc_type in doc_types or []:
-            queryset.filter(doc_type=doc_type)
+            queryset = queryset.filter(doc_type=doc_type)
 
         return queryset

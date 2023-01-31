@@ -4,7 +4,7 @@
 
     <ul>
     {% for search in searches %}
-        <li><a href="{% url 'search_results' with search.id %}">{{search.params.name}}</a></li>
+        <li><a href="{% url 'search_results' search.id %}">{{search.params.name}}</a></li>
     {% endfor %}
     </ul>
 

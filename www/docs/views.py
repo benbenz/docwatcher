@@ -40,7 +40,7 @@ def search_results(request, search_id):
 def all_searches(request):
     if not request.user.is_authenticated:
         raise Http404("page does not exist") # we hide it as a does not exist ...
-    searches = DocumentSearch.objects.prefetch_related('hits').all()
+    searches = DocumentSearch.objects.all()
     return render(request, 'docs/all_searches.html', {'searches': searches})    
 
 def search_result(request, search_id):
