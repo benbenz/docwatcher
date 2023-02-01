@@ -231,6 +231,10 @@ class AllInOneHandler(LocalStorageHandler):
                 except:
                     print("Error running process",process_args,stdout,stderr,best_text)
                     traceback.print_exc()  
+                    try:
+                        os.remove(image.name)
+                    except:
+                        pass
                     continue
 
                 if best_text is not None and best_text:
