@@ -141,7 +141,25 @@ ul.infos .infos_label {
     display: inline-block;
 }
 
+ul.searchinfos .infos_label {
+    width: 12em;
+    display: inline-block;
+    color: var(--orange)
+}
+ul.searchinfos .infos_label:after {
+    content: ':';
+    margin-right: 1em;
+}
+
 .prev_next {
     text-align: center;
     width: 100%;
+}
+
+div.search {
+    background-color: #FFF;
+    border-radius: 10px;
+    padding: 1em;
+    margin-bottom: 1em;
+    cursor: pointer;
 }

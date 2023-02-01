@@ -1,13 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h2>Recherches Enregistr&eacute;es</h2>
-
-    {% for search in searches %}
-        <div class="search">
-            <h4><a href="{% url 'search_results' search.id %}">{{search.params.name}}</a></h4>
-            <p>
-                <a href="{% url 'search_results' search.id %}">
-                <ul class="searchinfos">
+    <h2>Recherche Enregistr&eacute;e</h2>
+    <p>
+            <ul class="searchinfos">
                     {% if search.params.patterns %}
                     <li><span class="infos_label">mots cl&eacute;s</span>{{search.params.patterns}}</li>
                     {% endif %}
@@ -23,10 +18,15 @@
                     {% if search.params.doc_types %}
                     <li><span class="infos_label">types document</span>{{search.params.doc_types}}</li>
                     {% endif %}
-                </ul>
-                </a>
-            </p>
-        </div>
+                </ul>        
+    </p>
+    <h2>Documents</h2>
+    <ul>
+    {% for hit in search.hits.all %}
+        <p>
+            {% include 'docs/document.html' with document=hit %}
+        </p>
     {% endfor %}
+    </ul>
 
 {% endblock %}
