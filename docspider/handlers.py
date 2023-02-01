@@ -490,7 +490,7 @@ class DBStatsHandler:
     def get_filenames(self,response):
         result = []
         for doc in Document.objects.filter(url=response.url):
-            result.append(doc.local_file.name)
+            result.append(doc.local_file)
         return result
 
     def find(self,response):
