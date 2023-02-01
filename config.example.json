@@ -45,11 +45,20 @@
         { "url" : "http://www.url8.com/"         , "method" : "normal"  , "depth" : 7 , "ignore_urls" : [ ".*url8.com.*/.*@.*" ] } ,
         { "url" : "https://www.url9.com/" , "method" : "normal"  , "depth" : 4 , "ignore_elements" : ["//meta[@property='og:url']" , "//meta[@http-equiv='last-modified']" , "//ol[contains(@class,'carousel-indicators')]" , "//div[//script[contains(@id,'infogram')]]" , "//div[@class='newspaper3c']" ] } ,
         { "url" : "https://www.url10.com/" , "method" : "normal"  , "depth" : 4 } 
-] ,
-
-    "keywords" : [
-        { "pattern" : "parsing"           , "raw" : false , "level" : 1 } ,
-        { "pattern" : "beautiful .* soup" , "raw" : true  , "level" : 3 } ,
-        { "pattern" : "html .* regex"     , "raw" : true  , "level" : 3 } 
+    ],
+    "searches" : [
+        { "name" : "NAME1" , "patterns" : [ "pattern1" ], "level" : 3 } ,
+        { "name" : "NAME2" , "patterns" : [ "pattern2"], "level" : 3 } ,
+        { "name" : "NAME3", 
+            "patterns" : [ "pattern3" ],
+            "exclude_patterns" : null ,
+            "domains" : null,
+            "exclude_domains" : [ "URL" ] ,
+            "doc_types" : null ,
+            "level" : 1 
+        } 
+    ] ,
+    "emails" : [
+        "EMAIL@DOMAIN.COM"
     ]
 }
