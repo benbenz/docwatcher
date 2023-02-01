@@ -202,7 +202,7 @@ class AllInOneHandler(LocalStorageHandler):
         try:
             for image in page.images:
                 if self.do_stop:
-                    return
+                    return page_body , found_extra_text
                 if debug:
                     print("processing image",img_count)
                 filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
