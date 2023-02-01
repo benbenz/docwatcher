@@ -1,0 +1,5 @@
+export EMAIL_USE_TLS="True"
+export EMAIL_HOST="SMTP_SERVER"
+export EMAIL_PORT=SMTP_PORT
+export EMAIL_HOST_USER="email@yourdomain.com"
+export EMAIL_HOST_PASSWORD="YOUR_PASSWORD"

@@ -119,3 +119,6 @@ www/*/migrations/
 whoosh_index
 
 __pycache__
+
+/email_settings.sh
+/email_settings.sh~

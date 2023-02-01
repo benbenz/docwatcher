@@ -11,6 +11,7 @@ from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
 from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
 
 
 # load django stuff
@@ -77,9 +78,30 @@ class DocumentSearcher:
         return queryset
 
     def mail(self,docs_add,docs_rmv):
-        subject, from_email, to = 'Matching documents from ', 'from@example.com', 'to@example.com'
-        text_content = 'This is an important message.'
-        html_content = '<p>This is an <strong>important</strong> message.</p>'
-        msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+        from_email = settings.EMAIL_HOST_USER
+        if not from_email:
+            print("Email configuration invalid. Aborting sending email")
+        domain  = from_email[from_email.index('@') + 1 : ]
+        urlroot = "https://" + domain 
+        subject = 'Matching documents from ' + from_email
+        emails = self.config.get('emails') or []
+        text_content = 'Des documents ont changés:\n'
+        html_content = '<h3>Des documents ont chang&eacute;s</h3>'
+        if docs_add and len(docs_add)>0:
+            text_content += 'Ajoutés:\n'
+            html_content += '<h4>Ajoutés:</h4><ul>'
+            for doc in docs_add:
+                text_content += '\n' + doc.title + ': ' + urlroot + doc.get_absolute_url()
+                html_content += '<li><a href="'+urlroot+doc.get_absolute_url()+'">'+doc.title+'</a></li>'
+            html_content += "</ul>"
+        if docs_rmv and len(docs_rmv)>0:
+            text_content += '\nEnlevés:'
+            html_content += '<h4>Enlev&eacute;s:</h4><ul>'
+            for doc in docs_rmv:
+                text_content += '\n' + doc.title + ': ' + urlroot + doc.get_absolute_url()
+                html_content += '<li><a href="'+urlroot+doc.get_absolute_url()+'">'+doc.title+'</a></li>'
+            html_content += "</ul>"
+        
+        msg = EmailMultiAlternatives(subject, text_content, from_email, emails)
         msg.attach_alternative(html_content, "text/html")
         msg.send()        
