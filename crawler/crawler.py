@@ -18,6 +18,7 @@ class Crawler:
         self.downloader = downloader
         self.get_handlers = get_handlers or {}
         self.head_handlers = head_handlers or {}
+        self.safe = safe
         self.session = self.downloader.session(safe)
         self.process_handler = process_handler
         self.sleep_time = sleep_time
@@ -90,6 +91,8 @@ class Crawler:
         
         # we are crawling only stuff that changed but go through all HTML
         elif self.crawler_mode == CrawlerMode.CRAWL_THRU:
+            if self.safe: # website may detact head requests as bots
+                return False , None , None
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'))
             content_type = get_content_type(response)
             if content_type == 'text/html':
@@ -108,6 +111,8 @@ class Crawler:
 
         # we are crawling only stuff that changed 
         elif self.crawler_mode == CrawlerMode.CRAWL_LIGHT:
+            if self.safe: # website may detact head requests as bots
+                return False , None , None
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'))
             content_type = get_content_type(response)
             head_handler = self.head_handlers.get(content_type)
