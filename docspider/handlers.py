@@ -207,7 +207,7 @@ class AllInOneHandler(LocalStorageHandler):
             filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
             with open(image.name, "wb") as fp:
                 fp.write(image.data)
-            im0 = Image.open(image.name)
+            #im0 = Image.open(image.name)
             best_text = None
             # spawn the process out (it can crash)
             try:
