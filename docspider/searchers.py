@@ -10,6 +10,8 @@ import jcs
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
+from django.core.mail import EmailMultiAlternatives
+
 
 # load django stuff
 # MAKE SURE ROOT/www is also in the PYTHONPATH !!!
@@ -27,7 +29,11 @@ from haystack.query import SearchQuerySet
 class DocumentSearcher:
 
     def __init__(self):
-        pass
+        try:
+            with open('config.json','r') as jsonfile:
+                self.config = json.load(jsonfile)
+        except:
+            pass
     
 
     def get_search(self,search):
@@ -69,3 +75,11 @@ class DocumentSearcher:
             queryset = queryset.filter(doc_type=doc_type)
 
         return queryset
+
+    def mail(self,docs_add,docs_rmv):
+        subject, from_email, to = 'Matching documents from ', 'from@example.com', 'to@example.com'
+        text_content = 'This is an important message.'
+        html_content = '<p>This is an <strong>important</strong> message.</p>'
+        msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()        
