@@ -23,7 +23,7 @@ def detail(request, doc_id):
             file_path = document.local_file
             if file_path:
                 try:
-                    with open(file_path,mode='r',encoding='utf-8') as f:
+                    with open(os.path.join(settings.BASE_DIR.parent,file_path),mode='r',encoding='utf-8') as f:
                         cached_page = f.read()
                 except Exception as e:
                     logger.info(e)
