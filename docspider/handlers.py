@@ -236,7 +236,10 @@ class AllInOneHandler(LocalStorageHandler):
                 if debug:
                     print("Found text:",best_text)
                 page_body += '\n' + best_text 
-            os.remove(image.name)
+            try:
+                os.remove(image.name)
+            except:
+                pass
             img_count += 1
         
         return page_body , found_extra_text

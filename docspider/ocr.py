@@ -2,6 +2,7 @@ import argparse
 import easyocr.easyocr as easyocr
 import numpy
 import json
+import os
 from PIL import Image
 
 
@@ -17,7 +18,7 @@ best_proba = -1
 for rotate in [-90,0,90] : # lets assume the document is not reversed....
     print("rotation",rotate)
     im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
-    im1.save(t_img_name)
+    im1.convert('RGB').save(t_img_name)
     try:
         result = ocr_reader.readtext(t_img_name)
 
