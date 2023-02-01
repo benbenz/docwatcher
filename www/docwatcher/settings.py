@@ -168,7 +168,8 @@ LOGGING = {
 
 
 LOGIN_REDIRECT_URL  = "/docs/search/"
-LOGOUT_REDIRECT_URL = "/observer/login"
+LOGIN_URL           = "/u/login"
+LOGOUT_REDIRECT_URL = LOGIN_URL
 
 EMAIL_USE_TLS       = os.environ.get('EMAIL_USE_TLS')=='True'
 EMAIL_HOST          = os.environ.get('EMAIL_HOST')

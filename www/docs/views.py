@@ -6,14 +6,13 @@ from django.http import Http404
 import os
 import logging
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 logger = logging.getLogger("mylogger")
 
 def index(request):
     return HttpResponse("Hello, world. You're at the doc index.")
 
-LOGIN_PAGE = '/observer/login/'
-
-@login_required(login_url=LOGIN_PAGE)
+@login_required(login_url=settings.LOGIN_URL)
 def detail(request, doc_id):
     # if not request.user.is_authenticated:
     #     raise Http404("page does not exist") # we hide it as a does not exist ...
@@ -32,7 +31,7 @@ def detail(request, doc_id):
         raise Http404("Document does not exist")
     return render(request, 'docs/detail.html', {'document': document,'cached_page':cached_page})    
 
-@login_required(login_url=LOGIN_PAGE)
+@login_required(login_url=settings.LOGIN_URL)
 def search_results(request, search_id):
     # if not request.user.is_authenticated:
     #     raise Http404("page does not exist") # we hide it as a does not exist ...
@@ -42,14 +41,14 @@ def search_results(request, search_id):
         raise Http404("Document Search does not exist")
     return render(request, 'docs/search_detail.html', {'search': search})        
 
-@login_required(login_url=LOGIN_PAGE)
+@login_required(login_url=settings.LOGIN_URL)
 def all_searches(request):
     # if not request.user.is_authenticated:
     #     raise Http404("page does not exist") # we hide it as a does not exist ...
     searches = DocumentSearch.objects.all()
     return render(request, 'docs/all_searches.html', {'searches': searches})    
 
-@login_required(login_url=LOGIN_PAGE)
+@login_required(login_url=settings.LOGIN_URL)
 def search_result(request, search_id):
     # if not request.user.is_authenticated:
     #     raise Http404("page does not exist") # we hide it as a does not exist ...
