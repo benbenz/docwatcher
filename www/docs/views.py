@@ -5,14 +5,18 @@ from django.contrib.auth import authenticate
 from django.http import Http404
 import os
 import logging
+from django.contrib.auth.decorators import login_required
 logger = logging.getLogger("mylogger")
 
 def index(request):
     return HttpResponse("Hello, world. You're at the doc index.")
 
+LOGIN_PAGE = '/observer/login/'
+
+@login_required(login_url=LOGIN_PAGE)
 def detail(request, doc_id):
-    if not request.user.is_authenticated:
-        raise Http404("page does not exist") # we hide it as a does not exist ...
+    # if not request.user.is_authenticated:
+    #     raise Http404("page does not exist") # we hide it as a does not exist ...
     try:
         document = Document.objects.get(pk=doc_id)
         cached_page = None
@@ -28,24 +32,27 @@ def detail(request, doc_id):
         raise Http404("Document does not exist")
     return render(request, 'docs/detail.html', {'document': document,'cached_page':cached_page})    
 
+@login_required(login_url=LOGIN_PAGE)
 def search_results(request, search_id):
-    if not request.user.is_authenticated:
-        raise Http404("page does not exist") # we hide it as a does not exist ...
+    # if not request.user.is_authenticated:
+    #     raise Http404("page does not exist") # we hide it as a does not exist ...
     try:
         search = DocumentSearch.objects.get(pk=search_id)
     except DocumentSearch.DoesNotExist:
         raise Http404("Document Search does not exist")
     return render(request, 'docs/search_detail.html', {'search': search})        
 
+@login_required(login_url=LOGIN_PAGE)
 def all_searches(request):
-    if not request.user.is_authenticated:
-        raise Http404("page does not exist") # we hide it as a does not exist ...
+    # if not request.user.is_authenticated:
+    #     raise Http404("page does not exist") # we hide it as a does not exist ...
     searches = DocumentSearch.objects.all()
     return render(request, 'docs/all_searches.html', {'searches': searches})    
 
+@login_required(login_url=LOGIN_PAGE)
 def search_result(request, search_id):
-    if not request.user.is_authenticated:
-        raise Http404("page does not exist") # we hide it as a does not exist ...
+    # if not request.user.is_authenticated:
+    #     raise Http404("page does not exist") # we hide it as a does not exist ...
     return HttpResponse("Search result page")
 
 from django.conf import settings
