@@ -7,6 +7,10 @@ def perform_search():
     
     with open('config.json','r') as jsonfile:
         cfg = json.load(jsonfile)
+
+    add_objs = dict()
+    rmv_objs = dict()
+    highlights = dict()
     
     for search in cfg.get('searches') or []:
         search_obj = searcher.get_search(search)
@@ -16,6 +20,8 @@ def perform_search():
         if not search_obj:
             continue
 
+        search_name = search_obj.params.get('name')
+        
         old_ids = set()
         new_ids = set()
         for doc in search_obj.hits.all():
@@ -23,8 +29,11 @@ def perform_search():
 
         results = searcher.perform_search(search_obj)
         print("search done for {0}: {1} result(s)".format(search_obj.params,results.count()))        
+        highlights[search_name] = dict()
         for doc in results:
-            new_ids.add(int(doc.pk)) # not sure why QuerySearchResult returns IDs as strings...
+            docid = int(doc.pk)
+            new_ids.add(docid) # not sure why QuerySearchResult returns IDs as strings...
+            highlights[search_name][docid]=doc.highlighted['text'][0] if doc.highlighted and len(doc.highlighted.get('text',[]))>0 else None
         
         if old_ids == new_ids:
             print("results are the same".format(search_obj.params))
@@ -32,22 +41,18 @@ def perform_search():
             print("results have changed".format(search_obj.params))
             hits_add = new_ids.difference(old_ids)
             hits_rmv = old_ids.difference(new_ids)
-            add_objs = set()
-            rmv_objs = set()
+            add_objs[search_name] = set()
+            rmv_objs[search_name] = set()
             for ha in hits_add:
                 search_obj.hits.add(ha)
-                for doc in results:
-                    if ha == int(doc.pk):
-                        add_objs.add(doc)
+                add_objs[search_name].add(searcher.get_document(ha))
             for hr in hits_rmv:
                 search_obj.hits.remove(hr)
-                for doc in search_obj.hits.all():
-                    if hr == doc.pk:
-                        rmv_objs.add(doc)
+                rmv_objs[search_name].add(searcher.get_document(hr))
             search_obj.save()
 
-            # compose the add/remove lists of objects
-            searcher.mail()
+    # compose the add/remove lists of objects
+    searcher.mail(add_objs,rmv_objs,highlights)
 
 
 if __name__ == '__main__':

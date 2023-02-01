@@ -75,9 +75,21 @@ class DocumentSearcher:
         for doc_type in doc_types or []:
             queryset = queryset.filter(doc_type=doc_type)
 
-        return queryset
+        return queryset.highlight()
 
-    def mail(self,docs_add,docs_rmv):
+    def get_document(self,id):
+        try:
+            return Document.objects.get(id=id)
+        except Document.DoesNotExist:
+            return None
+
+    def mail(self,docs_add_dict,docs_rmv_dict,highlights=None):
+        if len(docs_add_dict)==0 and len(docs_rmv_dict)==0:
+            return
+        
+        if highlights is None:
+            highlights = dict()
+
         from_email = settings.EMAIL_HOST_USER
         if not from_email:
             print("Email configuration invalid. Aborting sending email")
@@ -86,22 +98,36 @@ class DocumentSearcher:
         subject = 'Matching documents from ' + from_email
         emails = self.config.get('emails') or []
         text_content = 'Des documents ont changés:\n'
-        html_content = '<h3>Des documents ont chang&eacute;s</h3>'
-        if docs_add and len(docs_add)>0:
-            text_content += 'Ajoutés:\n'
-            html_content += '<h4>Ajoutés:</h4><ul>'
-            for doc in docs_add:
-                text_content += '\n' + doc.title + ': ' + urlroot + doc.get_absolute_url()
-                html_content += '<li><a href="'+urlroot+doc.get_absolute_url()+'">'+doc.title+'</a></li>'
-            html_content += "</ul>"
-        if docs_rmv and len(docs_rmv)>0:
-            text_content += '\nEnlevés:'
-            html_content += '<h4>Enlev&eacute;s:</h4><ul>'
-            for doc in docs_rmv:
-                text_content += '\n' + doc.title + ': ' + urlroot + doc.get_absolute_url()
-                html_content += '<li><a href="'+urlroot+doc.get_absolute_url()+'">'+doc.title+'</a></li>'
-            html_content += "</ul>"
-        
+        html_content = '<h2>Des documents ont chang&eacute;s</h2>'
+        for search_name , docs_add in docs_add_dict.items():
+            highlights_s = highlights.get(search_name)
+            if not highlights_s:
+                highlights_s = dict()
+            docs_rmv = docs_rmv_dict.get(search_name)
+            text_content += 'Recherche "'+search_name+'":\n'
+            html_content += '<h3>Recherche "'+search_name+'":</h3>'
+            if docs_add and len(docs_add)>0:
+                text_content += 'Ajoutés:\n'
+                html_content += '<h4>Ajoutés:</h4><ul>'
+                for doc in docs_add:
+                    title = str(doc.title or doc.remote_name or 'Sans titre')
+                    text_content += '\n' + title + ': ' + urlroot + doc.get_absolute_url()
+                    html_content += '<li><a href="'+urlroot+doc.get_absolute_url()+'">'+title+'</a></li>'
+                    if highlights_s.get(doc.id):
+                        highlight_text = highlights_s.get(doc.id)
+                        highlight_text = highlight_text.replace('<em>','<span style="font-weight:800">')
+                        highlight_text = highlight_text.replace('</em>','</span>')
+                        html_content += '<div style="font-size:10px">'+highlight_text+'</div>'
+
+                html_content += "</ul>"
+            if docs_rmv and len(docs_rmv)>0:
+                text_content += '\nEnlevés:'
+                html_content += '<h4>Enlev&eacute;s:</h4><ul>'
+                for doc in docs_rmv:
+                    title = str(doc.title or doc.remote_name or 'Sans titre')
+                    text_content += '\n' + title + ': ' + urlroot + doc.get_absolute_url()
+                    html_content += '<li><a href="'+urlroot+doc.get_absolute_url()+'">'+title+'</a></li>'
+                html_content += "</ul>"
         msg = EmailMultiAlternatives(subject, text_content, from_email, emails)
         msg.attach_alternative(html_content, "text/html")
         msg.send()        
