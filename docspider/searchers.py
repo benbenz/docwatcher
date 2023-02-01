@@ -111,8 +111,8 @@ class DocumentSearcher:
                 html_content += '<h4>Ajoutés:</h4><ul>'
                 for doc in docs_add:
                     title = str(doc.title or doc.remote_name or 'Sans titre')
-                    text_content += '\n' + title + ': ' + urlroot + doc.get_absolute_url()
-                    html_content += '<li><a href="'+urlroot+doc.get_absolute_url()+'">'+title+'</a></li>'
+                    text_content += '\n' + str(doc.domain)+': ' + title + ': ' + urlroot + doc.get_absolute_url()
+                    html_content += '<li>'+str(doc.domain)+': <a href="'+urlroot+doc.get_absolute_url()+'">'+title+'</a></li>'
                     if highlights_s.get(doc.id):
                         highlight_text = highlights_s.get(doc.id)
                         highlight_text = highlight_text.replace('<em>','<span style="font-weight:800">')
@@ -125,8 +125,8 @@ class DocumentSearcher:
                 html_content += '<h4>Enlev&eacute;s:</h4><ul>'
                 for doc in docs_rmv:
                     title = str(doc.title or doc.remote_name or 'Sans titre')
-                    text_content += '\n' + title + ': ' + urlroot + doc.get_absolute_url()
-                    html_content += '<li><a href="'+urlroot+doc.get_absolute_url()+'">'+title+'</a></li>'
+                    text_content += '\n' + str(doc.domain)+': '+title + ': ' + urlroot + doc.get_absolute_url()
+                    html_content += '<li>'+str(doc.domain)+': <a href="'+urlroot+doc.get_absolute_url()+'">'+title+'</a></li>'
                 html_content += "</ul>"
         msg = EmailMultiAlternatives(subject, text_content, from_email, emails)
         msg.attach_alternative(html_content, "text/html")
