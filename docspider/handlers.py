@@ -199,48 +199,55 @@ class AllInOneHandler(LocalStorageHandler):
         found_extra_text = False
         file_root = str(uuid.uuid4())[:8]
 
-        for image in page.images:
-            if self.do_stop:
-                return
-            if debug:
-                print("processing image",img_count)
-            filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
-            with open(image.name, "wb") as fp:
-                fp.write(image.data)
-            #im0 = Image.open(image.name)
-            best_text = None
-            # spawn the process out (it can crash)
-            try:
-                process_args = ['python','docspider/ocr.py',image.name]
-                process = subprocess.run(process_args,capture_output=True)
-                stdout  = process.stdout
-                stderr  = process.stderr
-                ex_code = process.returncode
-                in_data = False
-                for line in stdout.split(b'\n'):
-                    if line.startswith(b'RESULT='):
-                        line=line.replace(b'RESULT=',b'')
-                        byte_array = bytearray.fromhex(line.decode())
-                        str_dump = byte_array.decode('utf-8')
-                        json_result = json.loads(str_dump)
-                        best_text = json_result.get('best_text')
-                        break
-                if ex_code != 0:
-                    print(bcolors.WARNING,"Error processing image#{0} page #{1}): exit code = {2}\nstdout={3}\nstderr={4}".format(img_count,page_count,ex_code,stdout,stderr),bcolors.CEND)
-            except:
-                print("Error running process",process_args,stdout,stderr,best_text)
-                traceback.print_exc()  
-                continue
-
-            if best_text is not None and best_text:
+        try:
+            for image in page.images:
+                if self.do_stop:
+                    return
                 if debug:
-                    print("Found text:",best_text)
-                page_body += '\n' + best_text 
-            try:
-                os.remove(image.name)
-            except:
-                pass
-            img_count += 1
+                    print("processing image",img_count)
+                filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
+                with open(image.name, "wb") as fp:
+                    fp.write(image.data)
+                #im0 = Image.open(image.name)
+                best_text = None
+                # spawn the process out (it can crash)
+                try:
+                    process_args = ['python','docspider/ocr.py',image.name]
+                    process = subprocess.run(process_args,capture_output=True)
+                    stdout  = process.stdout
+                    stderr  = process.stderr
+                    ex_code = process.returncode
+                    in_data = False
+                    for line in stdout.split(b'\n'):
+                        if line.startswith(b'RESULT='):
+                            line=line.replace(b'RESULT=',b'')
+                            byte_array = bytearray.fromhex(line.decode())
+                            str_dump = byte_array.decode('utf-8')
+                            json_result = json.loads(str_dump)
+                            best_text = json_result.get('best_text')
+                            break
+                    if ex_code != 0:
+                        print(bcolors.WARNING,"Error processing image#{0} page #{1}): exit code = {2}\nstdout={3}\nstderr={4}".format(img_count,page_count,ex_code,stdout,stderr),bcolors.CEND)
+                except:
+                    print("Error running process",process_args,stdout,stderr,best_text)
+                    traceback.print_exc()  
+                    continue
+
+                if best_text is not None and best_text:
+                    if debug:
+                        print("Found text:",best_text)
+                    page_body += '\n' + best_text 
+                try:
+                    os.remove(image.name)
+                except:
+                    pass
+                img_count += 1
+        except ValueError as verr:
+            msg = str(verr)
+            if "not enough image data" in msg:
+                print(bcolors.WARNING,"Error retrieving image data",bcolors.CEND)
+            else:
+                raise verr
         
         return page_body , found_extra_text
 
