@@ -13,7 +13,7 @@
             "subProcess": true ,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "args": [ ],
+            "args": [ "-m" , "CRAWL_ULTRA_LIGHT" ],
             "env": {
                 "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
             }

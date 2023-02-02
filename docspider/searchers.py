@@ -77,6 +77,14 @@ class DocumentSearcher:
 
         return queryset.highlight()
 
+    def mark_of_interest(self,docs):
+        for doc in docs:
+            doc.of_interest = True
+        try:
+            Document.objects.bulk_update(docs,['of_interest'])
+        except Exception as e:
+            print("Error with bulk_update",e)
+
     def get_document(self,id):
         try:
             return Document.objects.get(id=id)

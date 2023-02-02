@@ -249,27 +249,16 @@ class CSVStatsHandler:
                 if k > 0:
                     if row[3] == referer:
                         result.append({"url": row[2], "follow": True}) # url
-        return result   
-
-
-    def is_url_of_interest(self,url):
-        parsed_url = urlparse(referer)
-        name = self.name or parsed_url.netloc
-        output = os.path.join(self.directory, name + '.csv')
-        if not os.path.isfile(output):
-            return False
-        with open(output, newline='') as csvfile:
-            reader = csv.reader(csvfile)
-            for k, row in enumerate(reader):
-                if k > 0:
-                    if row[2] == url:
-                        return True
-        return False            
+        return result           
 
     def find(self,response):
         res = self.get_filenames(response)
         if res and len(res)>0:
             return res[0]
+        return None
+
+    def get_urls_of_interest(self):
+        # not implemented
         return None
 
 class ProcessHandler:

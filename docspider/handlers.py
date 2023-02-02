@@ -303,7 +303,7 @@ class AllInOneHandler(LocalStorageHandler):
         return docs
 
     def update_document(self,the_doc):
-        title , body , num_pages , needs_ocr , has_error  = self.process_document(the_doc.url,the_doc.local_file,the_doc.doc_type)
+        title , body , num_pages , needs_ocr , has_error  = self.process_document(the_doc.url,the_doc.local_file,the_doc.doc_type,None)
         if title is not None:
             the_doc.title = title
         if body is not None:
@@ -314,7 +314,7 @@ class AllInOneHandler(LocalStorageHandler):
         the_doc.has_error = has_error
         the_doc.save() 
 
-    def process_document(self,url,path,doc_type):
+    def process_document(self,url,path,doc_type,response_body=None):
         title         = None
         body          = None
         num_pages     = -1
@@ -356,7 +356,7 @@ class AllInOneHandler(LocalStorageHandler):
             except Exception as e:
                 has_error = True
                 print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
-                #traceback.print_exc()
+                traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.PPT , Document.DocumentType.PPTX , Document.DocumentType.PPTM]:
             try:
@@ -370,13 +370,22 @@ class AllInOneHandler(LocalStorageHandler):
             except Exception as e:
                 has_error = True
                 print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
-                #traceback.print_exc()
+                traceback.print_exc()
         
         elif doc_type == Document.DocumentType.RTF:
-            body = rtf_to_text(body)
+            if response_body:
+                body = rtf_to_text(response_body)
+            else:
+                with open(path,'rb') as f:
+                    body = rtf_to_text(f.read())
 
         elif doc_type == Document.DocumentType.HTML:
             try:
+                if response_body:
+                    body = response_body
+                else:
+                    with open(path,'rb') as f:
+                        body = f.read()
                 soup  = BeautifulSoup(body,'html.parser')
                 body  = soup.get_text()
                 if soup.title:
@@ -384,7 +393,7 @@ class AllInOneHandler(LocalStorageHandler):
             except Exception as e:
                 has_error = True
                 print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
-                #traceback.print_exc()  
+                traceback.print_exc()  
 
         return title , body , num_pages , needs_ocr , has_error          
 
@@ -396,7 +405,7 @@ class AllInOneHandler(LocalStorageHandler):
         title         = filename
         body          = response.content
 
-        nu_title , nu_body , num_pages , needs_ocr , has_error = self.process_document(response.url,path,doc_type)        
+        nu_title , nu_body , num_pages , needs_ocr , has_error = self.process_document(response.url,path,doc_type,body)        
         if nu_title is not None:
             title = nu_title
         if nu_body is not None:
@@ -479,7 +488,7 @@ class AllInOneHandler(LocalStorageHandler):
                     added = True
             except:
                 pass
-        elif previous_url is not None or added==False:
+        elif previous_url is not None and added==False:
             try:
                 docreferer = Document.objects.get(url=previous_url)
                 if not doc.referers.contains(docreferer):
@@ -594,7 +603,14 @@ class DBStatsHandler:
             result.append({"url": doc.url, "follow": True})
         return result
 
-    def is_url_of_interest(self,url):
-        num = Document.objects.filter(Q(url=url,of_interest=True)|Q(links__url=url,links__of_interest=True)).count()
-        return num > 0
+    def get_urls_of_interest(self):
+        result = []
+
+        queryset = Document.objects.filter(Q(of_interest=True)|Q(links__of_interest=True)).filter(domain=self.domain).distinct()
+
+        for doc in queryset:
+            result.append(doc.url)
+        return result        
+
+
 

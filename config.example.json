@@ -32,7 +32,7 @@
         "feedify.net"
     ] ,
 
-    "firefox" : null ,
+    "firefox" : "./firefox/firefox-bin" ,
 
     "urls" : [
         { "url" : "http://www.url1.com/" , "method" : "normal"  , "depth" : 0 , "ignore_patterns" : [ "<a href=\"mailto.*\"" ] , "ignore_urls" : [ "http://www.url1.com/FOO" , ".*url1.com/.*foo.*" ] } ,
