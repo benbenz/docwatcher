@@ -114,6 +114,7 @@ def crawl_rendered_all(crawler_mode0):
             executor.shutdown(wait=True)
 
 def exit_gracefully(signum,frame):
+    print("RECEIVED SIGNAL",signum)
     signame = signal.Signals(signum).name
     print(f'exit_gracefully() called with signal {signame} ({signum})')  
     for future in futures:

@@ -91,6 +91,7 @@ def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="g
     crawler.close()
 
 def exit_gracefully(signum,frame):
+    print("RECEIVED SIGNAL",signum)
     for crawler in crawlers:
         crawler.close()
 
