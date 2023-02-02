@@ -214,6 +214,8 @@ class Crawler:
         
         if not response:
             print(bcolors.FAIL,"No response received for",url,bcolors.CEND)
+            # add the url so we dont check again
+            self.handled.add(url)
             return
 
         final_url = clean_url(response.url)

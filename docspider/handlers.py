@@ -275,10 +275,18 @@ class AllInOneHandler(LocalStorageHandler):
         body = ''
 
         for page in pdf.pages: 
-            page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
-            if page_body:
-               body += page_body + '\n'
-            found_extra_text = has_extra_text or found_extra_text
+            try:
+                page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
+                if page_body:
+                body += page_body + '\n'
+                found_extra_text = has_extra_text or found_extra_text
+            except:
+                try:
+                    page_body = page.extract_text()
+                    if page_body:
+                        body += page_body + '\n'
+                except:
+                    pass
             page_count += 1
             
         if not found_extra_text:
