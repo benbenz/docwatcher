@@ -133,6 +133,6 @@ if __name__ == '__main__':
     crawler.register_signals()
 
     parser = argparse.ArgumentParser(prog = 'DocWatcher',description = 'Watch for new docs',epilog = '=)')
-    parser.add_argument('-m','--mode',choices=['CRAWL_FULL','CRAWL_THRU','CRAWL_LIGHT'],help="This option forces the crawlers to use the provided mode.")
+    parser.add_argument('-m','--mode',choices=['CRAWL_FULL','CRAWL_THRU','CRAWL_LIGHT','CRAWL_ULTRA_LIGHT'],help="This option forces the crawlers to use the provided mode.")
     args = parser.parse_args()    
     crawl_rendered_all(args.mode)

@@ -19,8 +19,8 @@ setup(
         'striprtf',
         'django-haystack[whoosh]',
         'jcs',
-        'Pillow'
-        
+        'Pillow',
+        'pycryptodome'
         
         # FOR OPEN CV
 

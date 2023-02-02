@@ -278,7 +278,7 @@ class AllInOneHandler(LocalStorageHandler):
             try:
                 page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
                 if page_body:
-                body += page_body + '\n'
+                    body += page_body + '\n'
                 found_extra_text = has_extra_text or found_extra_text
             except:
                 try:
@@ -294,14 +294,30 @@ class AllInOneHandler(LocalStorageHandler):
         else:
             return body , False
 
-    def process_response(self,path,response):
-        parsed_url    = urlparse(response.url)
-        domain_name   = parsed_url.netloc
-        filename      = get_filename(parsed_url,response)
-        doc_type      = get_doctype(response)
-        title         = filename
-        num_pages     = -1 
-        body          = response.content
+    def get_documents(self,doc_types=None,doc_types_exclude=None):
+        docs = Document.objects 
+        if doc_types:
+            docs = docs.filter(doc_type__in=doc_types)
+        if doc_types_exclude:
+            docs = docs.exclude(doc_type__in=doc_types_exclude)
+        return docs
+
+    def update_document(self,the_doc):
+        title , body , num_pages , needs_ocr , has_error  = self.process_document(the_doc.url,the_doc.local_file,the_doc.doc_type)
+        if title is not None:
+            the_doc.title = title
+        if body is not None:
+            the_doc.body  = body 
+        if num_pages != -1:
+            the_doc.num_pages = num_pages
+        the_doc.needs_ocr = needs_ocr
+        the_doc.has_error = has_error
+        the_doc.save() 
+
+    def process_document(self,url,path,doc_type):
+        title         = None
+        body          = None
+        num_pages     = -1
         needs_ocr     = False
         has_error     = False
 
@@ -311,8 +327,8 @@ class AllInOneHandler(LocalStorageHandler):
                     pdf         = PdfReader(f) #PdfFileReader(f)
                     information = pdf.metadata #pdf.getDocumentInfo()
                     num_pages   = len(pdf.pages) #pdf.getNumPages()
-                    title       = information.title if information and information.title else filename
-                    body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
+                    title       = information.title if information and information.title else None
+                    body , needs_ocr = self.process_PDF_body(url,path,pdf)
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
@@ -320,16 +336,16 @@ class AllInOneHandler(LocalStorageHandler):
                         pdf         = recover_PDF(path)
                         information = pdf.metadata #pdf.getDocumentInfo()
                         num_pages   = len(pdf.pages) #pdf.getNumPages()
-                        title       = information.title if information and information.title else filename
-                        body , needs_ocr = self.process_PDF_body(response.url,path,pdf)
+                        title       = information.title if information and information.title else None
+                        body , needs_ocr = self.process_PDF_body(url,path,pdf)
                     except Exception as e2:
                         has_error = True
-                        print(bcolors.FAIL,"ERROR recovering file",response.url,path,e2,bcolors.CEND)
+                        print(bcolors.FAIL,"ERROR recovering file",url,path,e2,bcolors.CEND)
                         #traceback.print_exc()
 
                 else:
                     has_error = True
-                    print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
+                    print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
                     traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.DOC , Document.DocumentType.DOCX]:
@@ -339,7 +355,7 @@ class AllInOneHandler(LocalStorageHandler):
                     body     = "\n".join([p.text for p in worddoc.paragraphs])
             except Exception as e:
                 has_error = True
-                print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
+                print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
                 #traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.PPT , Document.DocumentType.PPTX , Document.DocumentType.PPTM]:
@@ -353,7 +369,7 @@ class AllInOneHandler(LocalStorageHandler):
                                     body += shape.text + '\n'
             except Exception as e:
                 has_error = True
-                print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
+                print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
                 #traceback.print_exc()
         
         elif doc_type == Document.DocumentType.RTF:
@@ -367,8 +383,25 @@ class AllInOneHandler(LocalStorageHandler):
                     title = soup.title.string
             except Exception as e:
                 has_error = True
-                print(bcolors.FAIL,"ERROR processing file",path,e,bcolors.CEND)
-                #traceback.print_exc()        
+                print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
+                #traceback.print_exc()  
+
+        return title , body , num_pages , needs_ocr , has_error          
+
+    def process_response(self,path,response):
+        parsed_url    = urlparse(response.url)
+        domain_name   = parsed_url.netloc
+        filename      = get_filename(parsed_url,response)
+        doc_type      = get_doctype(response)
+        title         = filename
+        body          = response.content
+
+        nu_title , nu_body , num_pages , needs_ocr , has_error = self.process_document(response.url,path,doc_type)        
+        if nu_title is not None:
+            title = nu_title
+        if nu_body is not None:
+            body = nu_body
+
         last_modified = get_header_http_last_modified(response)
 
         # cleanup extraneous spaces
@@ -426,7 +459,8 @@ class AllInOneHandler(LocalStorageHandler):
             needs_ocr   = needs_ocr ,
             has_error   = has_error ,
             local_file  = path , 
-            file_status = file_status
+            file_status = file_status ,
+            of_interest = False
         )
 
         # save the new entry
@@ -544,9 +578,6 @@ class DBStatsHandler:
             pass
         return None
 
-
-
-
     def get_urls_by_referer(self,referer,objid=None):
         result = []
 
@@ -562,4 +593,8 @@ class DBStatsHandler:
         for doc in queryset:
             result.append({"url": doc.url, "follow": True})
         return result
+
+    def is_url_of_interest(self,url):
+        num = Document.objects.filter(Q(url=url,of_interest=True)|Q(links__url=url,links__of_interest=True)).count()
+        return num > 0
 

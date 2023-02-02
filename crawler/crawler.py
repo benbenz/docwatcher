@@ -124,7 +124,24 @@ class Crawler:
                 else:
                     return False , content_type , None
             else:
-                return False , content_type , None         
+                return False , content_type , None  
+
+        # we are crawling only stuff that changed 
+        elif self.crawler_mode == CrawlerMode.CRAWL_ULTRA_LIGHT:
+            if self.safe: # website may detact head requests as bots
+                return False , None , None
+            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'))
+            content_type = get_content_type(response)
+            head_handler = self.head_handlers.get(content_type)
+            if head_handler:
+                match_id = head_handler.find(response)
+                if match_id is not None:
+                    print(bcolors.OKCYAN,"skipping fetching of document because we already have it",url,bcolors.CEND)
+                    return True , content_type , match_id
+                else:
+                    return False , content_type , None
+            else:
+                return False , content_type , None                     
 
     def should_crawl(self,url):
         # file types that are ignored
@@ -150,17 +167,14 @@ class Crawler:
                     #print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
                     return False 
 
+        # in ULTRA light mode we only consider the URLs linked to a document of interest ...
+        if self.crawler_mode == CrawlerMode.CRAWL_ULTRA_LIGHT and not self.handlers_have_url_of_interest(url):
+            return False
+
         return True 
 
     def handle_local(self,url):
         
-        # check if url should be skipped
-        should_crawl = self.should_crawl(url)
-
-        # let's just skip it
-        if not should_crawl:
-            return True , None
-
         # url is handled by persistence/records
         has_doc , content_type , objid = self.has_document(url) # HEAD request potentially
         if has_doc:
@@ -168,6 +182,21 @@ class Crawler:
             # we may be in light mode
             # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
             if self.crawler_mode == CrawlerMode.CRAWL_LIGHT and content_type == 'text/html':
+                urls = self.get_urls_by_referer(url,objid) 
+                if urls is None: # we dont have a handler to help with LIGHT mode ...
+                    print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_THRU.name,"!!!")
+                    self.crawler_mode = CrawlerMode.CRAWL_THRU
+                    return False , objid
+                else:
+                    self.handled.add(url)
+                    for next_url in urls:
+                        if self.do_stop:
+                            return
+                        if depth and follow:
+                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
+                    return True , objid
+            # ultra light mode will only look at HTML page linked to 'of-interest' documents
+            if self.crawler_mode == CrawlerMode.CRAWL_ULTRA_LIGHT and content_type == 'text/html':
                 urls = self.get_urls_by_referer(url,objid) 
                 if urls is None: # we dont have a handler to help with LIGHT mode ...
                     print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_THRU.name,"!!!")
@@ -199,6 +228,10 @@ class Crawler:
         if orig_url is None:
             orig_url = url
 
+        # check if url should be skipped
+        if not self.should_crawl(url):
+            return 
+
         # sleep now before any kind of request
         time.sleep(self.sleep_time)
         if self.do_stop:
@@ -223,6 +256,11 @@ class Crawler:
         # check again
         if final_url != url:
             print(bcolors.WARNING,"final url is different from url:",final_url,"VS",url,bcolors.CEND)
+            
+            # check if final_url should be skipped
+            if not self.should_crawl(final_url):
+                return 
+
             is_handled , objid = self.handle_local(final_url)
             if is_handled:
                 return
@@ -285,3 +323,17 @@ class Crawler:
             return None
 
         return html_handler.get_urls_by_referer(referer,objid)
+
+
+    def handlers_have_url_of_interest(self,url):
+
+        if not self.head_handlers:
+            return False
+
+        for ct,handler in self.head_handlers.items():
+            # in CSV mode, this returns True on all recorded URLs !
+            if handler.is_url_of_interest(url):
+                return True
+
+        return False
+

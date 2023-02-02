@@ -45,7 +45,12 @@ def perform_search():
             rmv_objs[search_name] = set()
             for ha in hits_add:
                 search_obj.hits.add(ha)
-                add_objs[search_name].add(searcher.get_document(ha))
+                add_doc = searcher.get_document(ha)
+                add_objs[search_name].add(add_doc)
+                if not add_doc.of_interest:
+                    # mark the document as being of interest ...
+                    add_doc.of_interest = True
+                    add_doc.save()
             for hr in hits_rmv:
                 search_obj.hits.remove(hr)
                 rmv_objs[search_name].add(searcher.get_document(hr))

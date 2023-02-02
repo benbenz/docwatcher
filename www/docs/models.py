@@ -42,6 +42,7 @@ class Document(models.Model):
     needs_ocr   = models.BooleanField()
     has_error   = models.BooleanField()
     file_status = models.SmallIntegerField()
+    of_interest = models.BooleanField()
 
     def get_absolute_url(self):
         return "/docs/%i/" % self.id        

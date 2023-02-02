@@ -9,6 +9,9 @@ class CrawlerMode(IntEnum):
     # smart crawl: skip the page if it's already been handled (dont go through)
     # old HTML and non-HTML files are also considered handled after a certain time (>2 years)
     CRAWL_LIGHT = 3
+    # ultra light crawl: only crawl the already-marked 'of interest' pages AND their referrers
+    # old HTML and non-HTML files are also considered handled after a certain time (>2 years)
+    CRAWL_ULTRA_LIGHT = 4
 
 
 class bcolors:
