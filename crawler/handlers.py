@@ -332,7 +332,7 @@ def get_filename(parsed_url,response):
     if parsed_url.query:
         filename += f'_{parsed_url.query}'
     ext = get_extension(response)
-    if not filename.lower().endswith(ext):
+    if filename and not filename.lower().endswith(ext):
         filename += ext
 
     filename = filename.replace('%20', '_')
