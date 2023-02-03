@@ -229,8 +229,8 @@ class Crawler:
         if not response:
             print(bcolors.WARNING,"No response received for {0}. Trying to clear the cookies".format(url),bcolors.CEND)
             self.session = self.downloader.session(self.safe)
-            print("sleeping 1 minute first ...")
-            time.sleep(60)
+            print("sleeping 5 minutes first ...")
+            time.sleep(60*5)
             response     = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
             content_type = get_content_type(response)
         
