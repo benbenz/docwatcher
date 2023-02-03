@@ -252,9 +252,6 @@ class Crawler:
         if final_url != url:
             print("final url is different from url:",final_url,"VS",url)
 
-            if "plan-du-site" in final_url:
-                print("WE WERE HERE")
-            
             # check if final_url should be skipped
             if not self.should_crawl(final_url):
                 return 
