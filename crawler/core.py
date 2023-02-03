@@ -26,3 +26,5 @@ class bcolors:
     UNDERLINE = '\033[4m'
     CEND      = '\33[0m'        
 
+
+DEFAULT_SLEEP_TIME = 7

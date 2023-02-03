@@ -6,6 +6,7 @@ import signal
 import argparse
 import docspider.handlers as handlers
 from urllib.parse import urlparse
+from crawler.core import DEFAULT_SLEEP_TIME
 from concurrent.futures import ThreadPoolExecutor , ProcessPoolExecutor , as_completed
 
 # change this to your geckodriver path
@@ -40,7 +41,7 @@ def crawl_rendered_all(crawler_mode0):
         url    = url_config.get("url")
         method = url_config.get("method") or "rendered-all"
         depth  = url_config.get("depth") or 4
-        sleep  = url_config.get("sleep") or 5
+        sleep  = url_config.get("sleep") or DEFAULT_SLEEP_TIME
         safe   = url_config.get("safe",False)
         c_mode = url_config.get("crawler_mode")
 

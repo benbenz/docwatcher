@@ -1,9 +1,10 @@
 from crawler.helper import get_content_type, call, call_head , clean_url
-from crawler.core import CrawlerMode, bcolors
+from crawler.core import CrawlerMode, bcolors , DEFAULT_SLEEP_TIME
 from crawler.crawl_methods import get_hrefs_html, get_hrefs_js_simple, ClickCrawler
 from crawler.handlers import FileStatus 
 import time
 from urllib.parse import urlparse
+from http import HTTPStatus
 import json
 import re
 
@@ -12,7 +13,7 @@ K_DOMAINS_SKIP = 'domains_skip'
 K_URLS         = 'urls'
 
 class Crawler:
-    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=5, process_handler=None,safe=False,crawler_mode=CrawlerMode.CRAWL_THRU):
+    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=DEFAULT_SLEEP_TIME, process_handler=None,safe=False,crawler_mode=CrawlerMode.CRAWL_THRU):
 
         # Crawler internals
         self.downloader = downloader
@@ -223,19 +224,24 @@ class Crawler:
         if is_handled:
             return
 
-        response     = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
-        content_type = get_content_type(response)
+        response , httpcode = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
+        content_type        = get_content_type(response)
         
         if not response:
-            print(bcolors.WARNING,"No response received for {0}. Trying to clear the cookies".format(url),bcolors.CEND)
-            self.session = self.downloader.session(self.safe)
-            print("sleeping 5 minutes first ...")
-            time.sleep(60*5)
-            response     = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
-            content_type = get_content_type(response)
+            if httpcode == HTTPStatus.NOT_FOUND:
+                print(bcolors.WARNING,"404 response received for {0}".format(url),bcolors.CEND)
+                self.handled.add(url)
+                return
+            else:
+                print(bcolors.WARNING,"No response received for {0}. Trying to clear the cookies".format(url),bcolors.CEND)
+                self.session = self.downloader.session(self.safe)
+                print(bcolors.WARNING,"sleeping 2 minutes first ...",bcolors.CEND)
+                time.sleep(60*2)
+                response , httpcode = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
+                content_type        = get_content_type(response)
         
         if not response:
-            print(bcolors.FAIL,"No response received for",url,bcolors.CEND)
+            print(bcolors.FAIL,"No response received for {0} (code {1} {2})".format(url,int(httpcode),httpcode),bcolors.CEND)
             # add the url so we dont check again
             self.handled.add(url)
             return
@@ -244,7 +250,10 @@ class Crawler:
 
         # check again
         if final_url != url:
-            print(bcolors.WARNING,"final url is different from url:",final_url,"VS",url,bcolors.CEND)
+            print("final url is different from url:",final_url,"VS",url)
+
+            if "plan-du-site" in final_url:
+                print("WE WERE HERE")
             
             # check if final_url should be skipped
             if not self.should_crawl(final_url):
@@ -273,19 +282,22 @@ class Crawler:
             objid = nu_objid
 
         if content_type == "text/html":
-            self.handled.add(final_url)
-            self.handled.add(url)
             if depth and follow:
                 depth -= 1
                 if self.do_stop:
                     return
                 urls = self.get_urls(response)
-                #self.handled.add(final_url)
+                #print("ALL URLS from {0}:".format(final_url),[url['url'] for url in urls])
+                # add the urls 
+                self.handled.add(final_url)
+                self.handled.add(url)
                 for next_url in urls:
                     if self.do_stop:
                         return
                     self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url)
         else:
+            # add both
+            self.handled.add(url)            
             self.handled.add(final_url)
 
     def get_urls(self, response):

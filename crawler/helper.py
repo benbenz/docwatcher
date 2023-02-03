@@ -4,6 +4,7 @@ from crawler.proxy import ProxyManager
 from crawler.core import bcolors
 import re
 import requests
+from http import HTTPStatus
 from urllib.parse import urlparse,urlunparse
 
 pm = ProxyManager()
@@ -83,17 +84,20 @@ def call(session, url, use_proxy=False, retries=0):
                 response.raise_for_status()
             except Exception as e:
                 msg = str(e)
-                if retries <= 3:
+                status_code = e.response.status_code if isinstance(e,requests.exceptions.HTTPError) else None
+                if status_code == HTTPStatus.NOT_FOUND:
+                    return None , status_code
+                if retries <= 3: 
                     pm.change_proxy(proxy[1])
                     return call(session, url, True, retries + 1)
                 else:
                     print(bcolors.FAIL,"Error fetching url",url,bcolors.CEND)
-                    return None
+                    return None , status_code
             else:
-                return response
+                return response , response.status_code
         else:
             print(bcolors.FAIL,"Error fetching url. No Proxy available.",url,bcolors.CEND)
-            return None
+            return None , None
     else:
         try:
             response = session.get(url, timeout=10, verify=True)
@@ -101,14 +105,17 @@ def call(session, url, use_proxy=False, retries=0):
         except requests.exceptions.InvalidSchema as re:
             msg = str(re)
             if url.startswith('tel:') or url.startswith('mailto:'):
-                pass
+                return None , response.status_code if response else None
             else:
                 print(re)
+                return None , response.status_code if response else None
         except Exception as e:
-            # try with proxy
+            status_code = e.response.status_code if isinstance(e,requests.exceptions.HTTPError) else None
+            if status_code == HTTPStatus.NOT_FOUND: # not found , no need to try proxies
+                return None , status_code
             return call(session,url,use_proxy=True)
         else:
-            return response
+            return response , response.status_code if response else None
 
 
 def call_head(session, url, use_proxy=False, retries=0):
@@ -119,6 +126,9 @@ def call_head(session, url, use_proxy=False, retries=0):
                 response = session.head(url, timeout=10, proxies=proxy[0], verify=True)
                 response.raise_for_status()
             except Exception as e:
+                status_code = e.response.status_code if isinstance(e,requests.exceptions.HTTPError) else None
+                if status_code == HTTPStatus.NOT_FOUND:
+                    return None
                 msg = str(e)
                 if retries <= 3:
                     pm.change_proxy(proxy[1])
@@ -140,8 +150,12 @@ def call_head(session, url, use_proxy=False, retries=0):
                 pass
             else:
                 print(re)
+            return None
         except Exception as e:
+            status_code = e.response.status_code if isinstance(e,requests.exceptions.HTTPError) else None
+            if status_code == HTTPStatus.NOT_FOUND:
+                return None
             # try with proxy
-            return call(session,url,use_proxy=True)
+            return call_head(session,url,use_proxy=True)
         else:
             return response
