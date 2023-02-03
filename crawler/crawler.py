@@ -219,7 +219,7 @@ class Crawler:
 
         if url in self.fetched:
 
-            response , httpcode , content_type = self.fetched[url]
+            response , httpcode , content_type , objid = self.fetched[url]
 
             if not response:
                 return
@@ -235,7 +235,7 @@ class Crawler:
             if is_handled:
                 return
 
-            response , httpcode = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
+            response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
             content_type        = get_content_type(response)
         
             if not response:
@@ -245,15 +245,22 @@ class Crawler:
                     self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
                     return
                 else:
-                    print(bcolors.WARNING,"No response received for {0}. Trying to clear the cookies".format(url),bcolors.CEND)
+                    print(bcolors.WARNING,"No response received for {0}. Errmsg={1}. Trying to clear the cookies".format(url,errmsg),bcolors.CEND)
                     self.session = self.downloader.session(self.safe)
                     print(bcolors.WARNING,"sleeping 2 minutes first ...",bcolors.CEND)
                     time.sleep(60*2)
-                    response , httpcode = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
-                    content_type        = get_content_type(response)
+                    response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
+                    content_type = get_content_type(response)
             
             if not response:
-                print(bcolors.FAIL,"No response received for {0} (code {1} {2})".format(url,int(httpcode),httpcode),bcolors.CEND)
+                if httpcode:
+                    try:
+                        httpcode_int = int(httpcode)
+                    except:
+                        httpcode_int = -1
+                    print(bcolors.FAIL,"No response received for {0} (code {1} {2})".format(url,httpcode_int,httpcode),bcolors.CEND)
+                else:
+                    print(bcolors.FAIL,"No response received for {0}. Errmsg={1}".format(url,errmsg),bcolors.CEND)
                 # add the url so we dont check again
                 self.handled.add(url)
                 self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
@@ -309,7 +316,7 @@ class Crawler:
             else:
                 # lets save the work
                 # we may need it if we come back to this URL with depth != 0
-                self.fetched[url] = response , httpcode , content_type
+                self.fetched[url] = response , httpcode , content_type , objid 
         else:
             # add both
             self.handled.add(url)            
