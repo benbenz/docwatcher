@@ -1,8 +1,9 @@
 import logging
 from functools import lru_cache
 from crawler.proxy import ProxyManager
-from crawler.core import bcolors
+from crawler.core import bcolors , DEFAULT_SLEEP_TIME
 import re
+import time
 import requests
 from http import HTTPStatus
 from urllib.parse import urlparse,urlunparse
@@ -75,11 +76,13 @@ def get_content_type(response):
 
 
 @lru_cache(maxsize=8192)
-def call(session, url, use_proxy=False, retries=0):
+def call(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME):
     if use_proxy:
         proxy = pm.get_proxy()
         if proxy[0]:
             try:
+                if sleep_time is not None:
+                    time.sleep(sleep_time)
                 response = session.get(url, timeout=10, proxies=proxy[0], verify=True)
                 response.raise_for_status()
             except Exception as e:
@@ -100,6 +103,8 @@ def call(session, url, use_proxy=False, retries=0):
             return None , None , None
     else:
         try:
+            if sleep_time is not None:
+                time.sleep(sleep_time)
             response = session.get(url, timeout=10, verify=True)
             response.raise_for_status()
         except requests.exceptions.InvalidSchema as re:
@@ -119,11 +124,13 @@ def call(session, url, use_proxy=False, retries=0):
             return response , response.status_code if response else None , None
 
 
-def call_head(session, url, use_proxy=False, retries=0):
+def call_head(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME):
     if use_proxy:
         proxy = pm.get_proxy()
         if proxy[0]:
             try:
+                if sleep_time is not None:
+                    time.sleep(sleep_time)
                 response = session.head(url, timeout=10, proxies=proxy[0], verify=True)
                 response.raise_for_status()
             except Exception as e:
@@ -143,6 +150,8 @@ def call_head(session, url, use_proxy=False, retries=0):
             return None
     else:
         try:
+            if sleep_time is not None:
+                time.sleep(sleep_time)
             response = session.head(url, timeout=10, verify=True)
             response.raise_for_status()
         except requests.exceptions.InvalidSchema as re:

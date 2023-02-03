@@ -8,13 +8,13 @@ class CrawlerMode(IntEnum):
     CRAWL_THRU  = 2
     # smart crawl: skip the page if it's already been handled (dont go through)
     # old HTML and non-HTML files are also considered handled after a certain time (>2 years)
-    CRAWL_LIGHT = 3
+    CRAWL_LIGHT = 4
     # ultra light crawl: only crawl the already-marked 'of interest' pages AND their referrers
     # old HTML and non-HTML files are also considered handled after a certain time (>2 years)
-    CRAWL_ULTRA_LIGHT = 4
+    CRAWL_ULTRA_LIGHT = 8
 
     # MASK for recover mode (when an expiration time is used on the runtime - useful for shared VPS)
-    CRAWL_RECOVER = 16
+    CRAWL_RECOVER = 32
 
 
 class bcolors:

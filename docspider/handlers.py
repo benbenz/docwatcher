@@ -34,7 +34,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 # now we can load the model :)
 # note that we don't have www.docs.models (because of PYTHONPATH)
-from docs.models import Document 
+from docs.models import Document , Sitemap
 from django.db.models import Q
 from django.db import models
 
@@ -457,7 +457,7 @@ class AllInOneHandler(LocalStorageHandler):
             url         = url , 
             final_url   = final_url ,
 #            referer     = previous_url or '' ,
-            depth       = depth ,
+#            depth       = depth ,
 #            record_date = AUTO
             remote_name = filename ,
             http_length =  get_header_http_length(response),
@@ -489,23 +489,31 @@ class AllInOneHandler(LocalStorageHandler):
             added = False
             try:
                 docreferer = Document.objects.get(pk=previous_id)
-                if not doc.referers.contains(docreferer):
-                    doc.referers.add(docreferer)
+                if Sitemap.objects.filter(referer=docreferer,link=doc).count()==0:
+                    relation = Sitemap.objects.create(referer=docreferer,link=doc,depth=depth)
+                    relation.save()
                     added = True
+                # if not doc.referers.contains(docreferer):
+                #     doc.referers.add(referer=docreferer,through_defaults={'depth':depth})
+                #     added = True
             except:
                 pass
         elif previous_url is not None and added==False:
             try:
                 docreferer = Document.objects.get(url=previous_url)
-                if not doc.referers.contains(docreferer):
-                    doc.referers.add(docreferer)
+                if Sitemap.objects.filter(referer=docreferer,link=doc).count()==0:
+                    relation = Sitemap.objects.create(referer=docreferer,link=doc,depth=depth)
+                    relation.save()
                     added = True
+                # if not doc.referers.contains(docreferer):
+                #     doc.referers.add(docreferer,through_defaults={'depth':depth})
+                #     added = True
             except:
                 pass
 
         # save the relationship
-        if added:
-            doc.save()
+        #if added:
+        #    doc.save()
 
         return path , file_status , doc.id
 
@@ -517,11 +525,11 @@ class DBStatsHandler:
     def get_handled_list(self,crawler_mode):
         list_handled = []
         
-        if crawler_mode == CrawlerMode.CRAWL_FULL:
+        if crawler_mode & CrawlerMode.CRAWL_FULL:
         
             pass
 
-        elif crawler_mode == CrawlerMode.CRAWL_THRU:
+        elif crawler_mode & CrawlerMode.CRAWL_THRU:
             # we're gonna consider that really old non-html documents won't change anymore (2y+)
             # we can add those documents to the 'handled_list' and avoid head() or even get() requests
             # we have to discard HTML documents because we want to crawl them again
@@ -539,7 +547,7 @@ class DBStatsHandler:
                 for doc in queryset:
                     list_handled.append(doc.url if isinstance(doc.url,str) else doc.url.name)
 
-        elif crawler_mode in [ CrawlerMode.CRAWL_LIGHT , CrawlerMode.CRAWL_ULTRA_LIGHT ] :
+        elif crawler_mode & CrawlerMode.CRAWL_LIGHT or crawler_mode & CrawlerMode.CRAWL_ULTRA_LIGHT :
             # we're gonna consider more documents as being done ...
             date_today = datetime.today()
             date_html  = make_aware( date_today - timedelta(days=1*365) ) # 2 years
@@ -626,12 +634,13 @@ class DBStatsHandler:
 
         if objid is None:
             referer_clean = clean_url(referer)
-            queryset = Document.objects.filter(Q(referers__url=referer_clean)|Q(referers__final_url=referer_clean))
+            #queryset = Document.objects.filter(Q(referers__url=referer_clean)|Q(referers__final_url=referer_clean))
+            queryset = Sitemap.objects.filter(Q(referer__url=referer_clean)|Q(referer__final_url=referer_clean)).select_related('link')
         else:
-            queryset = Document.objects.get(pk=objid).links.all()
-
-        for doc in queryset:
-            result.append({"url": doc.url, "follow": True})
+            #queryset = Document.objects.get(pk=objid).links.prefetch_related('sitemap_set').all()
+            queryset = Sitemap.objects.filter(referer__id=objid).select_related('link')
+        for rel in queryset:
+            result.append({"url": rel.link.url, "follow": True ,"depth":rel.depth})
         return result
 
     def get_urls_of_interest(self):

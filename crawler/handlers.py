@@ -178,7 +178,7 @@ class CSVStatsHandler:
     def get_handled_list(self,crawler_mode):
         list_handled = []
 
-        if crawler_mode in [ CrawlerMode.CRAWL_FULL , CrawlerMode.CRAWL_THRU] :
+        if crawler_mode & CrawlerMode.CRAWL_FULL or crawler_mode & CrawlerMode.CRAWL_THRU :
             pass
         else:
             # this will cause already crawled urls to not be crawled again !

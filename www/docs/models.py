@@ -23,8 +23,8 @@ class Document(models.Model):
     url         = models.URLField(max_length=200,db_index=True)
     final_url   = models.URLField(max_length=200,db_index=True,null=True)
     #referer     = models.URLField(max_length=200,db_index=True)
-    referers    = models.ManyToManyField('self', related_name='links', symmetrical=False, blank=True)
-    depth       = models.IntegerField()
+    referers    = models.ManyToManyField('self', related_name='links', symmetrical=False, blank=True, through='Sitemap')
+    #depth       = models.IntegerField()
     record_date = models.DateTimeField(auto_now_add=True, blank=True)
     remote_name = models.CharField(max_length=200)
 
@@ -47,7 +47,12 @@ class Document(models.Model):
     of_interest = models.BooleanField()
 
     def get_absolute_url(self):
-        return "/docs/%i/" % self.id        
+        return "/docs/%i/" % self.id      
+
+class Sitemap(models.Model):
+    referer = models.ForeignKey(Document, related_name='referer_docs', on_delete=models.CASCADE)
+    link    = models.ForeignKey(Document, related_name='link_docs'   , on_delete=models.CASCADE)
+    depth   = models.IntegerField()
 
 class DocumentSearch(models.Model):
 

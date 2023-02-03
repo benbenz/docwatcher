@@ -44,10 +44,12 @@ class Crawler:
             self.time0            = datetime.now()
             self.expiration_delta = timedelta(minutes=expiration)
             self.urls_to_recover  = set()
+            self.sitemap          = dict()
         else:
-            self.time0 = None
+            self.time0            = None
             self.expiration_delta = None
             self.urls_to_recover  = None
+            self.sitemap          = None
         self.expired = False
 
         # Crawler information
@@ -115,17 +117,18 @@ class Crawler:
                     match_id , content_type = head_handler.find_recent(url)
                     if match_id is not None:
                         print(bcolors.OKCYAN,"skipping fetching of document because of its recovery:",url,bcolors.CEND)
+                        # IMPORTANT TO RETURN FALSE cause its not fully handled at this stage ...
                         return True , content_type , match_id
 
         # we are crawling/downloading everything no matter what
-        if self.crawler_mode == CrawlerMode.CRAWL_FULL:
+        if self.crawler_mode & CrawlerMode.CRAWL_FULL:
             return False , None , None
         
         # we are crawling only stuff that changed but go through all HTML
-        elif self.crawler_mode == CrawlerMode.CRAWL_THRU:
+        elif self.crawler_mode & CrawlerMode.CRAWL_THRU:
             if self.safe: # website may detact head requests as bots
                 return False , None , None
-            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'))
+            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
             content_type = get_content_type(response)
             if content_type == 'text/html':
                 return False , content_type , None # we still want to parkour the website...
@@ -142,7 +145,7 @@ class Crawler:
                 return False , content_type , None
 
         # we are crawling only stuff that changed 
-        elif self.crawler_mode in [ CrawlerMode.CRAWL_LIGHT , CrawlerMode.CRAWL_ULTRA_LIGHT ]:
+        elif self.crawler_mode & CrawlerMode.CRAWL_LIGHT or self.crawler_mode & CrawlerMode.CRAWL_ULTRA_LIGHT :
 
             # website may detect head requests as bots
             # compromise - we're in safe mode so we dont really want to do a head request
@@ -159,7 +162,7 @@ class Crawler:
                         return True , content_type , match_id
                 return False , None , None
 
-            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'))
+            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
             content_type = get_content_type(response)
             head_handler = self.head_handlers.get(content_type)
             if head_handler:
@@ -202,14 +205,14 @@ class Crawler:
     def handle_local(self,url,orig_url,is_entry):
 
         # ultra light mode will only look at HTML page linked to 'of-interest' documents
-        if is_entry and self.crawler_mode == CrawlerMode.CRAWL_ULTRA_LIGHT:
+        if is_entry and self.crawler_mode & CrawlerMode.CRAWL_ULTRA_LIGHT:
             one_handler_k = next(iter(self.head_handlers))
             if not one_handler_k:
                 return False , None
             urls = self.head_handlers[one_handler_k].get_urls_of_interest()
             if urls is None:
                 print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_LIGHT.name,"!!!")
-                self.crawler_mode = CrawlerMode.CRAWL_LIGHT
+                self.crawler_mode = CrawlerMode.CRAWL_LIGHT | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
                 return False , None
             for next_url in urls:
                 if self.do_stop:
@@ -221,23 +224,36 @@ class Crawler:
         # url is handled by persistence/records (and hasnt changed)
         has_doc , content_type , objid = self.has_document(url) # HEAD request potentially
         if has_doc:
+            if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
+                urls , depth , follow = self.sitemap.get(url) 
+                if urls is not None:
+                    for next_url in urls:
+                        if self.do_stop:
+                            return
+                        if depth and follow:
+                            self.handled.add(url)
+                            self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
+                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
+                    return True , objid
+
             # we may be in light mode
             # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
-            if self.crawler_mode == CrawlerMode.CRAWL_LIGHT and content_type == 'text/html':
+            if self.crawler_mode & CrawlerMode.CRAWL_LIGHT and content_type == 'text/html':
                 urls = self.get_urls_by_referer(url,objid) 
                 if urls is None: # we dont have a handler to help with LIGHT mode ...
                     print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_THRU.name,"!!!")
-                    self.crawler_mode = CrawlerMode.CRAWL_THRU
+                    self.crawler_mode = CrawlerMode.CRAWL_THRU | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
                     return False , objid
                 else:
                     for next_url in urls:
                         if self.do_stop:
                             return
+                        depth  = next_url.get('depth',1)
+                        follow = next_url['follow']
                         if depth and follow:
-                            self.handled.add(final_url)
                             self.handled.add(url)
                             self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
-                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
+                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=follow,orig_url=orig_url)
                     return True , objid
             else:
                 return True , objid
@@ -283,16 +299,24 @@ class Crawler:
         else:
 
             # sleep now before any kind of request
-            time.sleep(self.sleep_time)
-            if self.do_stop:
-                return
+            #time.sleep(self.sleep_time)
+            #if self.do_stop:
+            #    return
 
             is_handled , objid = self.handle_local(url,orig_url,is_entry)
             if is_handled:
                 return
 
-            response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
+            # we may have slept
+            if self.do_stop:
+                return 
+
+            response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
             content_type        = get_content_type(response)
+
+            # we may have slept
+            if self.do_stop:
+                return 
         
             if not response:
                 if httpcode == HTTPStatus.NOT_FOUND:
@@ -305,10 +329,13 @@ class Crawler:
                     self.session = self.downloader.session(self.safe)
                     print(bcolors.WARNING,"sleeping 5 minutes first ...",bcolors.CEND)
                     time.sleep(60*5)
-                    response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
-                    content_type = get_content_type(response)
                     # increasing sleep time too 
                     self.sleep_time += 5 
+                    response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
+                    content_type = get_content_type(response)
+                    # we may have slept
+                    if self.do_stop:
+                        return 
             
             if not response:
                 if httpcode:
@@ -338,6 +365,11 @@ class Crawler:
             if is_handled:
                 return
 
+            # we may have slept
+            if self.do_stop:
+                return 
+
+
         print(final_url) 
 
         # Name of pdf
@@ -356,6 +388,7 @@ class Crawler:
             if self.urls_to_recover is not None:
                 self.urls_to_recover.add(url)
                 self.urls_to_recover.add(final_url)
+
         if head_handler and file_status&FileStatus.EXISTING == 0:
             head_handler.handle(response, depth, previous_url, local_name)
 
@@ -364,15 +397,19 @@ class Crawler:
 
         if content_type == "text/html":
             if depth and follow:
-                depth -= 1
                 if self.do_stop:
                     return
                 urls = self.get_urls(response)
+                if self.sitemap is not None:
+                    self.sitemap[final_url] = urls , depth , follow 
+                    self.sitemap[url]       = urls , depth , follow
                 #print("ALL URLS from {0}:".format(final_url),[url['url'] for url in urls])
                 # add the urls 
                 self.handled.add(final_url)
                 self.handled.add(url)
                 self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                depth -= 1
+
                 for next_url in urls:
                     if self.do_stop:
                         return
@@ -414,6 +451,8 @@ class Crawler:
                 self.fetched = obj.fetched
                 # let's restore the fetched urls list
                 self.urls_to_recover = obj.urls_to_recover
+                # let's restore the partial site map too
+                self.sitemap = obj.sitemap
                 # let's switch to RECOVER mode
                 self.crawler_mode |= CrawlerMode.CRAWL_RECOVER
                 # make sure we're not expired
