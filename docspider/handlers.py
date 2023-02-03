@@ -188,7 +188,7 @@ class AllInOneHandler(LocalStorageHandler):
 
         return body , needs_ocr 
 
-    def process_PDF_page_with_OCR(self,path,page,page_count,ocr_reader):
+    def process_PDF_page_with_OCR(self,url,path,page,page_count,ocr_reader):
         
         debug = True
         if debug:
@@ -204,7 +204,7 @@ class AllInOneHandler(LocalStorageHandler):
                 if self.do_stop:
                     return page_body , found_extra_text
                 if debug:
-                    print("processing image",img_count)
+                    print("processing image {0} for {1}".format(img_count,url))
                 filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
                 with open(image.name, "wb") as fp:
                     fp.write(image.data)
@@ -227,7 +227,7 @@ class AllInOneHandler(LocalStorageHandler):
                             best_text = json_result.get('best_text')
                             break
                     if ex_code != 0:
-                        print(bcolors.WARNING,"Error processing image#{0} page #{1}): exit code = {2}\nstdout={3}\nstderr={4}".format(img_count,page_count,ex_code,stdout,stderr),bcolors.CEND)
+                        print(bcolors.WARNING,"Error processing image #{0} page #{1} for {2}: exit code = {3}\nstdout={4}\nstderr={5}".format(img_count,page_count,url,ex_code,stdout,stderr),bcolors.CEND)
                 except:
                     print("Error running process",process_args,stdout,stderr,best_text)
                     traceback.print_exc()  
@@ -276,7 +276,7 @@ class AllInOneHandler(LocalStorageHandler):
 
         for page in pdf.pages: 
             try:
-                page_body , has_extra_text = self.process_PDF_page_with_OCR(path,page,page_count,ocr_reader)
+                page_body , has_extra_text = self.process_PDF_page_with_OCR(url,path,page,page_count,ocr_reader)
                 if page_body:
                     body += page_body + '\n'
                 found_extra_text = has_extra_text or found_extra_text

@@ -247,10 +247,12 @@ class Crawler:
                 else:
                     print(bcolors.WARNING,"No response received for {0}. Errmsg={1}. Trying to clear the cookies".format(url,errmsg),bcolors.CEND)
                     self.session = self.downloader.session(self.safe)
-                    print(bcolors.WARNING,"sleeping 2 minutes first ...",bcolors.CEND)
-                    time.sleep(60*2)
+                    print(bcolors.WARNING,"sleeping 7 minutes first ...",bcolors.CEND)
+                    time.sleep(60*7)
                     response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
                     content_type = get_content_type(response)
+                    # increasing sleep time too 
+                    self.sleep_time += 5 
             
             if not response:
                 if httpcode:
