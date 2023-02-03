@@ -42,6 +42,7 @@ class Document(models.Model):
     num_pages   = models.IntegerField()
     size        = models.IntegerField()
     needs_ocr   = models.BooleanField()
+    has_ocr     = models.BooleanField()
     has_error   = models.BooleanField()
     file_status = models.SmallIntegerField()
     of_interest = models.BooleanField()

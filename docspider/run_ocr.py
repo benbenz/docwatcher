@@ -8,7 +8,8 @@ def perform_ocr():
 
     handler = AllInOneHandler(directory=output_dir, subdirectory=None)
 
-    for doc in handler.get_documents(doc_types_exclude=[Document.DocumentType.HTML]):
+    # we only perform OCR on PDF for now
+    for doc in handler.get_documents(doc_types=[Document.DocumentType.PDF],for_ocr=True):
         # re-perform OCR 
         handler.update_document(doc)
 

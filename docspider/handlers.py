@@ -163,19 +163,23 @@ def get_header_http_encoding(response):
 
 class AllInOneHandler(LocalStorageHandler):
 
-    def __init__(self, directory, subdirectory):
+    def __init__(self, directory, subdirectory, use_ocr=None):
         #super().__init__(directory,subdirectory)
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
         self.using_ocr = False
-        try:
-            import easyocr.easyocr
-            print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
-            self.process_PDF_body = self.process_PDF_body_with_OCR
-            self.using_ocr = True
-        except (ImportError,ModuleNotFoundError) as e:
-            print(bcolors.WARNING,"NOT using OCR ({0})".format(e),bcolors.CEND)
+        if use_ocr==False:
+            print(bcolors.WARNING,"Specifically NOT using OCR",bcolors.CEND)
             self.process_PDF_body = self.process_PDF_body_NO_OCR
-            #traceback.print_exc()
+        else:
+            try:
+                import easyocr.easyocr
+                print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
+                self.process_PDF_body = self.process_PDF_body_with_OCR
+                self.using_ocr = True
+            except (ImportError,ModuleNotFoundError) as e:
+                print(bcolors.WARNING,"NOT using OCR ({0})".format(e),bcolors.CEND)
+                self.process_PDF_body = self.process_PDF_body_NO_OCR
+                #traceback.print_exc()
 
     def process_PDF_body_NO_OCR(self,url,path,pdf):
         needs_ocr = False
@@ -186,7 +190,7 @@ class AllInOneHandler(LocalStorageHandler):
             print(bcolors.WARNING,"file needs OCR",bcolors.CEND)
             needs_ocr = True        
 
-        return body , needs_ocr 
+        return body , needs_ocr , False
 
     def process_PDF_page_with_OCR(self,url,path,page,page_count,ocr_reader):
         
@@ -253,7 +257,7 @@ class AllInOneHandler(LocalStorageHandler):
             else:
                 raise verr
         
-        return page_body , found_extra_text
+        return page_body , found_extra_text, True
 
     def process_PDF_body_with_OCR(self,url,path,pdf):
 
@@ -294,16 +298,18 @@ class AllInOneHandler(LocalStorageHandler):
         else:
             return body , False
 
-    def get_documents(self,doc_types=None,doc_types_exclude=None):
+    def get_documents(self,doc_types=None,doc_types_exclude=None,for_ocr=False):
         docs = Document.objects 
         if doc_types:
             docs = docs.filter(doc_type__in=doc_types)
         if doc_types_exclude:
             docs = docs.exclude(doc_type__in=doc_types_exclude)
+        if for_ocr == True:
+            docs = docs.filter(has_ocr=False)
         return docs
 
     def update_document(self,the_doc):
-        title , body , num_pages , needs_ocr , has_error  = self.process_document(the_doc.url,the_doc.local_file,the_doc.doc_type,None)
+        title , body , num_pages , needs_ocr , has_error  , has_ocr = self.process_document(the_doc.url,the_doc.local_file,the_doc.doc_type,None)
         if title is not None:
             the_doc.title = title
         if body is not None:
@@ -312,6 +318,7 @@ class AllInOneHandler(LocalStorageHandler):
             the_doc.num_pages = num_pages
         the_doc.needs_ocr = needs_ocr
         the_doc.has_error = has_error
+        the_doc.has_ocr   = has_ocr
         the_doc.save() 
 
     def process_document(self,url,path,doc_type,response_body=None):
@@ -320,6 +327,7 @@ class AllInOneHandler(LocalStorageHandler):
         num_pages     = -1
         needs_ocr     = False
         has_error     = False
+        has_ocr       = False
 
         if doc_type == Document.DocumentType.PDF:
             try:
@@ -328,7 +336,7 @@ class AllInOneHandler(LocalStorageHandler):
                     information = pdf.metadata #pdf.getDocumentInfo()
                     num_pages   = len(pdf.pages) #pdf.getNumPages()
                     title       = information.title if information and information.title else None
-                    body , needs_ocr = self.process_PDF_body(url,path,pdf)
+                    body , needs_ocr , has_ocr = self.process_PDF_body(url,path,pdf)
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
@@ -337,7 +345,7 @@ class AllInOneHandler(LocalStorageHandler):
                         information = pdf.metadata #pdf.getDocumentInfo()
                         num_pages   = len(pdf.pages) #pdf.getNumPages()
                         title       = information.title if information and information.title else None
-                        body , needs_ocr = self.process_PDF_body(url,path,pdf)
+                        body , needs_ocr , has_ocr = self.process_PDF_body(url,path,pdf)
                     except Exception as e2:
                         has_error = True
                         print(bcolors.FAIL,"ERROR recovering file",url,path,e2,bcolors.CEND)
@@ -395,7 +403,7 @@ class AllInOneHandler(LocalStorageHandler):
                 print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
                 traceback.print_exc()  
 
-        return title , body , num_pages , needs_ocr , has_error          
+        return title , body , num_pages , needs_ocr , has_error , has_ocr      
 
     def process_response(self,path,response):
         parsed_url    = urlparse(response.url)
@@ -405,7 +413,7 @@ class AllInOneHandler(LocalStorageHandler):
         title         = filename
         body          = response.content
 
-        nu_title , nu_body , num_pages , needs_ocr , has_error = self.process_document(response.url,path,doc_type,body)        
+        nu_title , nu_body , num_pages , needs_ocr , has_error , has_ocr = self.process_document(response.url,path,doc_type,body)        
         if nu_title is not None:
             title = nu_title
         if nu_body is not None:
@@ -418,7 +426,7 @@ class AllInOneHandler(LocalStorageHandler):
             if not isinstance(body,bytes) and not isinstance(body,bytearray):
                 body = re.sub(r'([\s]{10,}|[\n]{3,})','\n\n',body)
 
-        return domain_name , filename , doc_type , title , body , num_pages, needs_ocr , has_error , last_modified
+        return domain_name , filename , doc_type , title , body , num_pages, needs_ocr , has_error , has_ocr , last_modified
 
 
     def handle(self, response, depth, previous_url, previous_id, *args, **kwargs):
@@ -432,12 +440,13 @@ class AllInOneHandler(LocalStorageHandler):
 
                 # let's also update the content to match the file (unless it's exactly the same file)
                 if file_status & FileStatus.EXACT == 0:
-                    domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(path,response)
+                    domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , has_ocr , last_modified = self.process_response(path,response)
                     the_doc.body  = body 
                     the_doc.title = title
                     the_doc.num_pages = num_pages
                     the_doc.needs_ocr = needs_ocr
                     the_doc.has_error = has_error
+                    the_doc.has_ocr   = has_ocr
                     the_doc.last_modified = last_modified
                     the_doc.save() 
                 return path , file_status , the_doc.id
@@ -445,7 +454,7 @@ class AllInOneHandler(LocalStorageHandler):
                 print(bcolors.FAIL,"INTERNAL Error: an existing file is not registered in the database!",bcolors.CEND)
                 return path , file_status , None
 
-        domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(path,response)
+        domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , has_ocr , last_modified = self.process_response(path,response)
 
         final_url = kwargs.get('final_url')
         if final_url:
@@ -472,6 +481,7 @@ class AllInOneHandler(LocalStorageHandler):
             size        = len(response.content) ,
             num_pages   = num_pages ,
             needs_ocr   = needs_ocr ,
+            has_ocr     = has_ocr ,
             has_error   = has_error ,
             local_file  = path , 
             file_status = file_status ,
@@ -644,12 +654,13 @@ class DBStatsHandler:
         return result
 
     def get_urls_of_interest(self):
-        result = []
+        result = set()
 
-        queryset = Document.objects.filter(Q(of_interest=True)|Q(links__of_interest=True)).filter(domain=self.domain).distinct()
+        #queryset = Document.objects.filter(Q(of_interest=True)|Q(links_docs__of_interest=True)).filter(domain=self.domain).distinct()
+        queryset = Document.objects.filter(Q(of_interest=True)|Q(referer_docs__link__of_interest=True)).filter(domain=self.domain).distinct()
 
         for doc in queryset:
-            result.append(doc.url)
+            result.add(doc.url)
         return result        
 
 

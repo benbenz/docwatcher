@@ -16,7 +16,7 @@ output_dir = "download"
 executor = None
 futures  = []
 
-def crawl_rendered_all(crawler_mode0,expiration):
+def crawl_rendered_all(crawler_mode0,expiration,ocr):
     global executor
 
     #if os.path.isdir(output_dir):
@@ -71,7 +71,7 @@ def crawl_rendered_all(crawler_mode0,expiration):
         ]
 
         get_handlers = dict()
-        get_handler  = handlers.AllInOneHandler(directory=output_dir, subdirectory=domain_name)
+        get_handler  = handlers.AllInOneHandler(directory=output_dir, subdirectory=domain_name, use_ocr=(ocr!="OFF"))
         for handled_type in handled_types:
             get_handlers[handled_type] = get_handler
 
@@ -97,7 +97,8 @@ def crawl_rendered_all(crawler_mode0,expiration):
                 safe=safe,
                 crawler_mode=crawler_mode,
                 domain=domain_name,
-                expiration=expiration
+                expiration=expiration,
+                ocr=ocr
         )
 
         futures.append(future)
@@ -137,5 +138,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog = 'DocWatcher',description = 'Watch for new docs',epilog = '=)')
     parser.add_argument('-m','--mode',choices=['CRAWL_FULL','CRAWL_THRU','CRAWL_LIGHT','CRAWL_ULTRA_LIGHT'],help="This option forces the crawlers to use the provided mode.")
     parser.add_argument('-e','--expiration',type=int,help="Add an expiration time to the runtime")
+    parser.add_argument('-o','--ocr',choices=['ON','OFF'],help="With OCR or not (if OCR is available)")
     args = parser.parse_args()    
-    crawl_rendered_all(args.mode,args.expiration)
+    crawl_rendered_all(args.mode,args.expiration,args.ocr)

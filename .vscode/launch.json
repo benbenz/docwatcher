@@ -30,6 +30,19 @@
             "env": {
                 "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
             }
-        }         
+        } , 
+        {
+            "name": "Run ULTRA_LIGHT",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/docspider/run.py",
+            "subProcess": true ,
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [ "-m" , "CRAWL_ULTRA_LIGHT" ],
+            "env": {
+                "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
+            }
+        }  
     ]
 }
