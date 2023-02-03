@@ -23,7 +23,7 @@ logging.basicConfig(
 requests_downloader = RequestsDownloader()
 crawlers = []
 
-def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_THRU,domain=None):
+def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_THRU,domain=None,expiration=None):
     head_handlers = {}
     get_handlers = {}
 
@@ -67,12 +67,16 @@ def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="g
         process_handler=process_handler,
         sleep_time=sleep_time,
         safe=safe,
-        crawler_mode=crawler_mode
+        crawler_mode=crawler_mode,
+        expiration=expiration
     )
 
     crawlers.append(crawler)
-
-    print(bcolors.OKCYAN,"Crawler created with mode '{0}' for domain {1}. We have {2} urls that are already handled".format(crawler.get_mode().name,domain,crawler.get_handled_len()),bcolors.CEND)
+    
+    if expiration:
+        print(bcolors.OKCYAN,"Crawler created with mode '{0}' for domain {1}. Expiration = {2} min(s). We have {3} urls that are already handled".format(crawler.get_mode().name,domain,expiration,crawler.get_handled_len()),bcolors.CEND)
+    else:   
+        print(bcolors.OKCYAN,"Crawler created with mode '{0}' for domain {1}. We have {2} urls that are already handled".format(crawler.get_mode().name,domain,crawler.get_handled_len()),bcolors.CEND)
 
     try:
 
@@ -91,7 +95,7 @@ def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="g
     crawler.close()
 
 def exit_gracefully(signum,frame):
-    print("RECEIVED SIGNAL",signum)
+    print(bcolors.WARNING,"RECEIVED SIGNAL",signum,bcolors.CEND)
     for crawler in crawlers:
         crawler.close()
 

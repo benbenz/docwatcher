@@ -447,17 +447,23 @@ class AllInOneHandler(LocalStorageHandler):
 
         domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , last_modified = self.process_response(path,response)
 
+        final_url = kwargs.get('final_url')
+        if final_url:
+            final_url = clean_url(final_url) # just to make really sure
+        url = clean_url(response.url) 
 
         doc = Document(
             domain      = domain_name , 
-            url         = response.url , 
+            url         = url , 
+            final_url   = final_url ,
 #            referer     = previous_url or '' ,
             depth       = depth ,
 #            record_date = AUTO
             remote_name = filename ,
             http_length =  get_header_http_length(response),
             http_encoding = get_header_http_encoding(response),
-            http_last_modified = get_header_http_last_modified(response) ,
+            http_last_modified = get_header_http_last_modified(response),
+            http_content_type = get_content_type(response),
 
             # Content: HTML/PDF + file
             doc_type    = doc_type ,
@@ -533,7 +539,7 @@ class DBStatsHandler:
                 for doc in queryset:
                     list_handled.append(doc.url if isinstance(doc.url,str) else doc.url.name)
 
-        elif crawler_mode == CrawlerMode.CRAWL_LIGHT:
+        elif crawler_mode in [ CrawlerMode.CRAWL_LIGHT , CrawlerMode.CRAWL_ULTRA_LIGHT ] :
             # we're gonna consider more documents as being done ...
             date_today = datetime.today()
             date_html  = make_aware( date_today - timedelta(days=1*365) ) # 2 years
@@ -562,11 +568,13 @@ class DBStatsHandler:
         http_length        = get_header_http_length(response)
         http_encoding      = get_header_http_encoding(response)
         http_last_modified = get_header_http_last_modified(response)
+        url = clean_url(response.url)
+        q_url = Q(url=url) | Q(final_url=url)
         try:
             if http_last_modified:
-                result = Document.objects.get(url=response.url,http_last_modified=http_last_modified).only()
+                result = Document.objects.get(q_url & Q(ast_modified=http_last_modified))
             else:
-                result = Document.objects.get(url=response.url,http_length=http_length,http_encoding=http_encoding).only()
+                result = Document.objects.get(q_url & Q(url=response.url,http_length=http_length,http_encoding=http_encoding))
             return result.id
         except Document.DoesNotExist:
             # sometime some website will have http_last_modified to the latest time ... thats ok.
@@ -574,11 +582,14 @@ class DBStatsHandler:
             pass 
         except Document.MultipleObjectsReturned:
             try:
-                results = Document.objects.find( url=response.url,
-                                                http_last_modified=http_last_modified,
-                                                http_length=http_length,
-                                                http_encoding=http_encoding,
-                                                ).order_by('-record_date').only()
+                if http_last_modified:
+                    results = Document.objects.find( q_url & 
+                                                Q(http_last_modified=http_last_modified)
+                                                ).order_by('-record_date')
+                else:
+                    results = Document.objects.find( q_url &
+                                                Q(http_length=http_length,
+                                                http_encoding=http_encoding)).order_by('-record_date')
                 if results.count()>0:
                     return results[0].id
             except:
@@ -587,15 +598,35 @@ class DBStatsHandler:
             pass
         return None
 
+    def find_recent(self,url):
+        try:
+            url = clean_url(url)
+            date_today  = datetime.today()
+            date_filter = make_aware( date_today - timedelta(days=7) ) # 1 week
+            q_http_last_modified = Q(http_last_modified__gte=date_filter) & ~Q(http_last_modified__isnull=True)
+            q_record_date        = Q(record_date__gte=date_filter)
+            q_url                = Q(url=url) | Q(final_url=url)
+            result = Document.objects.get(q_url & (q_record_date | q_http_last_modified))
+            return result.id , result.http_content_type
+        except Document.DoesNotExist:
+            pass
+        except Document.MultipleObjectsReturned:
+            try:
+                results = Document.objects.filter(q_url & (q_record_date | q_http_last_modified)).order_by('-record_date')
+                if results.count()>0:
+                    return results[0].id , results[0].http_content_type
+            except Exception as e:
+                print(bcolors.FAIL,"error while finding recent element",e,bcolors.CEND)
+        except Exception as e:
+            print(bcolors.FAIL,"error while finding recent element",e,bcolors.CEND)
+        return None , None
+
     def get_urls_by_referer(self,referer,objid=None):
         result = []
 
         if objid is None:
             referer_clean = clean_url(referer)
-            if referer_clean != referer:
-                queryset = Document.objects.filter(Q(referers__url=referer)|Q(referers__url=referer_clean))
-            else:
-                queryset = Document.objects.filter(referers__url=referer)
+            queryset = Document.objects.filter(Q(referers__url=referer_clean)|Q(referers__final_url=referer_clean))
         else:
             queryset = Document.objects.get(pk=objid).links.all()
 

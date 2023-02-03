@@ -16,7 +16,7 @@ output_dir = "download"
 executor = None
 futures  = []
 
-def crawl_rendered_all(crawler_mode0):
+def crawl_rendered_all(crawler_mode0,expiration):
     global executor
 
     #if os.path.isdir(output_dir):
@@ -96,7 +96,8 @@ def crawl_rendered_all(crawler_mode0):
                 gecko_path=gecko_path,
                 safe=safe,
                 crawler_mode=crawler_mode,
-                domain=domain_name
+                domain=domain_name,
+                expiration=expiration
         )
 
         futures.append(future)
@@ -115,7 +116,7 @@ def crawl_rendered_all(crawler_mode0):
             executor.shutdown(wait=True)
 
 def exit_gracefully(signum,frame):
-    print("RECEIVED SIGNAL",signum)
+    print(bcolors.WARNING,"RECEIVED SIGNAL",signum,bcolors.CEND)
     signame = signal.Signals(signum).name
     print(f'exit_gracefully() called with signal {signame} ({signum})')  
     for future in futures:
@@ -135,5 +136,6 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(prog = 'DocWatcher',description = 'Watch for new docs',epilog = '=)')
     parser.add_argument('-m','--mode',choices=['CRAWL_FULL','CRAWL_THRU','CRAWL_LIGHT','CRAWL_ULTRA_LIGHT'],help="This option forces the crawlers to use the provided mode.")
+    parser.add_argument('-e','--expiration',type=int,help="Add an expiration time to the runtime")
     args = parser.parse_args()    
-    crawl_rendered_all(args.mode)
+    crawl_rendered_all(args.mode,args.expiration)

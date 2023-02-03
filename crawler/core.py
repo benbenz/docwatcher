@@ -13,6 +13,9 @@ class CrawlerMode(IntEnum):
     # old HTML and non-HTML files are also considered handled after a certain time (>2 years)
     CRAWL_ULTRA_LIGHT = 4
 
+    # MASK for recover mode (when an expiration time is used on the runtime - useful for shared VPS)
+    CRAWL_RECOVER = 16
+
 
 class bcolors:
     HEADER = '\033[95m'

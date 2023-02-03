@@ -6,14 +6,17 @@ import time
 from urllib.parse import urlparse
 from http import HTTPStatus
 import json
+import os
 import re
+import pickle
+from datetime import datetime, timedelta
 
 
 K_DOMAINS_SKIP = 'domains_skip'
 K_URLS         = 'urls'
 
 class Crawler:
-    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=DEFAULT_SLEEP_TIME, process_handler=None,safe=False,crawler_mode=CrawlerMode.CRAWL_THRU):
+    def __init__(self, downloader, get_handlers=None, head_handlers=None, follow_foreign_hosts=False, crawl_method="normal", gecko_path="geckodriver", sleep_time=DEFAULT_SLEEP_TIME, process_handler=None,safe=False,crawler_mode=CrawlerMode.CRAWL_THRU,expiration=None):
 
         # Crawler internals
         self.downloader = downloader
@@ -34,6 +37,18 @@ class Crawler:
         except Exception as e:
             print(e)
             self.config = dict()
+
+        self.has_finished = False
+
+        if expiration:
+            self.time0            = datetime.now()
+            self.expiration_delta = timedelta(minutes=expiration)
+            self.urls_to_recover  = set()
+        else:
+            self.time0 = None
+            self.expiration_delta = None
+            self.urls_to_recover  = None
+        self.expired = False
 
         # Crawler information
         self.handled = set()
@@ -62,6 +77,9 @@ class Crawler:
     def get_mode(self):
         return self.crawler_mode
 
+    def get_config(self):
+        return self.config
+
     def close(self):
         for k, Handler in self.get_handlers.items():
             Handler.stop()
@@ -87,6 +105,18 @@ class Crawler:
         return dict()        
 
     def has_document(self,url):
+
+        if self.crawler_mode & CrawlerMode.CRAWL_RECOVER :
+            # + if it is in 'urls_to_recover'
+            if url in self.urls_to_recover : 
+                one_handler_k = next(iter(self.head_handlers))
+                if one_handler_k:
+                    head_handler = self.head_handlers[one_handler_k]
+                    match_id , content_type = head_handler.find_recent(url)
+                    if match_id is not None:
+                        print(bcolors.OKCYAN,"skipping fetching of document because of its recovery:",url,bcolors.CEND)
+                        return True , content_type , match_id
+
         # we are crawling/downloading everything no matter what
         if self.crawler_mode == CrawlerMode.CRAWL_FULL:
             return False , None , None
@@ -112,9 +142,23 @@ class Crawler:
                 return False , content_type , None
 
         # we are crawling only stuff that changed 
-        elif self.crawler_mode in [ CrawlerMode.CRAWL_LIGHT , CrawlerMode.CRAWL_ULTRA_LIGHT]:
-            if self.safe: # website may detact head requests as bots
+        elif self.crawler_mode in [ CrawlerMode.CRAWL_LIGHT , CrawlerMode.CRAWL_ULTRA_LIGHT ]:
+
+            # website may detect head requests as bots
+            # compromise - we're in safe mode so we dont really want to do a head request
+            # but we are also in a *LIGHT mode so we dont want to trigger as many full requests
+            # which would happen if we were just returning False , None , None
+            # >>> let's not fetch if the document is relatively recent ...
+            if self.safe: 
+                one_handler_k = next(iter(self.head_handlers))
+                if one_handler_k:
+                    head_handler = self.head_handlers[one_handler_k]
+                    match_id , content_type = head_handler.find_recent(url)
+                    if match_id is not None:
+                        print(bcolors.OKCYAN,"skipping fetching of document because it is recent",url,bcolors.CEND)
+                        return True , content_type , match_id
                 return False , None , None
+
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'))
             content_type = get_content_type(response)
             head_handler = self.head_handlers.get(content_type)
@@ -127,6 +171,7 @@ class Crawler:
                     return False , content_type , None
             else:
                 return False , content_type , None  
+            
 
     def should_crawl(self,url):
         # file types that are ignored
@@ -212,6 +257,17 @@ class Crawler:
         is_entry = orig_url is None
         if is_entry:
             orig_url = url
+            continue_crawling = self.recover_state(url)
+            if not continue_crawling:
+                return
+
+        if self.time0 is not None and not is_entry:
+            datetime_now = datetime.today()
+            if datetime_now - self.time0 > self.expiration_delta:
+                if self.expired == False:
+                    print(bcolors.WARNING,"expiring ...",bcolors.CEND)
+                self.expired = True
+                return
 
         # check if url should be skipped
         if not self.should_crawl(url):
@@ -293,7 +349,13 @@ class Crawler:
         nu_objid = None
         if get_handler:
             old_files = head_handler.get_filenames(response) if head_handler else None
-            local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config)
+            local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url)
+            # we got this object
+            # if there is an expiration coming
+            # we want to make sure we mark this object as recently fetched...
+            if self.urls_to_recover is not None:
+                self.urls_to_recover.add(url)
+                self.urls_to_recover.add(final_url)
         if head_handler and file_status&FileStatus.EXISTING == 0:
             head_handler.handle(response, depth, previous_url, local_name)
 
@@ -323,6 +385,47 @@ class Crawler:
             # add both
             self.handled.add(url)            
             self.handled.add(final_url)
+
+        if is_entry:
+            domain = urlparse(url).netloc
+            filename = 'state.'+domain
+            # we expired
+            if not self.expired:
+                self.has_finished = True
+
+            if self.time0 is not None: # state mode
+                print(bcolors.WARNING,"Saving state because of expiration",bcolors.CEND)
+                with open(filename,'wb') as f:
+                    pickle.dump(self,f)
+
+    def recover_state(self,url):
+        # recover only when in expiration mode
+        if self.time0 is None:
+            return True # continue crawl
+
+        domain = urlparse(url).netloc
+        filename = 'state.'+domain
+        if os.path.isfile(filename):
+            with open(filename,'rb') as f:
+                obj = pickle.load(f)
+                #lets not do that so the recursion can take its course
+                #self.handled = obj.handled
+                # let's restore the cache
+                self.fetched = obj.fetched
+                # let's restore the fetched urls list
+                self.urls_to_recover = obj.urls_to_recover
+                # let's switch to RECOVER mode
+                self.crawler_mode |= CrawlerMode.CRAWL_RECOVER
+                # make sure we're not expired
+                self.expired = False
+                # has finished?
+                self.has_finished = obj.has_finished
+
+                if self.has_finished:
+                    print(bcolors.WARNING,"This crawler has finished working. Delete the state file {0} if you want to restart a job".format(filename),bcolors.CEND)
+                    return False # stop crawling
+                
+        return True # continue crawl
 
     def get_urls(self, response):
 

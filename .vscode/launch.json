@@ -13,10 +13,23 @@
             "subProcess": true ,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "args": [ ],
+            "args": [  ],
             "env": {
                 "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
             }
-        } 
+        } ,
+        {
+            "name": "Run (w/ expiration)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/docspider/run.py",
+            "subProcess": true ,
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [ "-e" , "1" ],
+            "env": {
+                "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
+            }
+        }         
     ]
 }

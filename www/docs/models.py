@@ -21,6 +21,7 @@ class Document(models.Model):
     # Crawl information
     domain      = models.CharField(max_length=100,db_index=True)
     url         = models.URLField(max_length=200,db_index=True)
+    final_url   = models.URLField(max_length=200,db_index=True,null=True)
     #referer     = models.URLField(max_length=200,db_index=True)
     referers    = models.ManyToManyField('self', related_name='links', symmetrical=False, blank=True)
     depth       = models.IntegerField()
@@ -31,6 +32,7 @@ class Document(models.Model):
     http_length        = models.IntegerField()
     http_encoding      = models.CharField(max_length=32)
     http_last_modified = models.DateTimeField(null=True,blank=True)
+    http_content_type  = models.CharField(max_length=64)
 
     # Content: HTML/PDF + file
     local_file  = models.FilePathField(unique=True,db_index=True)    

@@ -257,6 +257,9 @@ class CSVStatsHandler:
             return res[0]
         return None
 
+    def find_recent(self,url):
+        return None , None  
+
     def get_urls_of_interest(self):
         # not implemented
         return None
