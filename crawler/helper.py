@@ -110,7 +110,7 @@ def call(session, url, use_proxy=False, retries=0):
                 print(re)
                 return None , response.status_code if response else None , msg 
         except Exception as e:
-            msg = str(re)
+            msg = str(e)
             status_code = e.response.status_code if isinstance(e,requests.exceptions.HTTPError) else None
             if status_code == HTTPStatus.NOT_FOUND: # not found , no need to try proxies
                 return None , status_code , msg

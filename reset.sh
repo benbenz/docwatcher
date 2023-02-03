@@ -1,4 +1,6 @@
 deactivate
+ps -ef | grep 'docspider/run.py' | grep -v grep | awk '{print $2}' | xargs -r kill -9
+ps -ef | grep 'docspider/ocr.py' | grep -v grep | awk '{print $2}' | xargs -r kill -9
 export PYTHONPATH=$(pwd):$(pwd)/www:$PYTHONPATH
 source .venv/bin/activate
 source email_settings.sh
