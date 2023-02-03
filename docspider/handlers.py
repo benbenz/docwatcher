@@ -656,7 +656,7 @@ class DBStatsHandler:
     def get_urls_of_interest(self):
         result = set()
 
-        #queryset = Document.objects.filter(Q(of_interest=True)|Q(links_docs__of_interest=True)).filter(domain=self.domain).distinct()
+        #queryset = Document.objects.filter(Q(of_interest=True)|Q(links__of_interest=True)).filter(domain=self.domain).distinct()
         queryset = Document.objects.filter(Q(of_interest=True)|Q(referer_docs__link__of_interest=True)).filter(domain=self.domain).distinct()
 
         for doc in queryset:
