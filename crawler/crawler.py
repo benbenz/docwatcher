@@ -37,6 +37,7 @@ class Crawler:
 
         # Crawler information
         self.handled = set()
+        self.fetched = dict()
         self.follow_foreign = follow_foreign_hosts
         self.executable_path_gecko = gecko_path
         # these file endings are excluded to speed up the crawling (assumed that urls ending with these strings are actual files)
@@ -175,7 +176,6 @@ class Crawler:
         # url is handled by persistence/records (and hasnt changed)
         has_doc , content_type , objid = self.has_document(url) # HEAD request potentially
         if has_doc:
-            self.handled.add(url) # also had it to the crawled urls
             # we may be in light mode
             # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
             if self.crawler_mode == CrawlerMode.CRAWL_LIGHT and content_type == 'text/html':
@@ -185,11 +185,13 @@ class Crawler:
                     self.crawler_mode = CrawlerMode.CRAWL_THRU
                     return False , objid
                 else:
-                    self.handled.add(url)
                     for next_url in urls:
                         if self.do_stop:
                             return
                         if depth and follow:
+                            self.handled.add(final_url)
+                            self.handled.add(url)
+                            self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
                             self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
                     return True , objid
             else:
@@ -215,42 +217,53 @@ class Crawler:
         if not self.should_crawl(url):
             return 
 
-        # sleep now before any kind of request
-        time.sleep(self.sleep_time)
-        if self.do_stop:
-            return
+        if url in self.fetched:
 
-        is_handled , objid = self.handle_local(url,orig_url,is_entry)
-        if is_handled:
-            return
+            response , httpcode , content_type = self.fetched[url]
 
-        response , httpcode = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
-        content_type        = get_content_type(response)
-        
-        if not response:
-            if httpcode == HTTPStatus.NOT_FOUND:
-                print(bcolors.WARNING,"404 response received for {0}".format(url),bcolors.CEND)
-                self.handled.add(url)
+            if not response:
                 return
-            else:
-                print(bcolors.WARNING,"No response received for {0}. Trying to clear the cookies".format(url),bcolors.CEND)
-                self.session = self.downloader.session(self.safe)
-                print(bcolors.WARNING,"sleeping 2 minutes first ...",bcolors.CEND)
-                time.sleep(60*2)
-                response , httpcode = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
-                content_type        = get_content_type(response)
+
+        else:
+
+            # sleep now before any kind of request
+            time.sleep(self.sleep_time)
+            if self.do_stop:
+                return
+
+            is_handled , objid = self.handle_local(url,orig_url,is_entry)
+            if is_handled:
+                return
+
+            response , httpcode = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
+            content_type        = get_content_type(response)
         
-        if not response:
-            print(bcolors.FAIL,"No response received for {0} (code {1} {2})".format(url,int(httpcode),httpcode),bcolors.CEND)
-            # add the url so we dont check again
-            self.handled.add(url)
-            return
+            if not response:
+                if httpcode == HTTPStatus.NOT_FOUND:
+                    print(bcolors.WARNING,"404 response received for {0}".format(url),bcolors.CEND)
+                    self.handled.add(url)
+                    self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                    return
+                else:
+                    print(bcolors.WARNING,"No response received for {0}. Trying to clear the cookies".format(url),bcolors.CEND)
+                    self.session = self.downloader.session(self.safe)
+                    print(bcolors.WARNING,"sleeping 2 minutes first ...",bcolors.CEND)
+                    time.sleep(60*2)
+                    response , httpcode = call(self.session, url, use_proxy=self.config.get('use_proxy')) # GET request
+                    content_type        = get_content_type(response)
+            
+            if not response:
+                print(bcolors.FAIL,"No response received for {0} (code {1} {2})".format(url,int(httpcode),httpcode),bcolors.CEND)
+                # add the url so we dont check again
+                self.handled.add(url)
+                self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                return
 
         final_url = clean_url(response.url)
 
         # check again
         if final_url != url:
-            print("final url is different from url:",final_url,"VS",url)
+            #print("final url is different from url:",final_url,"VS",url)
 
             # check if final_url should be skipped
             if not self.should_crawl(final_url):
@@ -288,10 +301,15 @@ class Crawler:
                 # add the urls 
                 self.handled.add(final_url)
                 self.handled.add(url)
+                self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
                 for next_url in urls:
                     if self.do_stop:
                         return
                     self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url)
+            else:
+                # lets save the work
+                # we may need it if we come back to this URL with depth != 0
+                self.fetched[url] = response , httpcode , content_type
         else:
             # add both
             self.handled.add(url)            
