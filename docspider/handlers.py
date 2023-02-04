@@ -588,30 +588,16 @@ class DBStatsHandler:
         http_last_modified = get_header_http_last_modified(response)
         url = clean_url(response.url)
         q_url = Q(url=url) | Q(final_url=url)
+        result = None
         try:
             if http_last_modified:
-                result = Document.objects.get(q_url & Q(ast_modified=http_last_modified))
+                result = Document.objects.filter(q_url & Q(last_modified=http_last_modified)).latest('record_date')
             else:
-                result = Document.objects.get(q_url & Q(url=response.url,http_length=http_length,http_encoding=http_encoding))
+                # we want the most-recently fetched document to be the same as the one we're comparing it to
+                result = Document.objects.filter(q_url).latest('record_date') # most recently fetched document
+                if result.http_length!=http_length or result.http_encoding!=http_encoding: # should be the same in size
+                    return None
             return result.id
-        except Document.DoesNotExist:
-            # sometime some website will have http_last_modified to the latest time ... thats ok.
-            # we're just gonna fetch the page then
-            pass 
-        except Document.MultipleObjectsReturned:
-            try:
-                if http_last_modified:
-                    results = Document.objects.find( q_url & 
-                                                Q(http_last_modified=http_last_modified)
-                                                ).order_by('-record_date')
-                else:
-                    results = Document.objects.find( q_url &
-                                                Q(http_length=http_length,
-                                                http_encoding=http_encoding)).order_by('-record_date')
-                if results.count()>0:
-                    return results[0].id
-            except:
-                pass
         except:
             pass
         return None
@@ -621,20 +607,13 @@ class DBStatsHandler:
             url = clean_url(url)
             date_today  = datetime.today()
             date_filter = make_aware( date_today - timedelta(days=7) ) # 1 week
-            q_http_last_modified = Q(http_last_modified__gte=date_filter) & ~Q(http_last_modified__isnull=True)
+            q_http_last_modified = Q(http_last_modified__gte=date_filter) & Q(http_last_modified__isnull=False)
             q_record_date        = Q(record_date__gte=date_filter)
             q_url                = Q(url=url) | Q(final_url=url)
-            result = Document.objects.get(q_url & (q_record_date | q_http_last_modified))
+            result = Document.objects.filter(q_url & (q_record_date | q_http_last_modified)).latest('record_date')
             return result.id , result.http_content_type
         except Document.DoesNotExist:
             pass
-        except Document.MultipleObjectsReturned:
-            try:
-                results = Document.objects.filter(q_url & (q_record_date | q_http_last_modified)).order_by('-record_date')
-                if results.count()>0:
-                    return results[0].id , results[0].http_content_type
-            except Exception as e:
-                print(bcolors.FAIL,"error while finding recent element",e,bcolors.CEND)
         except Exception as e:
             print(bcolors.FAIL,"error while finding recent element",e,bcolors.CEND)
         return None , None

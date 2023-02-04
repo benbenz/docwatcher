@@ -117,7 +117,6 @@ class Crawler:
                     match_id , content_type = head_handler.find_recent(url)
                     if match_id is not None:
                         print(bcolors.OKCYAN,"skipping fetching of document because of its recovery:",url,bcolors.CEND)
-                        # IMPORTANT TO RETURN FALSE cause its not fully handled at this stage ...
                         return True , content_type , match_id
 
         # we are crawling/downloading everything no matter what
