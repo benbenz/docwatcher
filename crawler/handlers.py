@@ -258,8 +258,8 @@ class CSVStatsHandler:
         # not implemented
         return None
 
-    def pre_record_document(self, previous_id , url, depth):
-        return None
+    def pre_record_document(self, previous_id , url):
+        return
 
         parsed_url = urlparse(url)
         name = self.name or parsed_url.netloc

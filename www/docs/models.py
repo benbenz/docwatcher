@@ -21,13 +21,11 @@ class Document(models.Model):
 
     # Crawl information
     domain      = models.CharField(max_length=100,db_index=True)
-    url         = models.URLField(max_length=200,db_index=True)
-    final_url   = models.URLField(max_length=200,db_index=True,null=True,blank=True,default='')
-    #referer     = models.URLField(max_length=200,db_index=True)
-    referers    = models.ManyToManyField('self', related_name='links', symmetrical=False, blank=True, through='Sitemap')
-    #depth       = models.IntegerField()
+    url         = models.URLField(max_length=254,db_index=True)
+    final_url   = models.URLField(max_length=254,db_index=True,null=True,blank=True)
+    referers    = models.ManyToManyField('self', related_name='links', symmetrical=False, blank=True)    
     record_date = models.DateTimeField(auto_now_add=True, blank=True)
-    remote_name = models.CharField(max_length=200,default='')
+    remote_name = models.CharField(max_length=128,default='')
 
     # HTTP headers
     http_length        = models.IntegerField(default=-1)
@@ -38,7 +36,7 @@ class Document(models.Model):
     # Content: HTML/PDF + file
     local_file  = models.FilePathField(unique=True,db_index=True,null=True)    
     doc_type    = models.CharField(max_length=4,choices=DocumentType.choices,default=DocumentType.UNKNOWN)    
-    title       = models.CharField(max_length=200,blank=True,null=True)
+    title       = models.CharField(max_length=254,blank=True,null=True)
     body        = models.TextField(null=True,blank=True)
     num_pages   = models.IntegerField(default=-1)
     size        = models.IntegerField(default=-1)
@@ -47,15 +45,14 @@ class Document(models.Model):
     has_error   = models.BooleanField(default=False)
     file_status = models.SmallIntegerField(default=FileStatus.UNKNOWN)
     of_interest = models.BooleanField(default=False)
-    is_crawled  = models.BooleanField(default=False)
+    is_handled  = models.BooleanField(default=False)
 
     def get_absolute_url(self):
         return "/docs/%i/" % self.id      
 
-class Sitemap(models.Model):
-    referer = models.ForeignKey(Document, related_name='referer_docs', on_delete=models.CASCADE)
-    link    = models.ForeignKey(Document, related_name='link_docs'   , on_delete=models.CASCADE)
-    depth   = models.IntegerField()
+class RecLinkedUrl(models.Model):
+    referer = models.ForeignKey(Document, related_name='rec_links', on_delete=models.CASCADE)
+    url     = models.URLField(max_length=200,db_index=True)
 
 class DocumentSearch(models.Model):
 

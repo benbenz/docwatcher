@@ -208,7 +208,7 @@ class Crawler:
 
         return True 
 
-    def handle_local(self,url,orig_url,is_entry):
+    def handle_local(self,depth,url,orig_url,is_entry):
 
         # ultra light mode will only look at HTML page linked to 'of-interest' documents
         if is_entry and self.crawler_mode & CrawlerMode.CRAWL_ULTRA_LIGHT:
@@ -239,7 +239,7 @@ class Crawler:
                         if depth and follow:
                             self.handled.add(url)
                             self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
-                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
+                            self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
                     return True , objid
 
             # we may be in light mode
@@ -254,7 +254,6 @@ class Crawler:
                     for next_url in urls:
                         if self.do_stop:
                             return
-                        depth  = next_url.get('depth',1)
                         follow = next_url['follow']
                         if depth and follow:
                             self.handled.add(url)
@@ -266,7 +265,7 @@ class Crawler:
         
         return False , objid
 
-    def crawl(self, url, depth, existing_id=None, previous_url=None, previous_id=None, follow=True, orig_url=None):
+    def crawl(self, url, depth, previous_url=None, previous_id=None, follow=True, orig_url=None):
 
         if self.do_stop:
             return
@@ -309,7 +308,7 @@ class Crawler:
             #if self.do_stop:
             #    return
 
-            is_handled , objid = self.handle_local(url,orig_url,is_entry)
+            is_handled , objid = self.handle_local(depth,url,orig_url,is_entry)
             if is_handled:
                 return
 
@@ -367,7 +366,7 @@ class Crawler:
             if not self.should_crawl(final_url):
                 return 
 
-            is_handled , objid = self.handle_local(final_url,orig_url,is_entry)
+            is_handled , objid = self.handle_local(depth,final_url,orig_url,is_entry)
             if is_handled:
                 return
 
@@ -387,7 +386,7 @@ class Crawler:
         nu_objid = None
         if get_handler:
             old_files = head_handler.get_filenames(url,final_url) if head_handler else None
-            local_name , file_status , nu_objid = get_handler.handle(response,depth, existing_id, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url)
+            local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url)
             # we got this object
             # if there is an expiration coming
             # we want to make sure we mark this object as recently fetched...
@@ -406,30 +405,29 @@ class Crawler:
                 if self.do_stop:
                     return
                 urls = self.get_urls(response)
-                if self.sitemap is not None:
-                    self.sitemap[final_url] = urls , depth , follow 
-                    self.sitemap[url]       = urls , depth , follow
                 #print("ALL URLS from {0}:".format(final_url),[url['url'] for url in urls])
                 # add the urls 
                 self.handled.add(final_url)
                 self.handled.add(url)
                 self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                
                 depth -= 1
+                
+                # memory sitemap
+                if self.sitemap is not None:
+                    self.sitemap[final_url] = urls , depth , follow 
+                    self.sitemap[url]       = urls , depth , follow
 
-                # this will help not loose the linked elements if we abort program and rerun
-                # we save the sitemap here before going deep into the recursion
-                urls_objids = [ None ] * len(urls)
-                for i,next_url in enumerate(urls):
-                    if not self.should_crawl(next_url['url']):
-                        urls_objids[i] = None
-                    else:
-                        urls_objids[i] = self.pre_record_document(objid,next_url['url'],depth)
+                # persistent sitemap
+                self.pre_record_clear(objid,depth)
+                for next_url in urls:
+                    if self.should_crawl(next_url['url']):
+                        self.pre_record_document(objid,next_url['url'])
 
-                for i,next_url in enumerate(urls):
-                    url_objid = urls_objids[i]
+                for next_url in urls:
                     if self.do_stop:
                         return
-                    self.crawl(next_url['url'], depth, existing_id=url_objid, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url)
+                    self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url)
             else:
                 # lets save the work
                 # we may need it if we come back to this URL with depth != 0
@@ -451,12 +449,17 @@ class Crawler:
                 with open(filename,'wb') as f:
                     pickle.dump(self,f)
 
-    def pre_record_document(self,previous_id,url,depth):
+    def pre_record_document(self,previous_id,url):
         head_handler = self.get_one_head_handler()
         if not head_handler:
             return None
-        return head_handler.pre_record_document(previous_id,url,depth)
+        return head_handler.pre_record_document(previous_id,url)
         
+    def pre_record_clear(self,previous_id,depth):
+        head_handler = self.get_one_head_handler()
+        if not head_handler:
+            return None
+        return head_handler.pre_record_clear(previous_id,depth)
 
     def recover_state(self,url):
         # recover only when in expiration mode
