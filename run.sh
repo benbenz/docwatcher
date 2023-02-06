@@ -4,4 +4,6 @@ source .venv/bin/activate
 source email_settings.sh
 python docspider/run.py $@
 python www/manage.py update_index --noinput
-python docspider/search.py
+if [[ -z "${SKIP_SEARCH}" ]]; then
+    python docspider/search.py
+fi
