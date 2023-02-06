@@ -231,7 +231,7 @@ class Crawler:
         has_doc , content_type , objid = self.has_document(url) # HEAD request potentially
         if has_doc:
             if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
-                urls , depth , follow = self.sitemap.get(url) 
+                urls , follow = self.sitemap.get(url) 
                 if urls is not None:
                     for next_url in urls:
                         if self.do_stop:
@@ -239,7 +239,7 @@ class Crawler:
                         if depth and follow:
                             self.handled.add(url)
                             self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
-                            self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
+                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
                     return True , objid
 
             # we may be in light mode
@@ -415,8 +415,8 @@ class Crawler:
                 
                 # memory sitemap
                 if self.sitemap is not None:
-                    self.sitemap[final_url] = urls , depth , follow 
-                    self.sitemap[url]       = urls , depth , follow
+                    self.sitemap[final_url] = urls , follow 
+                    self.sitemap[url]       = urls , follow
 
                 # persistent sitemap
                 self.pre_record_clear(objid,depth)
