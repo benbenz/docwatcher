@@ -29,7 +29,30 @@ def detail(request, doc_id):
                     logger.info(e)
     except Document.DoesNotExist:
         raise Http404("Document does not exist")
-    return render(request, 'docs/detail.html', {'document': document,'cached_page':cached_page})    
+    return render(request, 'docs/detail.html', {'document': document,'download_name':document.remote_name or document.title,'cached_page':None}) #cached_page})   
+
+@login_required(login_url=settings.LOGIN_URL)
+def download(request, doc_id):
+    # if not request.user.is_authenticated:
+    #     raise Http404("page does not exist") # we hide it as a does not exist ...
+    try:
+        document  = Document.objects.get(pk=doc_id)
+        content   = None
+        file_path = document.local_file
+        if file_path:
+            try:
+                with open(os.path.join(settings.BASE_DIR.parent,file_path),mode='r',encoding='utf-8') as f:
+                    content = f.read()
+                    return HttpResponse(content, headers={
+                        'Content-Type': document.http_content_type,
+                        'Content-Disposition': 'attachment; filename="'+document.remote_name or document.title+'"'
+                    })
+            except Exception as e:
+                logger.info(e)
+        else:
+            raise Http404("Data Not Found")
+    except Document.DoesNotExist:
+        raise Http404("Document does not exist")
 
 @login_required(login_url=settings.LOGIN_URL)
 def search_results(request, search_id):
