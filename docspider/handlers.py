@@ -209,7 +209,6 @@ class AllInOneHandler(LocalStorageHandler):
                     return page_body , found_extra_text
                 if debug:
                     print("processing image {0} for {1}".format(img_count,url))
-                filename = file_root + "_p"+str(page_count)+"_"+str(img_count)+".jpg"
                 with open(image.name, "wb") as fp:
                     fp.write(image.data)
                 #im0 = Image.open(image.name)
@@ -291,6 +290,21 @@ class AllInOneHandler(LocalStorageHandler):
                         body += page_body + '\n'
                 except:
                     pass
+            # lets try to clean the images if it crashed
+            try:
+                for image in page.images:
+                    try:
+                        os.remove(image.name)
+                    except:
+                        pass  
+                    try:
+                        t_img_name = "t"+str(image.name)+".png"
+                        os.remove(image.name)
+                    except:
+                        pass
+
+            except:
+                pass
             page_count += 1
             
         if not found_extra_text:

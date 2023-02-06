@@ -12,7 +12,6 @@ setup(
         'psutil',
         'django',
         'whoosh',
-#        'pypdf4',
         'pypdf',
         'python-pptx',
         'python-docx',
