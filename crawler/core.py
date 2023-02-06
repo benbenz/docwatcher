@@ -16,6 +16,12 @@ class CrawlerMode(IntEnum):
     # MASK for recover mode (when an expiration time is used on the runtime - useful for shared VPS)
     CRAWL_RECOVER = 32
 
+class FileStatus(IntEnum):
+    UNKNOWN  = 0
+    NEW      = 1
+    MODIFIED = 2
+    EXISTING = 4
+    EXACT    = 8 
 
 class bcolors:
     HEADER = '\033[95m'

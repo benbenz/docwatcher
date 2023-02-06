@@ -1,7 +1,6 @@
 from crawler.helper import get_content_type, call, call_head , clean_url
-from crawler.core import CrawlerMode, bcolors , DEFAULT_SLEEP_TIME
+from crawler.core import CrawlerMode, bcolors , DEFAULT_SLEEP_TIME , FileStatus
 from crawler.crawl_methods import get_hrefs_html, get_hrefs_js_simple, ClickCrawler
-from crawler.handlers import FileStatus 
 import time
 from urllib.parse import urlparse
 from http import HTTPStatus
@@ -104,16 +103,23 @@ class Crawler:
             url_domain = urlparse(url_cfg.get('url')).netloc
             if url_domain == resp_domain:
                 return url_cfg
-        return dict()        
+        return dict()   
+
+    def get_one_head_handler(self):     
+        one_handler_k = next(iter(self.head_handlers))
+        return self.head_handlers.get(one_handler_k)
+
+    def get_one_get_handler(self):     
+        one_handler_k = next(iter(self.head_handlers))
+        return self.get_handlers.get(one_handler_k)
 
     def has_document(self,url):
 
         if self.crawler_mode & CrawlerMode.CRAWL_RECOVER :
-            # + if it is in 'urls_to_recover'
+            # + if it is in 'urls_to_recover' >> we get the recent one (no matter what the crawl mode is)
             if url in self.urls_to_recover : 
-                one_handler_k = next(iter(self.head_handlers))
-                if one_handler_k:
-                    head_handler = self.head_handlers[one_handler_k]
+                head_handler = self.get_one_head_handler()
+                if head_handler:
                     match_id , content_type = head_handler.find_recent(url)
                     if match_id is not None:
                         print(bcolors.OKCYAN,"skipping fetching of document because of its recovery:",url,bcolors.CEND)
@@ -134,7 +140,7 @@ class Crawler:
             
             head_handler = self.head_handlers.get(content_type)
             if head_handler:
-                match_id = head_handler.find(response)
+                match_id = head_handler.find(url,response)
                 if match_id is not None:
                     print(bcolors.OKCYAN,"skipping fetching of document because we already have it",url,bcolors.CEND)
                     return True , content_type , match_id
@@ -164,8 +170,9 @@ class Crawler:
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
             content_type = get_content_type(response)
             head_handler = self.head_handlers.get(content_type)
+            final_url = clean_url(response.url)
             if head_handler:
-                match_id = head_handler.find(response)
+                match_id = head_handler.find(url,response)
                 if match_id is not None:
                     print(bcolors.OKCYAN,"skipping fetching of document because we already have it",url,bcolors.CEND)
                     return True , content_type , match_id
@@ -259,7 +266,7 @@ class Crawler:
         
         return False , objid
 
-    def crawl(self, url, depth, previous_url=None, previous_id=None, follow=True, orig_url=None):
+    def crawl(self, url, depth, existing_id=None, previous_url=None, previous_id=None, follow=True, orig_url=None):
 
         if self.do_stop:
             return
@@ -379,8 +386,8 @@ class Crawler:
         file_status = FileStatus.UNKNOWN
         nu_objid = None
         if get_handler:
-            old_files = head_handler.get_filenames(response) if head_handler else None
-            local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url)
+            old_files = head_handler.get_filenames(url,final_url) if head_handler else None
+            local_name , file_status , nu_objid = get_handler.handle(response,depth, existing_id, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url)
             # we got this object
             # if there is an expiration coming
             # we want to make sure we mark this object as recently fetched...
@@ -409,10 +416,20 @@ class Crawler:
                 self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
                 depth -= 1
 
-                for next_url in urls:
+                # this will help not loose the linked elements if we abort program and rerun
+                # we save the sitemap here before going deep into the recursion
+                urls_objids = [ None ] * len(urls)
+                for i,next_url in enumerate(urls):
+                    if not self.should_crawl(next_url['url']):
+                        urls_objids[i] = None
+                    else:
+                        urls_objids[i] = self.pre_record_document(objid,next_url['url'],depth)
+
+                for i,next_url in enumerate(urls):
+                    url_objid = urls_objids[i]
                     if self.do_stop:
                         return
-                    self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url)
+                    self.crawl(next_url['url'], depth, existing_id=url_objid, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url)
             else:
                 # lets save the work
                 # we may need it if we come back to this URL with depth != 0
@@ -433,6 +450,13 @@ class Crawler:
                 print(bcolors.WARNING,"Saving state because of expiration",bcolors.CEND)
                 with open(filename,'wb') as f:
                     pickle.dump(self,f)
+
+    def pre_record_document(self,previous_id,url,depth):
+        head_handler = self.get_one_head_handler()
+        if not head_handler:
+            return None
+        return head_handler.pre_record_document(previous_id,url,depth)
+        
 
     def recover_state(self,url):
         # recover only when in expiration mode
@@ -481,12 +505,12 @@ class Crawler:
         return urls
 
 
-    def get_urls_by_referer(self,referer,objid):
+    def get_urls_by_referer(self,referer_url,objid):
 
         html_handler = self.head_handlers.get('text/html')        
 
         if not html_handler:
             return None
 
-        return html_handler.get_urls_by_referer(referer,objid)
+        return html_handler.get_urls_by_referer(referer_url,objid)
 

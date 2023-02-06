@@ -5,7 +5,7 @@ from django.utils.timezone import make_aware
 
 
 class DocumentIndex(indexes.SearchIndex, indexes.Indexable):
-    text        = indexes.CharField(document=True, use_template=True)
+    text        = indexes.CharField(document=True, use_template=True,verbose_name='Recherche')
     record_date = indexes.DateTimeField(model_attr='record_date')
     domain      = indexes.CharField(model_attr='domain')
     doc_type    = indexes.CharField(model_attr='doc_type')

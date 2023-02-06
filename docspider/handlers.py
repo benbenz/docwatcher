@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
-from crawler.handlers import get_filename , get_content_type , LocalStorageHandler , FileStatus 
-from crawler.core import CrawlerMode, bcolors
+from crawler.handlers import get_filename , get_content_type , LocalStorageHandler 
+from crawler.core import CrawlerMode, bcolors , FileStatus 
 from crawler.helper import clean_url
 # .pdf
 #from PyPDF4 import PdfFileReader
@@ -299,7 +299,7 @@ class AllInOneHandler(LocalStorageHandler):
             return body , False
 
     def get_documents(self,doc_types=None,doc_types_exclude=None,for_ocr=False):
-        docs = Document.objects 
+        docs = Document.objects.filter(is_crawled=True)
         if doc_types:
             docs = docs.filter(doc_type__in=doc_types)
         if doc_types_exclude:
@@ -429,7 +429,7 @@ class AllInOneHandler(LocalStorageHandler):
         return domain_name , filename , doc_type , title , body , num_pages, needs_ocr , has_error , has_ocr , last_modified
 
 
-    def handle(self, response, depth, previous_url, previous_id, *args, **kwargs):
+    def handle(self, response, depth, existing_id , previous_url, previous_id, *args, **kwargs):
         path , file_status , path_as_id = super().handle(response,*args,**kwargs)
 
         # the file already existed
@@ -448,6 +448,7 @@ class AllInOneHandler(LocalStorageHandler):
                     the_doc.has_error = has_error
                     the_doc.has_ocr   = has_ocr
                     the_doc.last_modified = last_modified
+                    the_doc.is_crawled = True
                     the_doc.save() 
                 return path , file_status , the_doc.id
             except:
@@ -485,8 +486,17 @@ class AllInOneHandler(LocalStorageHandler):
             has_error   = has_error ,
             local_file  = path , 
             file_status = file_status ,
-            of_interest = False
+            of_interest = False ,
+            is_crawled  = True ,
+
+            # in case of existing_id not None (update)
+            # django will perform Integrity checks so we need to provide it
+            record_date = make_aware(datetime.now())
         )
+
+        # if None, this will generate a new ID
+        # if not None, this will update the object
+        doc.pk = existing_id 
 
         # save the new entry
         #print("saving new entry ...")
@@ -550,7 +560,7 @@ class DBStatsHandler:
             date_other = make_aware( date_today - timedelta(days=2*365) ) # 2 years 
             q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_html)
             q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_other)
-            query   = Q(domain=self.domain) & (q_html | q_other)
+            query   = Q(domain=self.domain,is_crawled=True) & (q_html | q_other)
             if self.domain:
                 queryset = Document.objects.filter(query)
                 #print(queryset.query)
@@ -564,7 +574,7 @@ class DBStatsHandler:
             date_other = make_aware( date_today - timedelta(days=1*365) ) # 2 years
             q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_html)
             q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_other)
-            query   = Q(domain=self.domain) & (q_html | q_other)
+            query   = Q(domain=self.domain,is_crawled=True) & (q_html | q_other)
             if self.domain:
                 queryset = Document.objects.filter(query)
                 for doc in queryset:
@@ -576,25 +586,26 @@ class DBStatsHandler:
         # the job has already been done by the storage handler
         pass
 
-    def get_filenames(self,response):
+    def get_filenames(self,url,final_url=None):
         result = []
-        for doc in Document.objects.filter(url=response.url):
+        for doc in Document.objects.filter( Q(is_crawled=True) & (Q(url=url) | Q(final_url=final_url)) ):
             result.append(doc.local_file)
         return result
 
-    def find(self,response):
+    def find(self,url,response):
+        url                = clean_url(response.url)
+        final_url          = clean_url(response.url)
         http_length        = get_header_http_length(response)
         http_encoding      = get_header_http_encoding(response)
         http_last_modified = get_header_http_last_modified(response)
-        url = clean_url(response.url)
-        q_url = Q(url=url) | Q(final_url=url)
+        q_url              = Q(url=url) | Q(final_url=final_url)
         result = None
         try:
             if http_last_modified:
-                result = Document.objects.filter(q_url & Q(last_modified=http_last_modified)).latest('record_date')
+                result = Document.objects.filter(is_crawled=True).filter(q_url & Q(last_modified=http_last_modified)).latest('record_date')
             else:
                 # we want the most-recently fetched document to be the same as the one we're comparing it to
-                result = Document.objects.filter(q_url).latest('record_date') # most recently fetched document
+                result = Document.objects.filter(is_crawled=True).filter(q_url).latest('record_date') # most recently fetched document
                 if result.http_length!=http_length or result.http_encoding!=http_encoding: # should be the same in size
                     return None
             return result.id
@@ -602,15 +613,15 @@ class DBStatsHandler:
             pass
         return None
 
-    def find_recent(self,url):
+    def find_recent(self,url,days=7):
         try:
             url = clean_url(url)
             date_today  = datetime.today()
-            date_filter = make_aware( date_today - timedelta(days=7) ) # 1 week
+            date_filter = make_aware( date_today - timedelta(days=days) )
             q_http_last_modified = Q(http_last_modified__gte=date_filter) & Q(http_last_modified__isnull=False)
             q_record_date        = Q(record_date__gte=date_filter)
             q_url                = Q(url=url) | Q(final_url=url)
-            result = Document.objects.filter(q_url & (q_record_date | q_http_last_modified)).latest('record_date')
+            result = Document.objects.filter(is_crawled=True).filter(q_url & (q_record_date | q_http_last_modified)).latest('record_date')
             return result.id , result.http_content_type
         except Document.DoesNotExist:
             pass
@@ -618,16 +629,16 @@ class DBStatsHandler:
             print(bcolors.FAIL,"error while finding recent element",e,bcolors.CEND)
         return None , None
 
-    def get_urls_by_referer(self,referer,objid=None):
+    def get_urls_by_referer(self,referer_url,objid=None):
         result = []
 
         if objid is None:
-            referer_clean = clean_url(referer)
+            referer_clean = clean_url(referer_url)
             #queryset = Document.objects.filter(Q(referers__url=referer_clean)|Q(referers__final_url=referer_clean))
             queryset = Sitemap.objects.filter(Q(referer__url=referer_clean)|Q(referer__final_url=referer_clean)).select_related('link')
         else:
             #queryset = Document.objects.get(pk=objid).links.prefetch_related('sitemap_set').all()
-            queryset = Sitemap.objects.filter(referer__id=objid).select_related('link')
+            queryset = Sitemap.objects.filter(referer_id=objid).select_related('link')
         for rel in queryset:
             result.append({"url": rel.link.url, "follow": True ,"depth":rel.depth})
         return result
@@ -636,11 +647,51 @@ class DBStatsHandler:
         result = set()
 
         #queryset = Document.objects.filter(Q(of_interest=True)|Q(links__of_interest=True)).filter(domain=self.domain).distinct()
-        queryset = Document.objects.filter(Q(of_interest=True)|Q(referer_docs__link__of_interest=True)).filter(domain=self.domain).distinct()
+        queryset = Document.objects.filter(Q(of_interest=True)|Q(referer_docs__link__of_interest=True)).filter(domain=self.domain,is_crawled=True).distinct()
 
         for doc in queryset:
             result.add(doc.url)
-        return result        
+        return result   
+
+
+    def pre_record_document(self, previous_id , url, depth):
+
+        if not previous_id or not url:
+            return None
+
+        # lets see if we have a linked object with this url
+        cleaned_url = clean_url(url) 
+        domain_name = urlparse(url).netloc
+
+        try:
+            # if we have a linked object that has the same URL, this is it ....
+            result = Sitemap.objects.filter(Q(referer_id=previous_id,depth=depth)&(Q(link__url=url)|Q(link__url=cleaned_url))).count()
+            if result > 0:
+                #print("FOUND EXISTING ENTRY FOR LINKED ELEMENT")
+                # we return None because we let get_handler[*].handle() do the proper analysis later
+                # it will look at content etc. and determine if its a new document or not
+                # if its a new document, we want a new generated ID and not use an existing ID
+                # the most important thing is the URL is registered for get_urls_by_referer to work 
+                # AND that we dont record a new document for it 
+                return None 
+        except Sitemap.DoesNotExist:
+            pass
+
+        # the relies of values relies on DB defaults
+        doc = Document( domain = domain_name , url = cleaned_url , local_file = None )
+        doc.save()
+        
+        try:
+            if Sitemap.objects.filter(referer_id=previous_id,link=doc).count()==0:
+                relation = Sitemap.objects.create(referer_id=previous_id,link=doc,depth=depth)
+                relation.save()
+        except Exception as e:
+            print(e)
+            pass
+        
+        #print("GENERATED LINKED ELEMENT")
+        # here we added a dummy entry so we want to make sure this ID will be used on the next creation
+        return doc.id         
 
 
 

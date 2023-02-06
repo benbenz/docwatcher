@@ -5,20 +5,13 @@ import re
 import sys
 from urllib.parse import urlparse
 import psutil       
-from crawler.helper import get_content_type
-from crawler.core import CrawlerMode, bcolors
+from crawler.helper import get_content_type , clean_url
+from crawler.core import CrawlerMode, bcolors , FileStatus
 from enum import IntEnum
 import difflib
 from bs4 import BeautifulSoup
 from lxml import etree
 import traceback
-
-class FileStatus(IntEnum):
-    UNKNOWN  = 0
-    NEW      = 1
-    MODIFIED = 2
-    EXISTING = 4
-    EXACT    = 8 
 
 class LocalStorageHandler:
 
@@ -221,8 +214,8 @@ class CSVStatsHandler:
             }
             writer.writerow(row)
 
-    def get_filenames(self,response):
-        parsed_url = urlparse(response.url)
+    def get_filenames(self,url,final_url=None):
+        parsed_url = urlparse(url)
         name = self.name or parsed_url.netloc
         output = os.path.join(self.directory, name + '.csv')
         if not os.path.isfile(output):
@@ -232,7 +225,7 @@ class CSVStatsHandler:
             reader = csv.reader(csvfile)
             for k, row in enumerate(reader):
                 if k > 0:
-                    if row[2] == response.url:
+                    if row[2] == url or (final_url and row[2] == final_url):
                         result.append(row[1]) # local_name
         return result
 
@@ -251,8 +244,9 @@ class CSVStatsHandler:
                         result.append({"url": row[2], "follow": True}) # url
         return result           
 
-    def find(self,response):
-        res = self.get_filenames(response)
+    def find(self,url,response):
+        final_url = clean_url(response.url)
+        res = self.get_filenames(url,final_url)
         if res and len(res)>0:
             return res[0]
         return None
@@ -263,6 +257,37 @@ class CSVStatsHandler:
     def get_urls_of_interest(self):
         # not implemented
         return None
+
+    def pre_record_document(self, previous_id , url, depth):
+        return None
+
+        parsed_url = urlparse(url)
+        name = self.name or parsed_url.netloc
+        output = os.path.join(self.directory, name + '.csv')
+        if not os.path.isfile(output):
+            with open(output, 'w', newline='') as file:
+                csv.writer(file).writerow(self._FIELDNAMES)
+
+        with open(output, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for k, row in enumerate(reader):
+                if k > 0:
+                    if row[2] == url:
+                        print("CSVStatsHandler: this entry is already saved! {0}".format(url))
+                        return
+
+        with open(output, 'a', newline='') as file:
+            writer = csv.DictWriter(file, self._FIELDNAMES)
+            filename = get_filename(parsed_url,response)
+            row = {
+                'filename': '',
+                'local_name': '',
+                'url': url,
+                'linking_page_url': '',
+                'size': -1,
+                'depth': -1,
+            }
+            writer.writerow(row)        
 
 class ProcessHandler:
 
