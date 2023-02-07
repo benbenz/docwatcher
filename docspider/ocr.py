@@ -3,6 +3,7 @@ import easyocr.easyocr as easyocr
 import numpy
 import json
 import os
+from docspider.log import logger
 from PIL import Image
 
 
@@ -16,7 +17,7 @@ t_img_name = "t"+args.img_path+".png"
 best_text  = None
 best_proba = -1
 for rotate in [-90,0,90] : # lets assume the document is not reversed....
-    print("rotation",rotate)
+    logger.debug("rotation {0}".format(rotate))
     im1 = im0.rotate(rotate, Image.NEAREST, expand = 1)
     im1.convert('RGB').save(t_img_name)
     try:
@@ -30,7 +31,7 @@ for rotate in [-90,0,90] : # lets assume the document is not reversed....
         num = 0 
         for text , proba in result:
             if proba > 0.3:
-                print("text={0} (proba={1})".format(text,proba))
+                logger.debug("text={0} (proba={1})".format(text,proba))
                 proba_total += proba
                 found_extra_text = True
                 text_total += text + '\n'
@@ -42,7 +43,7 @@ for rotate in [-90,0,90] : # lets assume the document is not reversed....
             best_proba = proba_total
             best_text  = text_total
     except Exception as e:
-        print("Error while processing image",t_img_name,e)
+        logger.error("Error while processing image {0} {1}".format(t_img_name,e))
         #traceback.print_exc()
 json_result = dict()
 
@@ -52,8 +53,8 @@ except:
     pass
 
 if best_text is not None:
-    print("Found text:",best_text)
+    logger.debug("Found text: {0}".format(best_text))
     json_result['best_text'] = best_text
 str_dump = json.dumps(json_result)
 hex_dump = str_dump.encode('utf-8').hex()
-print("RESULT="+hex_dump)
+logger.debug("RESULT="+hex_dump)

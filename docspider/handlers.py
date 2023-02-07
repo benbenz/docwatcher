@@ -26,6 +26,7 @@ import json
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
+from docspider.log import logger
 
 # load django stuff
 # MAKE SURE ROOT/www is also in the PYTHONPATH !!!
@@ -120,7 +121,7 @@ def reset_eof_of_pdf_return_stream(pdf_stream_in:list):
     for i, x in enumerate(pdf_stream_in[::-1]):
         if b'%%EOF' in x:
             actual_line = len(pdf_stream_in)-i
-            print(f'EOF found at line position {-i} = actual {actual_line}, with value {x}')
+            logger.debug(f'EOF found at line position {-i} = actual {actual_line}, with value {x}')
             found_it = True
             break
 
@@ -168,16 +169,16 @@ class AllInOneHandler(LocalStorageHandler):
         super().__init__(directory,None) # we will dynamically use the netloc for the subdirectory
         self.using_ocr = False
         if use_ocr==False:
-            print(bcolors.WARNING,"Specifically NOT using OCR",bcolors.CEND)
+            logger.warning("Specifically NOT using OCR")
             self.process_PDF_body = self.process_PDF_body_NO_OCR
         else:
             try:
                 import easyocr.easyocr
-                print(bcolors.OKCYAN,"using OCR",bcolors.CEND)
+                logger.info_plus("using OCR")
                 self.process_PDF_body = self.process_PDF_body_with_OCR
                 self.using_ocr = True
             except (ImportError,ModuleNotFoundError) as e:
-                print(bcolors.WARNING,"NOT using OCR ({0})".format(e),bcolors.CEND)
+                logger.warning("NOT using OCR ({0})".format(e))
                 self.process_PDF_body = self.process_PDF_body_NO_OCR
                 #traceback.print_exc()
 
@@ -187,7 +188,7 @@ class AllInOneHandler(LocalStorageHandler):
         body = "\n".join([p.extract_text() for p in pdf.pages])
         
         if body == '':
-            print(bcolors.WARNING,"file needs OCR",bcolors.CEND)
+            logger.warning("file needs OCR")
             needs_ocr = True        
 
         return body , needs_ocr , False
@@ -196,7 +197,7 @@ class AllInOneHandler(LocalStorageHandler):
         
         debug = True
         if debug:
-            print("processing page",page_count)
+            logger.debug("processing page {0}".format(page_count))
         page_body = page.extract_text()
         img_count = 0
         rotation  = page.get('/Rotate')
@@ -208,7 +209,7 @@ class AllInOneHandler(LocalStorageHandler):
                 if self.do_stop:
                     return page_body , found_extra_text
                 if debug:
-                    print("processing image {0} for {1}".format(img_count,url))
+                    logger.debug("processing image {0} for {1}".format(img_count,url))
                 with open(image.name, "wb") as fp:
                     fp.write(image.data)
                 #im0 = Image.open(image.name)
@@ -230,10 +231,11 @@ class AllInOneHandler(LocalStorageHandler):
                             best_text = json_result.get('best_text')
                             break
                     if ex_code != 0:
-                        print(bcolors.WARNING,"Error processing image #{0} page #{1} for {2}: exit code = {3}\nstdout={4}\nstderr={5}".format(img_count,page_count,url,ex_code,stdout,stderr),bcolors.CEND)
-                except:
-                    print("Error running process",process_args,stdout,stderr,best_text)
-                    traceback.print_exc()  
+                        logger.warning("Error processing image #{0} page #{1} for {2}: exit code = {3}\nstdout={4}\nstderr={5}".format(img_count,page_count,url,ex_code,stdout,stderr))
+                except Exception as e:
+                    logger.error("Error running process {0} {1} {2} {3}".format(process_args,stdout,stderr,best_text))
+                    logger.exception(e,exc_info=True)
+                    #traceback.print_exc()  
                     try:
                         os.remove(image.name)
                     except:
@@ -242,7 +244,7 @@ class AllInOneHandler(LocalStorageHandler):
 
                 if best_text is not None and best_text:
                     if debug:
-                        print("Found text:",best_text)
+                        logger.debug("Found text: {0}".format(best_text))
                     page_body += '\n' + best_text 
                 try:
                     os.remove(image.name)
@@ -252,7 +254,7 @@ class AllInOneHandler(LocalStorageHandler):
         except ValueError as verr:
             msg = str(verr)
             if "not enough image data" in msg:
-                print(bcolors.WARNING,"Error retrieving image data",bcolors.CEND)
+                logger.warning("Error retrieving image data")
             else:
                 raise verr
         
@@ -362,12 +364,12 @@ class AllInOneHandler(LocalStorageHandler):
                         body , needs_ocr , has_ocr = self.process_PDF_body(url,path,pdf)
                     except Exception as e2:
                         has_error = True
-                        print(bcolors.FAIL,"ERROR recovering file",url,path,e2,bcolors.CEND)
+                        logger.error("ERROR recovering file {0} {1} {2}".format(url,path,e2))
                         #traceback.print_exc()
 
                 else:
                     has_error = True
-                    print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
+                    logger.error("ERROR processing file {0} {1} {2}".format(url,path,e))
                     traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.DOC , Document.DocumentType.DOCX]:
@@ -377,7 +379,7 @@ class AllInOneHandler(LocalStorageHandler):
                     body     = "\n".join([p.text for p in worddoc.paragraphs])
             except Exception as e:
                 has_error = True
-                print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
+                logger.error("ERROR processing file {0} {1} {2}".format(url,path,e))
                 traceback.print_exc()
 
         elif doc_type in [Document.DocumentType.PPT , Document.DocumentType.PPTX , Document.DocumentType.PPTM]:
@@ -391,7 +393,7 @@ class AllInOneHandler(LocalStorageHandler):
                                     body += shape.text + '\n'
             except Exception as e:
                 has_error = True
-                print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
+                logger.error("ERROR processing file {0} {1} {2}".format(url,path,e))
                 traceback.print_exc()
         
         elif doc_type == Document.DocumentType.RTF:
@@ -414,7 +416,7 @@ class AllInOneHandler(LocalStorageHandler):
                     title = soup.title.string
             except Exception as e:
                 has_error = True
-                print(bcolors.FAIL,"ERROR processing file",url,path,e,bcolors.CEND)
+                logger.error("ERROR processing file {0} {1} {2}".format(url,path,e))
                 traceback.print_exc()  
 
         return title , body , num_pages , needs_ocr , has_error , has_ocr      
@@ -466,7 +468,7 @@ class AllInOneHandler(LocalStorageHandler):
                     the_doc.save() 
                 return path , file_status , the_doc.id
             except:
-                print(bcolors.FAIL,"INTERNAL Error: an existing file is not registered in the database!",bcolors.CEND)
+                logger.error("INTERNAL Error: an existing file is not registered in the database!")
                 return path , file_status , None
 
         domain_name , filename , doc_type , title , body , num_pages , needs_ocr , has_error , has_ocr , last_modified = self.process_response(path,response)
@@ -506,9 +508,7 @@ class AllInOneHandler(LocalStorageHandler):
         )
 
         # save the new entry
-        #print("saving new entry ...")
         doc.save()
-        #print("done saving.")
 
         # add the referer
         added = None
@@ -562,7 +562,7 @@ class DBStatsHandler:
             query   = Q(domain=self.domain,is_handled=True) & (q_html | q_other)
             if self.domain:
                 queryset = Document.objects.filter(query)
-                #print(queryset.query)
+                #logger.debug(queryset.query)
                 for doc in queryset:
                     list_handled.append(doc.url if isinstance(doc.url,str) else doc.url.name)
 
@@ -625,7 +625,7 @@ class DBStatsHandler:
         except Document.DoesNotExist:
             pass
         except Exception as e:
-            print(bcolors.FAIL,"error while finding recent element",e,bcolors.CEND)
+            logger.error("error while finding recent element {0}".format(e))
         return None , None
 
     def get_urls_by_referer(self,referer_url,objid=None):

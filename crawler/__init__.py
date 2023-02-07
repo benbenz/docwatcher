@@ -1,4 +1,3 @@
-import logging
 import sys
 from urllib.parse import urlparse
 import signal
@@ -13,12 +12,7 @@ from crawler.handlers import (
     ProcessHandler,
     get_filename
 )
-
-logging.basicConfig(
-    format='[%(asctime)s] %(message)s',
-    level=logging.INFO,
-    stream=sys.stdout,
-)
+from docspider.log import logger
 
 requests_downloader = RequestsDownloader()
 crawlers = []
@@ -74,28 +68,29 @@ def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="g
     crawlers.append(crawler)
     
     if expiration:
-        print(bcolors.OKCYAN,"Crawler created with mode '{0}' for domain {1}. Expiration = {2} min(s). We have {3} urls that are already handled".format(crawler.get_mode().name,domain,expiration,crawler.get_handled_len()),bcolors.CEND)
+        logger.info_plus("Crawler created with mode '{0}' for domain {1}. Expiration = {2} min(s). We have {3} urls that are already handled".format(crawler.get_mode().name,domain,expiration,crawler.get_handled_len()))
     else:   
-        print(bcolors.OKCYAN,"Crawler created with mode '{0}' for domain {1}. We have {2} urls that are already handled".format(crawler.get_mode().name,domain,crawler.get_handled_len()),bcolors.CEND)
+        logger.info_plus("Crawler created with mode '{0}' for domain {1}. We have {2} urls that are already handled".format(crawler.get_mode().name,domain,crawler.get_handled_len()))
 
     try:
 
         crawler.crawl(url, depth)
         
-        print(bcolors.OKCYAN,"DONE CRAWLING",url,bcolors.CEND)
+        logger.info_plus("DONE CRAWLING {0}".format(url))
 
     except KeyboardInterrupt:
 
-        print("KeyboardInterrupt: cancelling task")
+        logger.info("KeyboardInterrupt: cancelling task")
 
-    except Exception:
+    except Exception as e:
 
-        traceback.print_exc()
+        #traceback.print_exc()
+        logger.error(e,exc_info=True)
 
     crawler.close()
 
 def exit_gracefully(signum,frame):
-    print(bcolors.WARNING,"RECEIVED SIGNAL",signum,bcolors.CEND)
+    logger.warning("RECEIVED SIGNAL {0}".format(signum))
     for crawler in crawlers:
         crawler.close()
 

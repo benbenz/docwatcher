@@ -7,6 +7,7 @@ import time
 import requests
 from http import HTTPStatus
 from urllib.parse import urlparse,urlunparse
+from docspider.log import logger
 
 pm = ProxyManager()
 log = logging.getLogger(__name__)
@@ -94,12 +95,12 @@ def call(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME)
                     pm.change_proxy(proxy[1])
                     return call(session, url, True, retries + 1)
                 else:
-                    print(bcolors.FAIL,"Error fetching url",url,bcolors.CEND)
+                    logger.error("Error fetching url {0}".format(url))
                     return None , status_code , msg
             else:
                 return response , response.status_code , None
         else:
-            print(bcolors.FAIL,"Error fetching url. No Proxy available.",url,bcolors.CEND)
+            logger.error("Error fetching url. No Proxy available. {0}".format(url))
             return None , None , None
     else:
         try:
@@ -112,7 +113,7 @@ def call(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME)
             if url.startswith('tel:') or url.startswith('mailto:'):
                 return None , response.status_code if response else None , msg 
             else:
-                print(re)
+                logger.error(re)
                 return None , response.status_code if response else None , msg 
         except Exception as e:
             msg = str(e)
@@ -142,7 +143,6 @@ def call_head(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_
                     pm.change_proxy(proxy[1])
                     return call_head(session, url, True, retries + 1)
                 else:
-                    print()
                     return None
             else:
                 return response
@@ -159,7 +159,7 @@ def call_head(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_
             if url.startswith('tel:') or url.startswith('mailto:'):
                 pass
             else:
-                print(re)
+                logger.error(re)
             return None
         except Exception as e:
             status_code = e.response.status_code if isinstance(e,requests.exceptions.HTTPError) else None

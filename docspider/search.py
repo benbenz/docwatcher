@@ -1,5 +1,6 @@
 from docspider.searchers import DocumentSearcher
 import json
+from docspider.log import logger
 
 def perform_search():
 
@@ -28,7 +29,7 @@ def perform_search():
             old_ids.add(doc.pk)
 
         results = searcher.perform_search(search_obj)
-        print("search done for {0}: {1} result(s)".format(search_obj.params,results.count()))        
+        logger.info("search done for {0}: {1} result(s)".format(search_obj.params,results.count()))        
         highlights[search_name] = dict()
         for doc in results:
             docid = int(doc.pk)
@@ -36,9 +37,9 @@ def perform_search():
             highlights[search_name][docid]=doc.highlighted['text'][0] if doc.highlighted and len(doc.highlighted.get('text',[]))>0 else None
         
         if old_ids == new_ids:
-            print("results are the same".format(search_obj.params))
+            logger.info("results are the same".format(search_obj.params))
         else:
-            print("results have changed".format(search_obj.params))
+            logger.info("results have changed".format(search_obj.params))
             hits_add = new_ids.difference(old_ids)
             hits_rmv = old_ids.difference(new_ids)
             add_objs[search_name] = set()

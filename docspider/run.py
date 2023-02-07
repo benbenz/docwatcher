@@ -5,6 +5,7 @@ import crawler
 import signal 
 import argparse
 import docspider.handlers as handlers
+from docspider.log import logger
 from urllib.parse import urlparse
 from crawler.core import DEFAULT_SLEEP_TIME
 from concurrent.futures import ThreadPoolExecutor , ProcessPoolExecutor , as_completed
@@ -81,7 +82,7 @@ def crawl_rendered_all(crawler_mode0,expiration,ocr):
             head_handlers[handled_type] = head_handler
 
         if not url:
-            print("skipping config entry: no URL found")
+            logger.info("skipping config entry: no URL found")
             continue
 
         future = executor.submit(
@@ -117,9 +118,9 @@ def crawl_rendered_all(crawler_mode0,expiration,ocr):
             executor.shutdown(wait=True)
 
 def exit_gracefully(signum,frame):
-    print(bcolors.WARNING,"RECEIVED SIGNAL",signum,bcolors.CEND)
+    logger.warning("RECEIVED SIGNAL {0}".format(signum))
     signame = signal.Signals(signum).name
-    print(f'exit_gracefully() called with signal {signame} ({signum})')  
+    logger.info(f'exit_gracefully() called with signal {signame} ({signum})')  
     for future in futures:
         try:
             future.cancel()

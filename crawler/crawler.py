@@ -9,6 +9,7 @@ import os
 import re
 import pickle
 from datetime import datetime, timedelta
+from docspider.log import logger
 
 
 K_DOMAINS_SKIP = 'domains_skip'
@@ -34,7 +35,7 @@ class Crawler:
                 self.config = json.load(jsonfile)
             #self.config = __import__('config').config
         except Exception as e:
-            print(e)
+            logger.error(e)
             self.config = dict()
 
         self.sitemap = dict()
@@ -91,9 +92,9 @@ class Crawler:
             try:
                 self.do_stop = True
                 self.session.close()
-                print("closed session")
+                logger.info("closed session")
             except Exception as e:
-                print("error while closing session",e)
+                logger.error("error while closing session {0}".format(e))
         if self.click_crawler is not None:
             self.click_crawler.close()
             
@@ -124,7 +125,7 @@ class Crawler:
                 if head_handler:
                     match_id , content_type = head_handler.find_recent(url)
                     if match_id is not None:
-                        print(bcolors.OKCYAN,"skipping fetching of document because of its recovery:",url,bcolors.CEND)
+                        logger.info_plus("skipping fetching of document because of its recovery: {0}".format(url))
                         return True , content_type , match_id
 
         # we are crawling/downloading everything no matter what
@@ -144,7 +145,7 @@ class Crawler:
             if head_handler:
                 match_id = head_handler.find(url,response)
                 if match_id is not None:
-                    print(bcolors.OKCYAN,"skipping fetching of document because we already have it",url,bcolors.CEND)
+                    logger.info_plus("skipping fetching of document because we already have it {0}".format(url))
                     return True , content_type , match_id
                 else:
                     return False , content_type , None
@@ -165,7 +166,7 @@ class Crawler:
                     head_handler = self.head_handlers[one_handler_k]
                     match_id , content_type = head_handler.find_recent(url)
                     if match_id is not None:
-                        print(bcolors.OKCYAN,"skipping fetching of document because it is recent",url,bcolors.CEND)
+                        logger.info_plus("skipping fetching of document because it is recent {0}".format(url))
                         return True , content_type , match_id
                 return False , None , None
 
@@ -176,7 +177,7 @@ class Crawler:
             if head_handler:
                 match_id = head_handler.find(url,response)
                 if match_id is not None:
-                    print(bcolors.OKCYAN,"skipping fetching of document because we already have it",url,bcolors.CEND)
+                    logger.info_plus("skipping fetching of document because we already have it {0}".format(url))
                     return True , content_type , match_id
                 else:
                     return False , content_type , None
@@ -205,7 +206,7 @@ class Crawler:
         if self.config.get(K_DOMAINS_SKIP):
             for kdomain in self.config.get(K_DOMAINS_SKIP):
                 if kdomain == urlinfo.netloc or urlinfo.netloc.endswith(".{0}".format(kdomain)):
-                    #print("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
+                    #logger.info("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
                     return False 
 
         return True 
@@ -219,7 +220,7 @@ class Crawler:
                 return False , None
             urls = self.head_handlers[one_handler_k].get_urls_of_interest()
             if urls is None:
-                print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_LIGHT.name,"!!!")
+                logger.warning("!!! Switching to {0} !!!".format(CrawlerMode.CRAWL_LIGHT.name))
                 self.crawler_mode = CrawlerMode.CRAWL_LIGHT | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
                 return False , None
             for next_url in urls:
@@ -251,7 +252,7 @@ class Crawler:
                 if urls is None: # try through the DB 
                     urls = self.get_urls_by_referer(url,objid) 
                 if urls is None: # we dont have a handler to help with LIGHT mode ...
-                    print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_THRU.name,"!!!")
+                    logger.warning("!!! Switching to {0} !!!".format(CrawlerMode.CRAWL_THRU.name))
                     self.crawler_mode = CrawlerMode.CRAWL_THRU | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
                     return False , objid
                 else:
@@ -292,7 +293,7 @@ class Crawler:
             datetime_now = datetime.today()
             if datetime_now - self.time0 > self.expiration_delta:
                 if self.expired == False:
-                    print(bcolors.WARNING,"expiring ...",bcolors.CEND)
+                    logger.warning("expiring ...")
                 self.expired = True
                 return
 
@@ -331,14 +332,14 @@ class Crawler:
         
             if not response:
                 if httpcode == HTTPStatus.NOT_FOUND:
-                    print(bcolors.WARNING,"404 response received for {0}".format(url),bcolors.CEND)
+                    logger.warning("404 response received for {0}".format(url))
                     self.handled.add(url)
                     self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
                     return
                 else:
-                    print(bcolors.WARNING,"No response received for {0}. Errmsg={1}. Trying to clear the cookies".format(url,errmsg),bcolors.CEND)
+                    logger.warning("No response received for {0}. Errmsg={1}. Trying to clear the cookies".format(url,errmsg))
                     self.session = self.downloader.session(self.safe)
-                    print(bcolors.WARNING,"sleeping 5 minutes first ...",bcolors.CEND)
+                    logger.warning("sleeping 5 minutes first ...")
                     time.sleep(60*5)
                     # increasing sleep time too 
                     self.sleep_time += 5 
@@ -354,9 +355,9 @@ class Crawler:
                         httpcode_int = int(httpcode)
                     except:
                         httpcode_int = -1
-                    print(bcolors.FAIL,"No response received for {0} (code {1} {2})".format(url,httpcode_int,httpcode),bcolors.CEND)
+                    logger.error("No response received for {0} (code {1} {2})".format(url,httpcode_int,httpcode))
                 else:
-                    print(bcolors.FAIL,"No response received for {0}. Errmsg={1}".format(url,errmsg),bcolors.CEND)
+                    logger.error("No response received for {0}. Errmsg={1}".format(url,errmsg))
                 # add the url so we dont check again
                 self.handled.add(url)
                 self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
@@ -366,8 +367,6 @@ class Crawler:
 
         # check again
         if final_url != url:
-            #print("final url is different from url:",final_url,"VS",url)
-
             # check if final_url should be skipped
             if not self.should_crawl(final_url):
                 return 
@@ -381,7 +380,7 @@ class Crawler:
                 return 
 
 
-        print(final_url) 
+        logger.info(final_url) 
 
         # Name of pdf
         local_name = None
@@ -411,7 +410,7 @@ class Crawler:
                 if self.do_stop:
                     return
                 urls = self.get_urls(response)
-                #print("ALL URLS from {0}:".format(final_url),[url['url'] for url in urls])
+
                 # add the urls 
                 self.handled.add(final_url)
                 self.handled.add(url)
@@ -446,7 +445,7 @@ class Crawler:
                 self.has_finished = True
 
             if self.time0 is not None: # state mode
-                print(bcolors.WARNING,"Saving state because of expiration",bcolors.CEND)
+                logger.warning("Saving state because of expiration")
                 with open(filename,'wb') as f:
                     pickle.dump(self,f)
 
@@ -503,7 +502,7 @@ class Crawler:
                 self.has_finished = obj.has_finished
 
                 if self.has_finished:
-                    print(bcolors.WARNING,"This crawler has finished working. Delete the state file {0} if you want to restart a job".format(filename),bcolors.CEND)
+                    logger.warning("This crawler has finished working. Delete the state file {0} if you want to restart a job".format(filename))
                     return False # stop crawling
                 
         return True # continue crawl
@@ -518,7 +517,7 @@ class Crawler:
         else:
             # plain html
             if self.crawl_method is not None and self.crawl_method != "normal":
-                print("Invalid crawl method specified, default used (normal)")
+                logger.warning("Invalid crawl method specified, default used (normal)")
             urls = get_hrefs_html(response, self.follow_foreign)
 
         return urls

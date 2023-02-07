@@ -12,6 +12,7 @@ import difflib
 from bs4 import BeautifulSoup
 from lxml import etree
 import traceback
+from docspider.log import logger
 
 class LocalStorageHandler:
 
@@ -122,8 +123,9 @@ class LocalStorageHandler:
                                         htmldiff = difflib.HtmlDiff()
                                         diff_file.write( htmldiff.make_file(old_html.splitlines(),new_html.splitlines(),context=True).encode() )
                             except Exception as e:
-                                print(bcolors.FAIL,"Error while comparing files",e,bcolors.CEND)
-                                traceback.print_exc()
+                                logger.error("Error while comparing files {0}".format(e))
+                                logger.exception(e,exc_info=True)
+                                #traceback.print_exc()
                         elif config.get('debug')==True:
                             with open(old_file+'.diff.html','wb') as diff_file:
                                 htmldiff = difflib.HtmlDiff()
@@ -135,9 +137,9 @@ class LocalStorageHandler:
                                     resp_content = response.content
                                 diff_file.write( htmldiff.make_file(old_content.splitlines(),resp_content.splitlines(),context=True).encode() )
                 except:
-                    print(bcolors.FAIL,"Error opening file",old_file,bcolors.CEND)
+                    logger.error("Error opening file {0}".format(old_file))
             if has_similar_file:
-                #print(bcolors.OKCYAN,"skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file),bcolors.CEND)
+                #logger.info_plus("skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file))
                 #return similar_file , FileStatus.EXISTING
                 # lets override
                 path = similar_file
@@ -146,10 +148,10 @@ class LocalStorageHandler:
                     file_status |= FileStatus.EXACT
                     return path , file_status , path # we're done here - let's save ourselves some I/O
                 else:
-                    print(bcolors.OKCYAN,"overriding file {0} because it has non-relevant changes: {1}".format(response.url,similar_file),bcolors.CEND)
+                    logger.info_plus("overriding file {0} because it has non-relevant changes: {1}".format(response.url,similar_file))
 
             else:
-                print(bcolors.WARNING,"we found a new version of the file",response.url,bcolors.CEND)
+                logger.warning("we found a new version of the file {0}".format(response.url))
                 file_status = FileStatus.MODIFIED
         
         if path is None:
@@ -198,7 +200,7 @@ class CSVStatsHandler:
             for k, row in enumerate(reader):
                 if k > 0:
                     if row[1] == local_name and row[2] == response.url:
-                        print("CSVStatsHandler: this entry is already saved! {0} {1}".format(local_name,response.url))
+                        logger.warning("CSVStatsHandler: this entry is already saved! {0} {1}".format(local_name,response.url))
                         return
 
         with open(output, 'a', newline='') as file:
@@ -273,7 +275,7 @@ class CSVStatsHandler:
             for k, row in enumerate(reader):
                 if k > 0:
                     if row[2] == url:
-                        print("CSVStatsHandler: this entry is already saved! {0}".format(url))
+                        logger.warning("CSVStatsHandler: this entry is already saved! {0}".format(url))
                         return
 
         with open(output, 'a', newline='') as file:

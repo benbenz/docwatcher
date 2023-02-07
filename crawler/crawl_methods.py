@@ -6,6 +6,7 @@ from selenium.common.exceptions import InvalidSessionIdException, ElementClickIn
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 import time
 import json
+import logging
 from crawler.core import bcolors
 
 
@@ -69,9 +70,9 @@ def get_hrefs_js_simple(response, follow_foreign_hosts=False):
         if "event loop is already running" in msg:
             return None
         else:
-            print(msg.upper())
+            logging.error(msg.upper())
     except Exception as e:
-        print(bcolors.WARNING,"Issue while rendering url",response.url,e,"... using simple method instead",bcolors.CEND)
+        logging.error(bcolors.WARNING,"Issue while rendering url",response.url,e,"... using simple method instead",bcolors.CEND)
         return get_hrefs_html(response, follow_foreign_hosts)
 
     return handle_url_list_js([], urls_on_page, parsed_response_url, follow_foreign_hosts)

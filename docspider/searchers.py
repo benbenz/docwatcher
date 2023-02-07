@@ -2,6 +2,7 @@ from urllib.parse import urlparse
 from crawler.handlers import get_filename , get_content_type 
 from crawler.core import FileStatus 
 from crawler.helper import clean_url
+from crawler.log import logger
 
 import os
 import re
@@ -84,7 +85,7 @@ class DocumentSearcher:
         try:
             Document.objects.bulk_update(docs,['of_interest'])
         except Exception as e:
-            print("Error with bulk_update",e)
+            logger.error("Error with bulk_update {0}".format(e))
 
     def get_document(self,id):
         try:
@@ -101,7 +102,7 @@ class DocumentSearcher:
 
         from_email = settings.EMAIL_HOST_USER
         if not from_email:
-            print("Email configuration invalid. Aborting sending email")
+            logger.critical("Email configuration invalid. Aborting sending email")
         domain  = from_email[from_email.index('@') + 1 : ]
         urlroot = "https://" + domain 
         subject = 'Matching documents from ' + from_email
