@@ -281,6 +281,9 @@ class Crawler:
         if self.do_stop:
             return
 
+        if url is None:
+            return
+
         objid = None
 
         url = clean_url(url)
@@ -350,8 +353,13 @@ class Crawler:
                 else:
                     logger.warning("No response received for {0}. Errmsg={1}. Trying to clear the cookies".format(url,errmsg))
                     self.session = self.downloader.session(self.safe)
-                    logger.warning("sleeping 5 minutes first ...")
-                    time.sleep(60*5)
+                    if urlparse(url).netloc == urlparse(orig_url).netloc:
+                        logger.warning("sleeping 5 minutes first ...")
+                        time.sleep(60*5)
+                    else:
+                        logger.warning("sleeping 30 seconds  first ...")
+                        time.sleep(30)
+
                     if self.do_stop:
                         return
                     # increasing sleep time too 
