@@ -456,7 +456,20 @@ class Crawler:
         if self.time0 is not None: # state mode
             logger.warning("Saving state because of expiration option")
             with open(filename,'wb') as f:
-                pickle.dump(self,f)        
+                pickle.dump(self,f)    
+
+    # used by pickle
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Don't pickle baz
+        del state["sitemap"]
+        return state   
+    
+    #used by pickle
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # load separate sitemap
+        self.load_sitemap()
 
     def pre_record_document(self,previous_id,url):
         head_handler = self.get_one_head_handler()
