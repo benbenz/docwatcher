@@ -73,7 +73,8 @@ class Crawler:
             handled_list = Handler.get_handled_list(self.crawler_mode)
             for handled_entry in handled_list:
                 handled_entry = clean_url(handled_entry)
-                self.handled.add(handled_entry)
+                #lets not add anything for now
+                #self.handled.add(handled_entry)
 
     def get_handled_len(self):
         return len(self.handled)
