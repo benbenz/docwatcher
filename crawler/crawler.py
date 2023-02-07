@@ -294,7 +294,8 @@ class Crawler:
             datetime_now = datetime.today()
             if datetime_now - self.time0 > self.expiration_delta:
                 if self.expired == False:
-                    logger.warning("expiring ...")
+                    thedomain = urlparse(orig_url).netloc if orig_url else None
+                    logger.warning("expiring {0} ...".format(thedomain or ""))
                 self.expired = True
                 # to accelerate the expiration
                 self.do_stop = True
