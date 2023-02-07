@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 deactivate
 export PYTHONPATH=$(pwd):$(pwd)/www:$PYTHONPATH
 source .venv/bin/activate
