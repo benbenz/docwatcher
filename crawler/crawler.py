@@ -328,11 +328,6 @@ class Crawler:
 
         else:
 
-            # sleep now before any kind of request
-            #time.sleep(self.sleep_time)
-            #if self.do_stop:
-            #    return
-
             is_handled , objid = self.handle_local(depth,follow,url,orig_url,is_entry)
             if is_handled:
                 return
@@ -362,14 +357,15 @@ class Crawler:
                     if urlparse(url).netloc == urlparse(orig_url).netloc:
                         logger.warning("sleeping 5 minutes first ...")
                         time.sleep(60*5)
+                        # increasing sleep time too 
+                        self.sleep_time += 2
                     else:
                         logger.warning("sleeping 30 seconds  first ...")
                         time.sleep(30)
 
                     if self.do_stop:
                         return
-                    # increasing sleep time too 
-                    self.sleep_time += 5 
+                        
                     response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
                     content_type = get_content_type(response)
                     # we may have slept
