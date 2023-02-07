@@ -226,7 +226,7 @@ class Crawler:
                 return False , None
             for next_url in urls:
                 if self.do_stop:
-                    return
+                    return False , None
                 self.crawl(next_url,1, previous_url=None,follow=False,orig_url=orig_url)
 
             return True , None
@@ -239,7 +239,7 @@ class Crawler:
                 if urls is not None:
                     for next_url in urls:
                         if self.do_stop:
-                            return
+                            return False , None
                         if depth and follow:
                             self.handled.add(url)
                             self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
@@ -259,7 +259,7 @@ class Crawler:
                 else:
                     for next_url in urls:
                         if self.do_stop:
-                            return
+                            return False , None
                         follow = next_url['follow']
                         if depth and follow:
                             self.handled.add(url)
@@ -296,6 +296,8 @@ class Crawler:
                 if self.expired == False:
                     logger.warning("expiring ...")
                 self.expired = True
+                # to accelerate the expiration
+                self.do_stop = True
                 return
 
         # check if url should be skipped
@@ -439,16 +441,19 @@ class Crawler:
             self.handled.add(final_url)
 
         if is_entry:
-            domain = urlparse(url).netloc
-            filename = 'state.'+domain
-            # we expired
-            if not self.expired:
-                self.has_finished = True
+            self.finish(url)
+    
+    def finish(self,url):
+        domain = urlparse(url).netloc
+        filename = 'state.'+domain
+        # we expired
+        if not self.expired:
+            self.has_finished = True
 
-            if self.time0 is not None: # state mode
-                logger.warning("Saving state because of expiration")
-                with open(filename,'wb') as f:
-                    pickle.dump(self,f)
+        if self.time0 is not None: # state mode
+            logger.warning("Saving state because of expiration option")
+            with open(filename,'wb') as f:
+                pickle.dump(self,f)        
 
     def pre_record_document(self,previous_id,url):
         head_handler = self.get_one_head_handler()

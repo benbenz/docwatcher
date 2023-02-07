@@ -75,6 +75,8 @@ def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="g
     try:
 
         crawler.crawl(url, depth)
+
+        crawler.finish(url) # save state eventially
         
         logger.info_plus("DONE CRAWLING {0}".format(url))
 
