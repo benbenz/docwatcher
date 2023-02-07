@@ -45,6 +45,7 @@ class Document(models.Model):
     has_error   = models.BooleanField(default=False)
     file_status = models.SmallIntegerField(default=FileStatus.UNKNOWN)
     of_interest = models.BooleanField(default=False)
+    no_interest = models.BooleanField(default=False)
     is_handled  = models.BooleanField(default=False)
 
     def get_absolute_url(self):
