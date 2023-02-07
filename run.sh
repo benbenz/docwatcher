@@ -8,4 +8,6 @@ if [[ -z "${SKIP_SEARCH}" ]]; then
     # python www/manage.py rebuild_index --noinput
     python www/manage.py update_index
     python docspider/search.py
+else
+    echo "not performing search"
 fi
