@@ -229,10 +229,14 @@ class Crawler:
                 logger.warning("!!! Switching to {0} !!!".format(CrawlerMode.CRAWL_LIGHT.name))
                 self.crawler_mode = CrawlerMode.CRAWL_LIGHT | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
                 return False , None
-            for next_url in urls:
-                if self.do_stop:
-                    return False , None
-                self.crawl(next_url,1, previous_url=None,follow=False,orig_url=orig_url)
+
+            if depth and follow:
+                # mark the URL as handled now
+                self.handled.add(url)
+                for next_url in urls:
+                    if self.do_stop:
+                        return False , None
+                    self.crawl(next_url,1, previous_url=None,follow=False,orig_url=orig_url)
 
             return True , None
 
@@ -241,13 +245,13 @@ class Crawler:
         if has_doc:
             if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
                 urls = self.sitemap.get(url) 
-                if urls is not None:
-                    for next_url in urls:
-                        if self.do_stop:
-                            return False , None
-                        if depth and follow:
-                            self.handled.add(url)
-                            self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
+                if depth and follow:
+                    self.handled.add(url)
+                    self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
+                    if urls is not None:
+                        for next_url in urls:
+                            if self.do_stop:
+                                return False , None
                             self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
                     return True , objid
 
@@ -262,14 +266,14 @@ class Crawler:
                     self.crawler_mode = CrawlerMode.CRAWL_THRU | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
                     return False , objid
                 else:
-                    for next_url in urls:
-                        if self.do_stop:
-                            return False , None
-                        follow = next_url['follow']
-                        if depth and follow:
-                            self.handled.add(url)
-                            self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
-                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=follow,orig_url=orig_url)
+                    if depth and follow:
+                        self.handled.add(url)
+                        self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
+                        for next_url in urls:
+                            if self.do_stop:
+                                return False , None
+                            urlfollow = next_url['follow']
+                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=urlfollow,orig_url=orig_url)
                     return True , objid
             else:
                 return True , objid
