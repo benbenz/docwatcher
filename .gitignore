@@ -128,3 +128,4 @@ www/db.sqlite3.zip
 state.*
 sitemap.*
 *.pickle
+/run.log.*
