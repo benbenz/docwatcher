@@ -34,7 +34,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 # now we can load the model :)
 # note that we don't have www.docs.models (because of PYTHONPATH)
-from docs.models import Document , RecLinkedUrl
+from docs.models import Document
 from django.db.models import Q
 from django.db import models
 
@@ -632,14 +632,31 @@ class DBStatsHandler:
         result = []
 
         # THIS IS USING a separate cache of URLs... (cf. pre_record_document vs pre_record_document_OLD)
+        # queryset = None
+        # if objid is not None:
+        #     queryset = RecLinkedUrl.objects.filter(referer_id=objid)
+        # else:
+        #     queryset = RecLinkedUrl.objects.filter(Q(referer__url=referer_clean)|Q(referer__final_url=referer_clean))
+        # for reclink in queryset:
+        #     result.append({"url":reclink.url,"follow":True})
+        # return result
+
+        result = []
+
         queryset = None
         if objid is not None:
-            queryset = RecLinkedUrl.objects.filter(referer_id=objid)
-        else:
-            queryset = RecLinkedUrl.objects.filter(Q(referer__url=referer_clean)|Q(referer__final_url=referer_clean))
-        for reclink in queryset:
-            result.append({"url":reclink.url,"follow":True})
+            try:
+                queryset = Document.objects.get(pk=objid).links.all()
+            except Document.DoesNotExist:
+                pass
+        if queryset is None:
+            referer_clean = clean_url(referer)
+            queryset = Document.objects.filter(referers__url=referer_clean)
+
+        for doc in queryset:
+            result.append({'url':doc.url,'follow':True})
         return result
+
 
     def get_urls_of_interest(self):
         result = set()
@@ -651,17 +668,17 @@ class DBStatsHandler:
             result.add(doc.url)
         return result   
 
-    def pre_record_clear(self, previous_id, depth):
-        if not previous_id:
-            return
-        RecLinkedUrl.objects.filter(referer_id=previous_id).delete()
+    # def pre_record_clear(self, previous_id, depth):
+    #     if not previous_id:
+    #         return
+    #     RecLinkedUrl.objects.filter(referer_id=previous_id).delete()
 
-    def pre_record_document(self, previous_id , url):
-        if not previous_id:
-            return 
-        try:
-            urlobj = RecLinkedUrl.objects.get(url=url,referer_id=previous_id)
-        except RecLinkedUrl.DoesNotExist:
-            urlobj = RecLinkedUrl(url=url,referer_id=previous_id)
-            urlobj.save()
+    # def pre_record_document(self, previous_id , url):
+    #     if not previous_id:
+    #         return 
+    #     try:
+    #         urlobj = RecLinkedUrl.objects.get(url=url,referer_id=previous_id)
+    #     except RecLinkedUrl.DoesNotExist:
+    #         urlobj = RecLinkedUrl(url=url,referer_id=previous_id)
+    #         urlobj.save()
 

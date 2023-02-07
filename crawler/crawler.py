@@ -37,18 +37,20 @@ class Crawler:
             print(e)
             self.config = dict()
 
+        self.sitemap = dict()
+        self.sitemap_name = None
+
         self.has_finished = False
 
         if expiration:
             self.time0            = datetime.now()
             self.expiration_delta = timedelta(minutes=expiration)
             self.urls_to_recover  = set()
-            self.sitemap          = dict()
         else:
             self.time0            = None
             self.expiration_delta = None
             self.urls_to_recover  = None
-            self.sitemap          = None
+
         self.expired = False
 
         # Crawler information
@@ -208,7 +210,7 @@ class Crawler:
 
         return True 
 
-    def handle_local(self,depth,url,orig_url,is_entry):
+    def handle_local(self,depth,follow,url,orig_url,is_entry):
 
         # ultra light mode will only look at HTML page linked to 'of-interest' documents
         if is_entry and self.crawler_mode & CrawlerMode.CRAWL_ULTRA_LIGHT:
@@ -231,7 +233,7 @@ class Crawler:
         has_doc , content_type , objid = self.has_document(url) # HEAD request potentially
         if has_doc:
             if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
-                urls , follow = self.sitemap.get(url) 
+                urls = self.sitemap.get(url) 
                 if urls is not None:
                     for next_url in urls:
                         if self.do_stop:
@@ -245,7 +247,9 @@ class Crawler:
             # we may be in light mode
             # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
             if self.crawler_mode & CrawlerMode.CRAWL_LIGHT and content_type == 'text/html':
-                urls = self.get_urls_by_referer(url,objid) 
+                urls = self.sitemap.get(url) 
+                if urls is None: # try through the DB 
+                    urls = self.get_urls_by_referer(url,objid) 
                 if urls is None: # we dont have a handler to help with LIGHT mode ...
                     print(bcolors.WARNING,"!!! Switching to ",CrawlerMode.CRAWL_THRU.name,"!!!")
                     self.crawler_mode = CrawlerMode.CRAWL_THRU | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
@@ -281,6 +285,8 @@ class Crawler:
             continue_crawling = self.recover_state(url)
             if not continue_crawling:
                 return
+            self.sitemap_name = 'sitemap.'+urlparse(url).netloc+'.pickle'
+            self.load_sitemap()
 
         if self.time0 is not None and not is_entry:
             datetime_now = datetime.today()
@@ -308,7 +314,7 @@ class Crawler:
             #if self.do_stop:
             #    return
 
-            is_handled , objid = self.handle_local(depth,url,orig_url,is_entry)
+            is_handled , objid = self.handle_local(depth,follow,url,orig_url,is_entry)
             if is_handled:
                 return
 
@@ -366,7 +372,7 @@ class Crawler:
             if not self.should_crawl(final_url):
                 return 
 
-            is_handled , objid = self.handle_local(depth,final_url,orig_url,is_entry)
+            is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry)
             if is_handled:
                 return
 
@@ -415,14 +421,9 @@ class Crawler:
                 
                 # memory sitemap
                 if self.sitemap is not None:
-                    self.sitemap[final_url] = urls , follow 
-                    self.sitemap[url]       = urls , follow
-
-                # persistent sitemap
-                self.pre_record_clear(objid,depth)
-                for next_url in urls:
-                    if self.should_crawl(next_url['url']):
-                        self.pre_record_document(objid,next_url['url'])
+                    self.sitemap[url]       = urls
+                    self.sitemap[final_url] = urls
+                    self.save_sitemap()
 
                 for next_url in urls:
                     if self.do_stop:
@@ -461,6 +462,21 @@ class Crawler:
             return None
         return head_handler.pre_record_clear(previous_id,depth)
 
+    def load_sitemap(self):
+        if not self.sitemap_name:
+            return
+        try:
+            with open(self.sitemap_name,'rb') as f:
+                self.sitemap = pickle.load(f)
+        except:
+            pass
+
+    def save_sitemap(self):
+        if not self.sitemap_name:
+            return
+        with open(self.sitemap_name,'wb') as f:
+            pickle.dump(self.sitemap,f)
+
     def recover_state(self,url):
         # recover only when in expiration mode
         if self.time0 is None:
@@ -478,7 +494,7 @@ class Crawler:
                 # let's restore the fetched urls list
                 self.urls_to_recover = obj.urls_to_recover
                 # let's restore the partial site map too
-                self.sitemap = obj.sitemap
+                #self.sitemap = obj.sitemap
                 # let's switch to RECOVER mode
                 self.crawler_mode |= CrawlerMode.CRAWL_RECOVER
                 # make sure we're not expired

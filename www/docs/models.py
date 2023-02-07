@@ -53,9 +53,9 @@ class Document(models.Model):
     def get_download_url(self):
         return "/docs/download/%i/" % self.id      
 
-class RecLinkedUrl(models.Model):
-    referer = models.ForeignKey(Document, related_name='rec_links', on_delete=models.CASCADE)
-    url     = models.URLField(max_length=200,db_index=True)
+# class RecLinkedUrl(models.Model):
+#     referer = models.ForeignKey(Document, related_name='rec_links', on_delete=models.CASCADE)
+#     url     = models.URLField(max_length=200,db_index=True)
 
 class DocumentSearch(models.Model):
 
