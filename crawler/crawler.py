@@ -245,15 +245,15 @@ class Crawler:
         if has_doc:
             if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
                 urls = self.sitemap.get(url) 
-                if depth and follow:
-                    self.handled.add(url)
-                    self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
-                    if urls is not None:
+                if urls is not None:
+                    if depth and follow:
+                        self.handled.add(url)
+                        self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
                         for next_url in urls:
                             if self.do_stop:
                                 return False , None
                             self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
-                    return True , objid
+                        return True , objid
 
             # we may be in light mode
             # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
@@ -341,6 +341,8 @@ class Crawler:
             if self.do_stop:
                 return 
 
+            logger.info(">> {0}".format(url))
+
             response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
             content_type        = get_content_type(response)
 
@@ -407,7 +409,7 @@ class Crawler:
                 return 
 
 
-        logger.info(final_url) 
+        #logger.info(final_url) 
 
         # Name of pdf
         local_name = None
