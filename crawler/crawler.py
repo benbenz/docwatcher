@@ -56,6 +56,7 @@ class Crawler:
 
         # Crawler information
         self.handled = set()
+        self.avoid   = set()
         self.fetched = dict()
         self.follow_foreign = follow_foreign_hosts
         self.executable_path_gecko = gecko_path
@@ -195,6 +196,10 @@ class Crawler:
         # this set can be initiated with old/non-changing documents at startup (in has_document)
         # this avoid the head() request triggered below...
         if url in self.handled:
+            return False 
+
+        # url has been marked as an avoid
+        if url in self.avoid:
             return False 
 
         urlcfg = self.get_url_config(url)
@@ -369,6 +374,8 @@ class Crawler:
                 # add the url so we dont check again
                 self.handled.add(url)
                 self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                # this is a particularly problematic URL ... lets mark it as avoid
+                self.avoid.add(url) # mark as avoid (will be saved in the state and recovered)
                 return
 
         final_url = clean_url(response.url)
@@ -512,6 +519,8 @@ class Crawler:
                 obj = pickle.load(f)
                 #lets not do that so the recursion can take its course
                 #self.handled = obj.handled
+                # let's restore the avoid urls
+                self.avoid = obj.avoid
                 # let's restore the cache
                 self.fetched = obj.fetched
                 # let's restore the fetched urls list
