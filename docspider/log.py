@@ -18,7 +18,8 @@ class CustomFormatter(logging.Formatter):
     reset = "\x1b[0m"
     cyan = '\033[96m'
     #format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
-    format = "%(asctime)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    #format = "%(asctime)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    format = "%(asctime)s - %(message)s (%(filename)s:%(lineno)d)"
 
     FORMATS = {
         logging.DEBUG: grey + format + reset,
@@ -31,8 +32,8 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+        formatter = logging.Formatter(log_fmt,"%Y-%m-%d %H:%M:%S")
+        return formatter.format(record)   
 
 # create logger with 'spam_application'
 logger = logging.getLogger("DocCrawler")
@@ -42,5 +43,10 @@ logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(CustomFormatter())
+logger.addHandler(ch)    
 
-logger.addHandler(ch)        
+# the file handler
+fh = logging.FileHandler('run.log')
+fh.setLevel(logging.DEBUG)
+fh.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"))
+logger.addHandler(fh)

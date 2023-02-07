@@ -10,6 +10,8 @@ rm -rf download
 rm -rf www/docs/migrations
 rm -rf www/docwatcher/whoosh_index
 rm state.*
+rm sitemap.*
+rm *.log
 python www/manage.py makemigrations docs
 python www/manage.py migrate
 python docspider/init.py
