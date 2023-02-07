@@ -528,7 +528,7 @@ class Crawler:
                 #lets not do that so the recursion can take its course
                 #self.handled = obj.handled
                 # let's restore the avoid urls
-                self.avoid = getattr(obj,"avoid",set())
+                self.avoid = obj.avoid #getattr(obj,"avoid",set())
                 # let's restore the cache
                 self.fetched = obj.fetched
                 # let's restore the fetched urls list
