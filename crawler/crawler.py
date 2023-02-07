@@ -311,6 +311,8 @@ class Crawler:
             if not response:
                 return
 
+            logger.info("recovered cached url {0}".format(url))
+
         else:
 
             # sleep now before any kind of request
