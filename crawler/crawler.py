@@ -139,7 +139,7 @@ class Crawler:
             if self.safe: # website may detact head requests as bots
                 return False , None , None
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
-            logger.info("call head")
+            logger.info("call head {0}".format(url))
             content_type = get_content_type(response)
             if content_type == 'text/html':
                 return False , content_type , None # we still want to parkour the website...
