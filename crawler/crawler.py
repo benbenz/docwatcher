@@ -347,6 +347,8 @@ class Crawler:
                     self.session = self.downloader.session(self.safe)
                     logger.warning("sleeping 5 minutes first ...")
                     time.sleep(60*5)
+                    if self.do_stop:
+                        return
                     # increasing sleep time too 
                     self.sleep_time += 5 
                     response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
