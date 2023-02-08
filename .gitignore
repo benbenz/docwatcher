@@ -109,8 +109,8 @@ venv.bak/
 
 /geckodriver
 /download
-config.json
-config.py
+/config.json
+/config.py
 
 
 .DS_Store
