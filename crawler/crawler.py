@@ -150,6 +150,14 @@ class Crawler:
         elif self.crawler_mode & CrawlerMode.CRAWL_THRU:
             if self.safe: # website may detact head requests as bots
                 return False , None , None
+            
+            # let's check first if we can get locally the document type...
+            head_handler = self.get_one_head_handler()
+            if head_handler:
+                match_id , content_type = head_handler.find_recent(url)
+                if match_id and content_type == 'text/html': # this is html , we want to return False ... (THRU mode)
+                    return False , content_type , None
+
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
             content_type = get_content_type(response)
             if content_type == 'text/html':
