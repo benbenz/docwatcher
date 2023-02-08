@@ -21,6 +21,7 @@ def perform_ocr():
         print("document {0}/{1}".format(i,num))
         # re-perform OCR 
         handler.update_document(doc)
+        i+=1
 
 
 if __name__ == '__main__':
