@@ -12,8 +12,13 @@ def perform_ocr():
         print("Not using OCR >> exiting")
         return
 
+    docs = handler.get_documents(doc_types=[Document.DocumentType.PDF],for_ocr=True)
+    num = docs.count()
+
     # we only perform OCR on PDF for now
-    for doc in handler.get_documents(doc_types=[Document.DocumentType.PDF],for_ocr=True):
+    i = 1 
+    for doc in docs:
+        print("document {0}/{1}".format(i,num))
         # re-perform OCR 
         handler.update_document(doc)
 
