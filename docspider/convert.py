@@ -13,6 +13,7 @@ def convert_files():
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern):
             with open(file,'rb') as f:
+                print("Converting {0}".format(file))
                 crawler = pickle.load(f)
                 head_handler = crawler.get_one_head_handler()
                 if head_handler and isinstance(crawler.urls_to_recover,set):
