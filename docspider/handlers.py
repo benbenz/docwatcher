@@ -258,7 +258,7 @@ class AllInOneHandler(LocalStorageHandler):
             else:
                 raise verr
         
-        return page_body , found_extra_text, True
+        return page_body , found_extra_text
 
     def process_PDF_body_with_OCR(self,url,path,pdf):
 
@@ -310,9 +310,9 @@ class AllInOneHandler(LocalStorageHandler):
             page_count += 1
             
         if not found_extra_text:
-            return default_body , False
+            return default_body , False , True
         else:
-            return body , False
+            return body , False , True
 
     def get_documents(self,doc_types=None,doc_types_exclude=None,for_ocr=False):
         docs = Document.objects.filter(is_handled=True)
