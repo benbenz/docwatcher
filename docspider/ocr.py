@@ -1,5 +1,4 @@
 import argparse
-import easyocr.easyocr as easyocr
 import numpy
 import json
 import os

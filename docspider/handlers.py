@@ -173,7 +173,7 @@ class AllInOneHandler(LocalStorageHandler):
             self.process_PDF_body = self.process_PDF_body_NO_OCR
         else:
             try:
-                import easyocr.easyocr
+                import easyocr
                 logger.info_plus("using OCR")
                 self.process_PDF_body = self.process_PDF_body_with_OCR
                 self.using_ocr = True
@@ -269,7 +269,6 @@ class AllInOneHandler(LocalStorageHandler):
         # 3) https://github.com/madmaze/pytesseract
 
         #import easyocr 
-        #import easyocr.easyocr as easyocr
         #ocr_reader = easyocr.Reader(['fr']) 
         ocr_reader = None
 

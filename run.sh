@@ -1,6 +1,6 @@
 #!/bin/bash
 deactivate
-export PYTHONPATH=$(pwd):$(pwd)/www:$PYTHONPATH
+export PYTHONPATH=$(pwd):$(pwd)/www:$(pwd)/easyocr:$PYTHONPATH
 source .venv/bin/activate
 source email_settings.sh
 python docspider/run.py $@
