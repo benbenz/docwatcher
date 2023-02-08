@@ -139,7 +139,7 @@ class LocalStorageHandler:
                 except:
                     logger.error("Error opening file {0}".format(old_file))
             if has_similar_file:
-                #logger.info_plus("skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file))
+                #logger.debug("skipping recording of file {0} because it has already a version of it: {1}".format(response.url,similar_file))
                 #return similar_file , FileStatus.EXISTING
                 # lets override
                 path = similar_file
@@ -148,7 +148,7 @@ class LocalStorageHandler:
                     file_status |= FileStatus.EXACT
                     return path , file_status , path # we're done here - let's save ourselves some I/O
                 else:
-                    logger.info_plus("overriding file {0} because it has non-relevant changes: {1}".format(response.url,similar_file))
+                    logger.debug("overriding file {0} because it has non-relevant changes: {1}".format(response.url,similar_file))
 
             else:
                 logger.warning("we found a new version of the file {0}".format(response.url))

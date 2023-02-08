@@ -8,6 +8,8 @@ import json
 import os
 import re
 import pickle
+import copy
+from requests import Response
 from datetime import datetime, timedelta
 from docspider.log import logger
 
@@ -46,7 +48,7 @@ class Crawler:
         if expiration:
             self.time0            = datetime.now()
             self.expiration_delta = timedelta(minutes=expiration)
-            self.urls_to_recover  = set()
+            self.urls_to_recover  = dict()
         else:
             self.time0            = None
             self.expiration_delta = None
@@ -123,12 +125,15 @@ class Crawler:
         if self.crawler_mode & CrawlerMode.CRAWL_RECOVER :
             # + if it is in 'urls_to_recover' >> we get the recent one (no matter what the crawl mode is)
             if url in self.urls_to_recover : 
-                head_handler = self.get_one_head_handler()
-                if head_handler:
-                    match_id , content_type = head_handler.find_recent(url)
-                    if match_id is not None:
-                        logger.info_plus("skipping fetching of document because of its recovery: {0}".format(url))
-                        return True , content_type , match_id
+                # head_handler = self.get_one_head_handler()
+                # if head_handler:
+                #     match_id , content_type = head_handler.find_recent(url)
+                #     if match_id is not None:
+                #         logger.debug("skipping fetching of document because of its recovery: {0}".format(url))
+                #         return True , content_type , match_id
+                logger.debug("skipping fetching of document because of its recovery: {0}".format(url))
+                match_id , content_type = self.urls_to_recover[url]
+                return True , content_type , match_id
 
         # we are crawling/downloading everything no matter what
         if self.crawler_mode & CrawlerMode.CRAWL_FULL:
@@ -139,7 +144,6 @@ class Crawler:
             if self.safe: # website may detact head requests as bots
                 return False , None , None
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
-            logger.info("call head {0}".format(url))
             content_type = get_content_type(response)
             if content_type == 'text/html':
                 return False , content_type , None # we still want to parkour the website...
@@ -148,7 +152,7 @@ class Crawler:
             if head_handler:
                 match_id = head_handler.find(url,response)
                 if match_id is not None:
-                    logger.info_plus("skipping fetching of document because we already have it {0}".format(url))
+                    logger.debug("skipping fetching of document because we already have it {0}".format(url))
                     return True , content_type , match_id
                 else:
                     return False , content_type , None
@@ -169,7 +173,7 @@ class Crawler:
                     head_handler = self.head_handlers[one_handler_k]
                     match_id , content_type = head_handler.find_recent(url)
                     if match_id is not None:
-                        logger.info_plus("skipping fetching of document because it is recent {0}".format(url))
+                        logger.debug("skipping fetching of document because it is recent {0}".format(url))
                         return True , content_type , match_id
                 return False , None , None
 
@@ -180,7 +184,7 @@ class Crawler:
             if head_handler:
                 match_id = head_handler.find(url,response)
                 if match_id is not None:
-                    logger.info_plus("skipping fetching of document because we already have it {0}".format(url))
+                    logger.debug("skipping fetching of document because we already have it {0}".format(url))
                     return True , content_type , match_id
                 else:
                     return False , content_type , None
@@ -213,7 +217,7 @@ class Crawler:
         if self.config.get(K_DOMAINS_SKIP):
             for kdomain in self.config.get(K_DOMAINS_SKIP):
                 if kdomain == urlinfo.netloc or urlinfo.netloc.endswith(".{0}".format(kdomain)):
-                    #logger.info("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
+                    #logger.debug("skipping domain {0} for url {1} because of configuration".format(urlinfo.netloc,url))
                     return False 
 
         return True 
@@ -325,7 +329,7 @@ class Crawler:
             if not response:
                 return
 
-            logger.info("recovered cached url {0}".format(url))
+            logger.debug("recovered cached url {0}".format(url))
 
         else:
 
@@ -337,7 +341,7 @@ class Crawler:
             if self.do_stop:
                 return 
 
-            logger.info(">> {0}".format(url))
+            logger.info("GET {0} (depth={1})".format(url,depth))
 
             response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
             content_type        = get_content_type(response)
@@ -422,8 +426,10 @@ class Crawler:
             # if there is an expiration coming
             # we want to make sure we mark this object as recently fetched...
             if self.urls_to_recover is not None:
-                self.urls_to_recover.add(url)
-                self.urls_to_recover.add(final_url)
+                #self.urls_to_recover.add(url)
+                #self.urls_to_recover.add(final_url)
+                self.urls_to_recover[url]       = nu_objid , content_type
+                self.urls_to_recover[final_url] = nu_objid , content_type
 
         if head_handler and file_status&FileStatus.EXISTING == 0:
             head_handler.handle(response, depth, previous_url, local_name)
@@ -457,7 +463,8 @@ class Crawler:
             else:
                 # lets save the work
                 # we may need it if we come back to this URL with depth != 0
-                self.fetched[url] = response , httpcode , content_type , objid 
+                if url not in self.fetched:
+                    self.fetched[url] = response , httpcode , content_type , objid 
         else:
             # add both
             self.handled.add(url)            

@@ -82,7 +82,7 @@ def crawl_rendered_all(crawler_mode0,expiration,ocr):
             head_handlers[handled_type] = head_handler
 
         if not url:
-            logger.info("skipping config entry: no URL found")
+            logger.warning("skipping config entry: no URL found")
             continue
 
         future = executor.submit(

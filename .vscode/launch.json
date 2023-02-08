@@ -26,7 +26,7 @@
             "subProcess": true ,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "args": [ "-e" , "1" ],
+            "args": [ "-e" , "2" ],
             "env": {
                 "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
             }
@@ -40,6 +40,19 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [ "-m" , "CRAWL_ULTRA_LIGHT" ],
+            "env": {
+                "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
+            }
+        }  , 
+        {
+            "name": "Get Status",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/docspider/status.py",
+            "subProcess": true ,
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [ ],
             "env": {
                 "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
             }

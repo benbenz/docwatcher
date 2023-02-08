@@ -16,6 +16,8 @@ class CrawlerMode(IntEnum):
     # MASK for recover mode (when an expiration time is used on the runtime - useful for shared VPS)
     CRAWL_RECOVER = 32
 
+    CRAWL_ALL = CRAWL_RECOVER + CRAWL_ULTRA_LIGHT + CRAWL_LIGHT + CRAWL_THRU + CRAWL_FULL
+
 class FileStatus(IntEnum):
     UNKNOWN  = 0
     NEW      = 1
