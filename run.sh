@@ -9,5 +9,5 @@ if [[ -z "${SKIP_SEARCH}" ]]; then
     python www/manage.py update_index
     python docspider/search.py
 else
-    echo "not performing search"
+    echo "run.sh: not performing search"
 fi
