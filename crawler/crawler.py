@@ -238,8 +238,8 @@ class Crawler:
                 return False , None
             urls = self.head_handlers[one_handler_k].get_urls_of_interest()
             if urls is None:
-                logger.warning("!!! Switching to {0} !!!".format(CrawlerMode.CRAWL_LIGHT.name))
-                self.crawler_mode = CrawlerMode.CRAWL_LIGHT | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
+                #logger.warning("!!! Switching to {0} !!!".format(CrawlerMode.CRAWL_LIGHT.name))
+                #self.crawler_mode = CrawlerMode.CRAWL_LIGHT | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
                 return False , None
 
             if depth and follow:
@@ -271,11 +271,11 @@ class Crawler:
             # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
             if self.crawler_mode & CrawlerMode.CRAWL_LIGHT and content_type == 'text/html':
                 urls = self.sitemap.get(url) 
-                if urls is None: # try through the DB 
-                    urls = self.get_urls_by_referer(url,objid) 
+                # if urls is None: # try through the DB 
+                #     urls = self.get_urls_by_referer(url,objid) 
                 if urls is None: # we dont have a handler to help with LIGHT mode ...
-                    logger.warning("!!! Switching to {0} !!!".format(CrawlerMode.CRAWL_THRU.name))
-                    self.crawler_mode = CrawlerMode.CRAWL_THRU | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
+                    #logger.warning("!!! Switching to {0} !!!".format(CrawlerMode.CRAWL_THRU.name))
+                    #self.crawler_mode = CrawlerMode.CRAWL_THRU | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
                     return False , objid
                 else:
                     if depth and follow:
@@ -526,7 +526,7 @@ class Crawler:
             with open(self.sitemap_name,'rb') as f:
                 self.sitemap = pickle.load(f)
         except:
-            pass
+            self.sitemap = dict()
 
     def save_sitemap(self):
         if not self.sitemap_name:
