@@ -498,7 +498,7 @@ class Crawler:
     def __getstate__(self):
         state = self.__dict__.copy()
         # Don't pickle baz
-        del state["sitemap"]
+        state.pop("sitemap",None)
         return state   
     
     #used by pickle

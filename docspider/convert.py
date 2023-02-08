@@ -21,6 +21,7 @@ def convert_files():
                         match_id , content_type = head_handler.find_recent(url)
                         new_utr[url] = match_id , content_type
                     crawler.urls_to_recover = new_utr
+            crawler.sitemap = None
             with open(file,'wb') as f:
                 pickle.dump(crawler,f)    
 
