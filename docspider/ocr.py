@@ -29,7 +29,7 @@ for rotate in [-90,0,90] : # lets assume the document is not reversed....
         proba_total = 0
         text_total  = ''
         num = 0 
-        for text , proba in result:
+        for pos , text , proba in result:
             if proba > 0.3:
                 logger.debug("text={0} (proba={1})".format(text,proba))
                 proba_total += proba
