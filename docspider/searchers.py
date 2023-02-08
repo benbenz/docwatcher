@@ -122,7 +122,7 @@ class DocumentSearcher:
                 for doc in docs_add:
                     title = str(doc.title or doc.remote_name or 'Sans titre')
                     text_content += '\n' + str(doc.domain)+': ' + title + ': ' + urlroot + doc.get_absolute_url() + ' original url: ' + doc.url
-                    html_content += '<li>'+str(doc.domain)+': <a href="'+urlroot+doc.get_absolute_url()+'">'+title+'</a> (<a href="'+doc.url+'">original URL</a>)</li>'
+                    html_content += '<li>'+str(doc.domain)+': <a href="'+urlroot+doc.get_absolute_url()+'">'+title+'</a> (<a href="'+str(doc.url)+'">original URL</a>)</li>'
                     if highlights_s.get(doc.id):
                         highlight_text = highlights_s.get(doc.id)
                         highlight_text = highlight_text.replace('<em>','<span style="font-weight:800">')
