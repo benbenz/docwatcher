@@ -278,6 +278,8 @@ class AllInOneHandler(LocalStorageHandler):
         page_count = 0
         body = ''
 
+        logger.info("processing {0} ({1})".format(url,path))
+
         for page in pdf.pages: 
             try:
                 page_body , has_extra_text = self.process_PDF_page_with_OCR(url,path,page,page_count,ocr_reader)
