@@ -1,10 +1,14 @@
 from docspider.handlers import AllInOneHandler
 import json
 from docs.models import Document
+from docspider.log import logger
+import logging
 
 output_dir = "download"
 
 def perform_ocr():
+
+    logger.setLevel(logging.DEBUG)
 
     handler = AllInOneHandler(directory=output_dir, subdirectory=None)
 
