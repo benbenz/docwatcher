@@ -489,7 +489,8 @@ class Crawler:
             self.has_finished = True
 
         if self.time0 is not None: # state mode
-            logger.warning("Saving state because of expiration option")
+            if not self.has_finished:
+                logger.warning("Saving state because of expiration option")
             with open(filename,'wb') as f:
                 pickle.dump(self,f)    
 
@@ -561,7 +562,7 @@ class Crawler:
                 self.has_finished = obj.has_finished
 
                 if self.has_finished:
-                    logger.warning("This crawler has finished working. Delete the state file {0} if you want to restart a job".format(filename))
+                    logger.info_plus("This crawler has finished working. Delete the state file {0} if you want to restart a job".format(filename))
                     return False # stop crawling
                 
         return True # continue crawl
