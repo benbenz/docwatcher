@@ -31,6 +31,7 @@ class Crawler:
         self.do_stop = False
         self.click_crawler = None
         self.crawler_mode = crawler_mode
+        self.orig_url = None
 
         try:
             with open('config.json','r') as jsonfile:
@@ -87,6 +88,12 @@ class Crawler:
 
     def get_config(self):
         return self.config
+
+    def get_domain(self):
+        if not self.orig_url:
+            return None
+        else:
+            return urlparse(self.orig_url).netloc
 
     def close(self):
         for k, Handler in self.get_handlers.items():
@@ -301,6 +308,7 @@ class Crawler:
         is_entry = orig_url is None
         if is_entry:
             orig_url = url
+            self.orig_url = orig_url
             continue_crawling = self.recover_state(url)
             if not continue_crawling:
                 return

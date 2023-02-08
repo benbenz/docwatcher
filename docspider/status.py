@@ -19,7 +19,7 @@ def get_status():
                     crawler_mode_rec = CrawlerMode.CRAWL_RECOVER
                 else:
                     crawler_mode_rec = None
-                logger.info("CRAWLER {0}:")
+                logger.info("CRAWLER {0}:".format(crawler.get_domain()))
                 if crawler_mode_rec:
                     logger.info("mode = {0} | {1}".format(crawler_mode.name,CrawlerMode.CRAWL_RECOVER.name))
                 else:
