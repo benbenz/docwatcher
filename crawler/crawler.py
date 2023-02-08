@@ -90,7 +90,7 @@ class Crawler:
         return self.config
 
     def get_domain(self):
-        if not getattr(self,"orig_url"):
+        if not getattr(self,"orig_url",None):
             return None
         else:
             return urlparse(self.orig_url).netloc
