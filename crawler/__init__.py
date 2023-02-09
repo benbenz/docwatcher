@@ -72,6 +72,8 @@ def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="g
     else:   
         logger.info_plus("Crawler created with mode '{0}' for domain {1}. We have {2} urls that are already handled".format(crawler.get_mode().name,domain,crawler.get_handled_len()))
 
+    logger.debug("DEBUG activated")
+
     try:
 
         crawler.crawl(url, depth)
