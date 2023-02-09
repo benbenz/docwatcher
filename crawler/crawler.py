@@ -155,7 +155,7 @@ class Crawler:
             head_handler = self.get_one_head_handler()
             if head_handler:
                 match_id , content_type = head_handler.find_recent(url)
-                if match_id and content_type == 'text/html': # this is html , we want to return False ... (THRU mode)
+                if content_type == 'text/html': # this is html , we want to return False ... (THRU mode)
                     return False , content_type , None
 
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
@@ -357,7 +357,7 @@ class Crawler:
             if self.do_stop:
                 return 
 
-            logger.info("GET {0} (depth={1})".format(url,depth))
+            logger.info("GET {0} (depth={1} referer={2})".format(url,depth,previous_url))
 
             response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
             content_type        = get_content_type(response)
