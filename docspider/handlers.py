@@ -307,9 +307,9 @@ class AllInOneHandler(LocalStorageHandler):
                         pass
                 if self.do_stop:
                     if not found_extra_text:
-                        return default_body , False , True
+                        return default_body , False , False #has_ocr = False because we're not done
                     else:
-                        return body , False , True
+                        return body , False , False #has_ocr = False because we're not done
             except:
                 pass
             page_count += 1
