@@ -202,6 +202,7 @@ class Crawler:
                     logger.debug("skipping fetching of document because we already have it {0}".format(url))
                     return True , content_type , match_id
                 else:
+                    logger.debug("document {0} not found. headers={1}".format(url,response.headers))
                     return False , content_type , None
             else:
                 return False , content_type , None  
@@ -284,6 +285,7 @@ class Crawler:
                 if urls is None: # we dont have a handler to help with LIGHT mode ...
                     #logger.warning("!!! Switching to {0} !!!".format(CrawlerMode.CRAWL_THRU.name))
                     #self.crawler_mode = CrawlerMode.CRAWL_THRU | (self.crawler_mode & CrawlerMode.CRAWL_RECOVER)
+                    logger.debug("Could not handle HTML url locally: {0}. No links are registered in the sitemap".format(url))
                     return False , objid
                 else:
                     if depth and follow:
