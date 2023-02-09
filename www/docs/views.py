@@ -43,7 +43,7 @@ def download(request, doc_id):
             try:
                 for encoding in ['utf-8','latin-1','cp1252']:
                     try:
-                        with open(os.path.join(settings.BASE_DIR.parent,file_path),mode='r',encoding=encoding) as f:
+                        with open(os.path.join(settings.BASE_DIR.parent,file_path),mode='rb') as f:
                             content = f.read()
                             return HttpResponse(content, headers={
                                 'Content-Type': document.http_content_type,
