@@ -5,7 +5,7 @@ import crawler
 import signal 
 import argparse
 import docspider.handlers as handlers
-from docspider.log import logger
+from docspider.log import logger , set_log_level
 from urllib.parse import urlparse
 from crawler.core import DEFAULT_SLEEP_TIME
 from concurrent.futures import ThreadPoolExecutor , ProcessPoolExecutor , as_completed
@@ -141,5 +141,12 @@ if __name__ == '__main__':
     parser.add_argument('-e','--expiration',type=int,help="Add an expiration time to the runtime")
     parser.add_argument('-o','--ocr',choices=['ON','OFF'],help="With OCR or not (if OCR is available)")
     parser.add_argument('-s','--solo',help="solo URL")
+    parser.add_argument('-l','--log_level',choices=['DEBUG','INFO','INFO+','WARNING','ERROR','CRITICAL'],help="log level")
     args = parser.parse_args()    
+    if args.log_level:
+        try:
+            log_level = logging.getLevelName(log_level)
+            set_log_level(log_level)
+        except:
+            pass
     crawl_rendered_all(args.mode,args.expiration,args.ocr,args.solo)
