@@ -158,6 +158,7 @@ class Crawler:
                 if content_type == 'text/html': # this is html , we want to return False ... (THRU mode)
                     return False , content_type , None
 
+            logger.debug("HEAD {0}".format(url))
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
             content_type = get_content_type(response)
             if content_type == 'text/html':
@@ -192,6 +193,7 @@ class Crawler:
                         return True , content_type , match_id
                 return False , None , None
 
+            logger.debug("HEAD {0}".format(url))
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
             content_type = get_content_type(response)
             head_handler = self.head_handlers.get(content_type)
