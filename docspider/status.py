@@ -39,7 +39,8 @@ def get_status(links_to_check=None):
             with open(file,'rb') as f:
                 sitemap = pickle.load(f)
                 for url , links in sitemap.items():
-                    print(url,links)
+                    if 'www.ury.fr' in url:
+                        print(url,links)
                     for link in links:
                         if link in links_to_check:
                             print("{0} is included in {1} links ({2})".format(link,url,file))
