@@ -17,21 +17,11 @@ output_dir = "download"
 executor = None
 futures  = []
 
-logger = None
 
 def crawl_rendered_all(crawler_mode0,expiration,ocr,solo_url,log_level):
     global executor
-    global logger
 
-    if log_level:
-        try:
-            logger = logging.getLogger("DocCrawler")
-            log_level = logging.getLevelName(log_level)
-            logger.setLevel(log_level)
-            for handler in logger.handlers:
-                handler.setLevel(log_level)
-        except:
-            pass
+    logger = logging.getLogger("DocCrawler")
 
     #if os.path.isdir(output_dir):
     #    rmtree(output_dir)
@@ -112,7 +102,8 @@ def crawl_rendered_all(crawler_mode0,expiration,ocr,solo_url,log_level):
                 crawler_mode=crawler_mode,
                 domain=domain_name,
                 expiration=expiration,
-                ocr=ocr
+                ocr=ocr,
+                log_level=log_level
         )
 
         futures.append(future)
@@ -131,6 +122,7 @@ def crawl_rendered_all(crawler_mode0,expiration,ocr,solo_url,log_level):
             executor.shutdown(wait=True)
 
 def exit_gracefully(signum,frame):
+    logger = logging.getLogger("DocCrawler")
     logger.warning("RECEIVED SIGNAL {0}".format(signum))
     signame = signal.Signals(signum).name
     logger.info(f'exit_gracefully() called with signal {signame} ({signum})')  

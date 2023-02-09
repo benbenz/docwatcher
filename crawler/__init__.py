@@ -16,14 +16,38 @@ from crawler.handlers import (
 import docspider.log
 import logging
 
-logger = logging.getLogger("DocCrawler")
-
 requests_downloader = RequestsDownloader()
 crawlers = []
 
-def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="geckodriver", page_name=None, custom_get_handler=None, custom_stats_handler=None, custom_process_handler=None, safe=False,crawler_mode=CrawlerMode.CRAWL_THRU,domain=None,expiration=None,ocr=None):
+def crawl(
+        url,
+        output_dir,
+        depth=2,
+        sleep_time=5,
+        method="normal",
+        gecko_path="geckodriver",
+        page_name=None,
+        custom_get_handler=None,
+        custom_stats_handler=None, 
+        custom_process_handler=None,
+        safe=False,
+        crawler_mode=CrawlerMode.CRAWL_THRU,
+        domain=None,
+        expiration=None,
+        ocr=None,
+        log_level=None):
     head_handlers = {}
     get_handlers = {}
+
+    logger = logging.getLogger("DocCrawler")
+    if log_level is not None:
+        try:
+            log_level = logging.getLevelName(log_level)
+            logger.setLevel(log_level)
+            for handler in logger.handlers:
+                handler.setLevel(logging.DEBUG)
+        except:
+            pass
 
     # get name of page for sub-directories etc. if not custom name given
     if page_name is None:
@@ -98,6 +122,7 @@ def crawl(url, output_dir, depth=2, sleep_time=5, method="normal", gecko_path="g
     crawler.close()
 
 def exit_gracefully(signum,frame):
+    logger = logging.getLogger("DocCrawler")
     logger.warning("RECEIVED SIGNAL {0}".format(signum))
     for crawler in crawlers:
         crawler.close()
