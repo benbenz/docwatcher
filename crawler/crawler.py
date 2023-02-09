@@ -11,7 +11,8 @@ import pickle
 import copy
 from requests import Response
 from datetime import datetime, timedelta
-from docspider.log import logger
+import logging
+logger = logging.getLogger("DocCrawler")
 
 
 K_DOMAINS_SKIP = 'domains_skip'
@@ -603,4 +604,3 @@ class Crawler:
             return None
 
         return html_handler.get_urls_by_referer(referer_url,objid)
-

@@ -26,7 +26,9 @@ import json
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
-from docspider.log import logger
+
+import logging
+logger = logging.getLogger("DocCrawler")
 
 # load django stuff
 # MAKE SURE ROOT/www is also in the PYTHONPATH !!!

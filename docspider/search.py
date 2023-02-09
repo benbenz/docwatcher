@@ -1,6 +1,7 @@
 from docspider.searchers import DocumentSearcher
 import json
-from docspider.log import logger
+import logging
+logger = logging.getLogger("DocCrawler")
 
 def perform_search():
 

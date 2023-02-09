@@ -49,23 +49,17 @@ if not LOG_LEVEL:
     LOG_LEVEL = logging.INFO
 
 # create logger with 'spam_application'
-logger = logging.getLogger("DocCrawler")
-logger.setLevel(LOG_LEVEL)
+logger_ = logging.getLogger("DocCrawler")
+logger_.setLevel(LOG_LEVEL)
 
 # create console handler with a higher log level
 ch = logging.StreamHandler()
 ch.setLevel(LOG_LEVEL)
 ch.setFormatter(CustomFormatter())
-logger.addHandler(ch)    
+logger_.addHandler(ch)    
 
 # the file handler
 fh = RotatingFileHandler('run.log',maxBytes=32*1024*1024,backupCount=2) #logging.FileHandler('run.log')
 fh.setLevel(LOG_LEVEL)
 fh.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"))
-logger.addHandler(fh)
-
-
-def set_log_level(level):
-    logger.setLevel(level)
-    fh.setLevel(level)
-    ch.setLevel(level)
+logger_.addHandler(fh)

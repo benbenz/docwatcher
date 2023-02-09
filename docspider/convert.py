@@ -2,9 +2,10 @@ import os
 import argparse
 import fnmatch
 import pickle
-from docspider.log import logger
 from urllib.parse import urlparse
 from crawler.core import CrawlerMode
+import logging
+logger = logging.getLogger("DocCrawler")
 
 
 def convert_files():

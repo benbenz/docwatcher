@@ -5,10 +5,10 @@ import crawler
 import signal 
 import argparse
 import docspider.handlers as handlers
-from docspider.log import logger , set_log_level
 from urllib.parse import urlparse
 from crawler.core import DEFAULT_SLEEP_TIME
 from concurrent.futures import ThreadPoolExecutor , ProcessPoolExecutor , as_completed
+import logging
 
 # change this to your geckodriver path
 gecko_path = "./geckodriver"
@@ -17,8 +17,21 @@ output_dir = "download"
 executor = None
 futures  = []
 
-def crawl_rendered_all(crawler_mode0,expiration,ocr,solo_url):
+logger = None
+
+def crawl_rendered_all(crawler_mode0,expiration,ocr,solo_url,log_level):
     global executor
+    global logger
+
+    if log_level:
+        try:
+            logger = logging.getLogger("DocCrawler")
+            log_level = logging.getLevelName(log_level)
+            logger.setLevel(log_level)
+            for handler in logger.handlers:
+                handler.setLevel(log_level)
+        except:
+            pass
 
     #if os.path.isdir(output_dir):
     #    rmtree(output_dir)
@@ -143,10 +156,4 @@ if __name__ == '__main__':
     parser.add_argument('-s','--solo',help="solo URL")
     parser.add_argument('-l','--log_level',choices=['DEBUG','INFO','INFO+','WARNING','ERROR','CRITICAL'],help="log level")
     args = parser.parse_args()    
-    if args.log_level:
-        try:
-            log_level = logging.getLevelName(log_level)
-            set_log_level(log_level)
-        except:
-            pass
-    crawl_rendered_all(args.mode,args.expiration,args.ocr,args.solo)
+    crawl_rendered_all(args.mode,args.expiration,args.ocr,args.solo,args.log_level)

@@ -2,7 +2,8 @@ from urllib.parse import urlparse
 from crawler.handlers import get_filename , get_content_type 
 from crawler.core import FileStatus 
 from crawler.helper import clean_url
-from docspider.log import logger
+import logging
+logger = logging.getLogger("DocCrawler")
 
 import os
 import re

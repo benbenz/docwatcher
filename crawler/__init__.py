@@ -12,7 +12,11 @@ from crawler.handlers import (
     ProcessHandler,
     get_filename
 )
-from docspider.log import logger
+# main IMPORT
+import docspider.log
+import logging
+
+logger = logging.getLogger("DocCrawler")
 
 requests_downloader = RequestsDownloader()
 crawlers = []

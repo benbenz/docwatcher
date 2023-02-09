@@ -7,7 +7,8 @@ import time
 import requests
 from http import HTTPStatus
 from urllib.parse import urlparse,urlunparse
-from docspider.log import logger
+import logging
+logger = logging.getLogger("DocCrawler")
 
 pm = ProxyManager()
 log = logging.getLogger(__name__)

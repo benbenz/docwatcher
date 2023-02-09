@@ -12,7 +12,8 @@ import difflib
 from bs4 import BeautifulSoup
 from lxml import etree
 import traceback
-from docspider.log import logger
+import logging
+logger = logging.getLogger("DocCrawler")
 
 class LocalStorageHandler:
 

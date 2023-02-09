@@ -1,11 +1,12 @@
 from docspider.handlers import AllInOneHandler
 import json
 from docs.models import Document
-from docspider.log import logger , set_log_level
-import logging
 import signal
 import argparse
 from datetime import datetime, timedelta
+import logging
+logger = logging.getLogger("DocCrawler")
+
 
 output_dir = "download"
 
@@ -19,7 +20,9 @@ def perform_ocr(expiration):
     else:
         time0 = expiration_delta = None
 
-    set_log_level(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
+    for handler in logger.handlers:
+        handler.setLevel(logging.DEBUG)
 
     if not handler.using_ocr:
         print("Not using OCR >> exiting")

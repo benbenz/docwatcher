@@ -3,8 +3,9 @@ import easyocr
 import numpy
 import json
 import os
-from docspider.log import logger
 from PIL import Image
+import logging
+logger = logging.getLogger("DocCrawler")
 
 
 parser = argparse.ArgumentParser(prog = 'ProcessOCR',description = 'process document with ocr')

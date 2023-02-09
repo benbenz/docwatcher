@@ -13,7 +13,7 @@
             "subProcess": true ,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "args": [  ],
+            "args": [ "-l" ,"DEBUG" ],
             "env": {
                 "PYTHONPATH":"${workspaceRoot}:${workspaceRoot}/www:${workspaceRoot}/easyocr:$PYTHONPATH"
             }
