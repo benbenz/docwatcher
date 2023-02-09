@@ -49,6 +49,7 @@ def download(request, doc_id):
                     })
             except Exception as e:
                 logger.info(e)
+                raise Http404("Error {0}".format(e))
         else:
             raise Http404("Data Not Found")
     except Document.DoesNotExist:
