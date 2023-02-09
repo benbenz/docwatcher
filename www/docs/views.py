@@ -60,9 +60,7 @@ def download(request, doc_id):
                     content = f.read()
                     return HttpResponse(content, headers={
                         'Content-Type': document.http_content_type,
-                        'Content-Disposition': 'attachment; filename="'+document.remote_name or document.title+'"'
-                    })
-                    
+                        'Content-Disposition': 'attachment; filename="'+document.remote_name or document.title+'"'})         
         else:
             raise Http404("Data Not Found")
     except Document.DoesNotExist:
