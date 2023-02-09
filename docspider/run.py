@@ -17,7 +17,7 @@ output_dir = "download"
 executor = None
 futures  = []
 
-def crawl_rendered_all(crawler_mode0,expiration,ocr):
+def crawl_rendered_all(crawler_mode0,expiration,ocr,solo_url):
     global executor
 
     #if os.path.isdir(output_dir):
@@ -31,7 +31,7 @@ def crawl_rendered_all(crawler_mode0,expiration,ocr):
     executor = ProcessPoolExecutor(max_workers=10)
     #executor = ThreadPoolExecutor(max_workers=10)
 
-    solo = cfg.get("solo",None) 
+    solo = solo_url or cfg.get("solo",None) 
 
     #futures = []
     if crawler_mode0 is not None: 
@@ -140,5 +140,6 @@ if __name__ == '__main__':
     parser.add_argument('-m','--mode',choices=['CRAWL_FULL','CRAWL_THRU','CRAWL_LIGHT','CRAWL_ULTRA_LIGHT'],help="This option forces the crawlers to use the provided mode.")
     parser.add_argument('-e','--expiration',type=int,help="Add an expiration time to the runtime")
     parser.add_argument('-o','--ocr',choices=['ON','OFF'],help="With OCR or not (if OCR is available)")
+    parser.add_argument('-s','--solo',help="solo URL")
     args = parser.parse_args()    
-    crawl_rendered_all(args.mode,args.expiration,args.ocr)
+    crawl_rendered_all(args.mode,args.expiration,args.ocr,args.solo_url)
