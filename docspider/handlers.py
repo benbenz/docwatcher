@@ -484,7 +484,12 @@ class AllInOneHandler(LocalStorageHandler):
         final_url = kwargs.get('final_url')
         if final_url:
             final_url = clean_url(final_url) # just to make really sure
-        url = clean_url(response.url) 
+        else:
+            final_url = clean_url(response.url) 
+        if kwargs.get('url'):
+            url = clean_url(kwargs.get('url'))
+        else:
+            url = None
 
         doc = Document(
             domain      = domain_name , 
@@ -606,18 +611,21 @@ class DBStatsHandler:
         http_encoding      = get_header_http_encoding(response)
         http_last_modified = get_header_http_last_modified(response)
         q_url              = Q(url=url) | Q(final_url=final_url)
-        result = None
         try:
+            result = None
             if http_last_modified:
-                logger.debug("find with last_modified {0}".format(http_last_modified))
-                result = Document.objects.filter(is_handled=True).filter(q_url & Q(last_modified=http_last_modified,last_modified__isnull=False)).latest('record_date')
+                logger.debug("finding with last_modified {0}".format(http_last_modified))
+                result = Document.objects.filter(is_handled=True).filter(q_url & Q(http_last_modified=http_last_modified,http_last_modified__isnull=False)).latest('record_date')
             else:
-                logger.debug("find with length={0} and encoding='{1}'".format(http_length,http_encoding))
+                logger.debug("finding with length={0} and encoding='{1}'".format(http_length,http_encoding))
                 # we want the most-recently fetched document to be the same as the one we're comparing it to
                 result = Document.objects.filter(is_handled=True).filter(q_url).latest('record_date') # most recently fetched document
                 if result.http_length!=http_length or result.http_encoding!=http_encoding: # should be the same in size
                     return None
             return result.id
+        except Document.DoesNotExist:
+            logger.debug("no document found")
+            pass
         except:
             pass
         return None
@@ -630,7 +638,9 @@ class DBStatsHandler:
             q_http_last_modified = Q(http_last_modified__gte=date_filter) & Q(http_last_modified__isnull=False)
             q_record_date        = Q(record_date__gte=date_filter) & Q(record_date__isnull=False)
             q_url                = Q(url=url) | Q(final_url=url,final_url__isnull=False)
-            result = Document.objects.filter(is_handled=True).filter(q_url & (q_record_date | q_http_last_modified)).latest('record_date')
+            results = Document.objects.filter(is_handled=True).filter(q_url & (q_record_date | q_http_last_modified))
+            #number  = results.count()
+            result  = results.latest('record_date')
             return result.id , result.http_content_type
         except Document.DoesNotExist:
             pass

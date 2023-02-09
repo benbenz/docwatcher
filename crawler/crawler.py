@@ -450,7 +450,7 @@ class Crawler:
         nu_objid = None
         if get_handler:
             old_files = head_handler.get_filenames(url,final_url) if head_handler else None
-            local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url)
+            local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url,url=url)
             # we got this object
             # if there is an expiration coming
             # we want to make sure we mark this object as recently fetched...
