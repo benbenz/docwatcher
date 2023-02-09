@@ -597,7 +597,7 @@ class DBStatsHandler:
         return result
 
     def find(self,url,response):
-        url                = clean_url(response.url)
+        url                = clean_url(url)
         final_url          = clean_url(response.url)
         http_length        = get_header_http_length(response)
         http_encoding      = get_header_http_encoding(response)
@@ -606,8 +606,10 @@ class DBStatsHandler:
         result = None
         try:
             if http_last_modified:
+                logger.debug("find with last_modified {0}".format(http_last_modified))
                 result = Document.objects.filter(is_handled=True).filter(q_url & Q(last_modified=http_last_modified,last_modified__isnull=False)).latest('record_date')
             else:
+                logger.debug("find with length={0} and encoding='{1}'".format(http_length,http_encoding))
                 # we want the most-recently fetched document to be the same as the one we're comparing it to
                 result = Document.objects.filter(is_handled=True).filter(q_url).latest('record_date') # most recently fetched document
                 if result.http_length!=http_length or result.http_encoding!=http_encoding: # should be the same in size
