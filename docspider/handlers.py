@@ -211,7 +211,7 @@ class AllInOneHandler(LocalStorageHandler):
                 if self.do_stop:
                     return page_body , found_extra_text
                 if debug:
-                    logger.debug("processing image {0} for {1}".format(img_count,url))
+                    logger.debug("processing page {0} image {1} for {2}".format(page_count,img_count,url))
                 with open(image.name, "wb") as fp:
                     fp.write(image.data)
                 #im0 = Image.open(image.name)
@@ -473,7 +473,7 @@ class AllInOneHandler(LocalStorageHandler):
                     the_doc.last_modified = last_modified
                     the_doc.is_handled = True
                     the_doc.save() 
-                logger.debug("updated existing DB entry: {0} / {0} / {1}".format(the_doc.id,path,the_doc.url))
+                    logger.debug("updated existing document entry {0} / {1} / {2}".format(the_doc.id,path,the_doc.url))
                 return path , file_status , the_doc.id
             except:
                 logger.error("INTERNAL Error: an existing file is not registered in the database!")
