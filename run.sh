@@ -1,8 +1,9 @@
 #!/bin/bash
-deactivate
-export PYTHONPATH=$(pwd):$(pwd)/www:$(pwd)/easyocr:$PYTHONPATH
-source .venv/bin/activate
-source email_settings.sh
+# deactivate
+# export PYTHONPATH=$(pwd):$(pwd)/www:$(pwd)/easyocr:$PYTHONPATH
+# source .venv/bin/activate
+# source email_settings.sh
+source ./env.sh
 python docspider/run.py $@
 if [[ -z "${SKIP_SEARCH}" ]]; then
     # python www/manage.py rebuild_index --noinput
