@@ -8,7 +8,7 @@
         <li><span class="infos_label">last modified</span> {{ document.http_last_modified }}</li>
         <li><span class="infos_label">record date</span> {{ document.record_date }}</li>
         <li><span class="infos_label">link</span> <a referrerpolicy="no-referrer" href="{{document.url}}">{{ document.title }}</a></li>
-        <li><span class="infos_label">file download</span> <a href="{% url 'download' document.id %}">{{ document.remote_name }}</a></li>
+        <li><span class="infos_label">file download</span> <a href="{% url 'download' document.id %}">{{ download_name }}</a></li>
     </ul>
     <h2>live page</h2>
     <iframe referrerpolicy="no-referrer" style="document_preview" src="javascript:window.location.replace('{{ document.url }}')"></iframe>

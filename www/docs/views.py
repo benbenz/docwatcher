@@ -41,15 +41,28 @@ def download(request, doc_id):
         file_path = document.local_file
         if file_path:
             try:
-                with open(os.path.join(settings.BASE_DIR.parent,file_path),mode='r',encoding='utf-8') as f:
+                for encoding in ['utf-8','latin-1','cp1252']:
+                    try:
+                        with open(os.path.join(settings.BASE_DIR.parent,file_path),mode='r',encoding=encoding) as f:
+                            content = f.read()
+                            return HttpResponse(content, headers={
+                                'Content-Type': document.http_content_type,
+                                'Content-Disposition': 'attachment; filename="'+document.remote_name or document.title+'"'
+                            })
+                    except Exception as e:
+                        errmsg = str(e)
+                        if 'codec' in errmsg:
+                            continue
+                        else:
+                            logger.info(e)
+                            raise Http404("Error {0}".format(e))
+                with open(os.path.join(settings.BASE_DIR.parent,file_path),mode='r',encoding='utf-8',errors='ignore') as f:
                     content = f.read()
                     return HttpResponse(content, headers={
                         'Content-Type': document.http_content_type,
                         'Content-Disposition': 'attachment; filename="'+document.remote_name or document.title+'"'
                     })
-            except Exception as e:
-                logger.info(e)
-                raise Http404("Error {0}".format(e))
+                    
         else:
             raise Http404("Data Not Found")
     except Document.DoesNotExist:
