@@ -142,4 +142,4 @@ if __name__ == '__main__':
     parser.add_argument('-o','--ocr',choices=['ON','OFF'],help="With OCR or not (if OCR is available)")
     parser.add_argument('-s','--solo',help="solo URL")
     args = parser.parse_args()    
-    crawl_rendered_all(args.mode,args.expiration,args.ocr,args.solo_url)
+    crawl_rendered_all(args.mode,args.expiration,args.ocr,args.solo)
