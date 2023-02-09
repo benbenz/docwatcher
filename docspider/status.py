@@ -35,6 +35,7 @@ def get_status(links_to_check=None):
 
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern_sitemap) and links_to_check:
+            print("Processing sitemap {0}".format(file))
             with open(file,'rb') as f:
                 sitemap = pickle.load(f)
                 for url , links in sitemap.items():
