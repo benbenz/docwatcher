@@ -305,7 +305,11 @@ class AllInOneHandler(LocalStorageHandler):
                         os.remove(image.name)
                     except:
                         pass
-
+                if self.do_stop:
+                    if not found_extra_text:
+                        return default_body , False , True
+                    else:
+                        return body , False , True
             except:
                 pass
             page_count += 1
