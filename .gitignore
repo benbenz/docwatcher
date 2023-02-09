@@ -112,6 +112,9 @@ venv.bak/
 /config.json
 /config.py
 
+ocr-blacklist.pickle
+ocr-blacklist.json
+
 
 .DS_Store
 

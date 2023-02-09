@@ -473,7 +473,7 @@ class AllInOneHandler(LocalStorageHandler):
                     the_doc.last_modified = last_modified
                     the_doc.is_handled = True
                     the_doc.save() 
-                logger.debug("updated existing document {0} {1}".format(path,the_doc.url))
+                logger.debug("updated existing DB entry: {0} / {0} / {1}".format(the_doc.id,path,the_doc.url))
                 return path , file_status , the_doc.id
             except:
                 logger.error("INTERNAL Error: an existing file is not registered in the database!")
