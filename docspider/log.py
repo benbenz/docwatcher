@@ -10,6 +10,7 @@ def info_plus(self, message, *args, **kws):
         self._log(logging.INFO_PLUS, message, args, **kws) 
 logging.Logger.info_plus = info_plus
 
+
 class CustomFormatter(logging.Formatter):
 
     grey = "\x1b[38;20m"
@@ -62,3 +63,9 @@ fh = RotatingFileHandler('run.log',maxBytes=32*1024*1024,backupCount=2) #logging
 fh.setLevel(LOG_LEVEL)
 fh.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"))
 logger.addHandler(fh)
+
+
+def set_log_level(level):
+    logger.setLevel(level)
+    fh.setLevel(level)
+    ch.setLevel(level)
