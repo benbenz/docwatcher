@@ -141,9 +141,9 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, exit_gracefully)     
     crawler.register_signals()
 
-    parser = argparse.ArgumentParser(prog = 'DocWatcher',description = 'Watch for new docs',epilog = '=)')
+    parser = argparse.ArgumentParser(prog = 'python -m docspider.run',description = 'Watch for new docs',epilog = '=)')
     parser.add_argument('-m','--mode',choices=['CRAWL_FULL','CRAWL_THRU','CRAWL_LIGHT','CRAWL_ULTRA_LIGHT'],help="This option forces the crawlers to use the provided mode.")
-    parser.add_argument('-e','--expiration',type=int,help="Add an expiration time to the runtime")
+    parser.add_argument('-e','--expiration',type=int,help="Add an expiration time to the runtime (in minutes)")
     parser.add_argument('-o','--ocr',choices=['ON','OFF'],help="With OCR or not (if OCR is available)")
     parser.add_argument('-s','--solo',help="solo URL")
     parser.add_argument('-l','--log_level',choices=['DEBUG','INFO','INFO+','WARNING','ERROR','CRITICAL'],help="log level")
