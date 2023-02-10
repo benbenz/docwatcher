@@ -14,7 +14,8 @@ rm -rf www/docwatcher/whoosh_index
 rm state.*
 rm sitemap.*
 rm *.log
-rm *.png *.jpg
+rm *.png
+rm *.jpg
 python www/manage.py makemigrations docs
 python www/manage.py migrate
 python docspider/init.py
