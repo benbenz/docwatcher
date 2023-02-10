@@ -4,10 +4,6 @@ import fnmatch
 import pickle
 from urllib.parse import urlparse
 from crawler.core import CrawlerMode
-import logging
-
-logger = logging.getLogger("DocCrawler")
-
 
 def get_status(links_to_check=None):
     filesOfDirectory = os.listdir('.')
@@ -25,15 +21,15 @@ def get_status(links_to_check=None):
                 domain = crawler.get_domain()
                 if not domain:
                     domain = file
-                logger.info("CRAWLER {0}:".format(domain))
+                print("CRAWLER {0}:".format(domain))
                 if crawler_mode_rec:
-                    logger.info("mode = {0} | {1}".format(crawler_mode.name,CrawlerMode.CRAWL_RECOVER.name))
+                    print("mode = {0} | {1}".format(crawler_mode.name,CrawlerMode.CRAWL_RECOVER.name))
                 else:
-                    logger.info("mode = {0}".format(crawler_mode.name))
-                logger.info("has_finished = {0}".format(crawler.has_finished))
-                logger.info("safe = {0}".format(crawler.safe))
-                logger.info("sleep_time = {0}".format(crawler.sleep_time))
-                logger.info("num urls_to_recover = {0}".format(len(crawler.urls_to_recover)))
+                    print("mode = {0}".format(crawler_mode.name))
+                print("has_finished = {0}".format(crawler.has_finished))
+                print("safe = {0}".format(crawler.safe))
+                print("sleep_time = {0}".format(crawler.sleep_time))
+                print("num urls_to_recover = {0}".format(len(crawler.urls_to_recover)))
 
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern_sitemap) and links_to_check:
