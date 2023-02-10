@@ -568,8 +568,8 @@ class DBStatsHandler:
             # unless they are very very old as well (3 years+) ! 
             # this is all to minimize the footprint on the server....
             date_today = datetime.today()
-            date_html  = make_aware( date_today - timedelta(days=2*365) ) # 3 years
-            date_other = make_aware( date_today - timedelta(days=2*365) ) # 3 years 
+            date_html  = make_aware( date_today - timedelta(days=3*365) ) # 3 years
+            date_other = make_aware( date_today - timedelta(days=3*365) ) # 3 years 
             q_html  = Q(doc_type=Document.DocumentType.HTML)  & Q(http_last_modified__isnull=False) & Q(http_last_modified__lte=date_html)
             q_other = ~Q(doc_type=Document.DocumentType.HTML) & Q(http_last_modified__isnull=False) & Q(http_last_modified__lte=date_other)
             query   = Q(domain=self.domain,is_handled=True) & (q_html | q_other)
