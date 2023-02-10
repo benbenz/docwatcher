@@ -397,6 +397,8 @@ class Crawler:
                 if httpcode == HTTPStatus.NOT_FOUND:
                     logger.warning("404 response received for {0}".format(url))
                     self.handled.add(url)
+                    self.handled.add(clean_url(response.url))
+                    self.avoid.add(url)
                     self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
                     return
                 else:
