@@ -78,13 +78,17 @@ def get_content_type(response):
 
 
 @lru_cache(maxsize=8192)
-def call(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME):
+def call(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME,previous_url=None):
     if use_proxy:
         proxy = pm.get_proxy()
         if proxy[0]:
             try:
                 if sleep_time is not None:
                     time.sleep(sleep_time)
+                if previous_url is not None:
+                    session.headers.update({'referer': previous_url})
+                else:
+                    session.headers.pop('referer',None)
                 response = session.get(url, timeout=10, proxies=proxy[0], verify=True)
                 response.raise_for_status()
             except Exception as e:
@@ -107,6 +111,10 @@ def call(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME)
         try:
             if sleep_time is not None:
                 time.sleep(sleep_time)
+            if previous_url is not None:
+                session.headers.update({'Referer': previous_url})
+            else:
+                session.headers.pop('Referer',None)
             response = session.get(url, timeout=10, verify=True)
             response.raise_for_status()
         except requests.exceptions.InvalidSchema as re:
@@ -126,13 +134,17 @@ def call(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME)
             return response , response.status_code if response else None , None
 
 
-def call_head(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME):
+def call_head(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_TIME,previous_url=None):
     if use_proxy:
         proxy = pm.get_proxy()
         if proxy[0]:
             try:
                 if sleep_time is not None:
                     time.sleep(sleep_time)
+                if previous_url is not None:
+                    session.headers.update({'Referer': previous_url})
+                else:
+                    session.headers.pop('Referer',None)
                 response = session.head(url, timeout=10, proxies=proxy[0], verify=True)
                 response.raise_for_status()
             except Exception as e:
@@ -153,6 +165,10 @@ def call_head(session, url, use_proxy=False, retries=0,sleep_time=DEFAULT_SLEEP_
         try:
             if sleep_time is not None:
                 time.sleep(sleep_time)
+            if previous_url is not None:
+                session.headers.update({'referer': previous_url})
+            else:
+                session.headers.pop('referer',None)
             response = session.head(url, timeout=10, verify=True)
             response.raise_for_status()
         except requests.exceptions.InvalidSchema as re:

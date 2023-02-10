@@ -128,7 +128,7 @@ class Crawler:
         one_handler_k = next(iter(self.head_handlers))
         return self.get_handlers.get(one_handler_k)
 
-    def has_document(self,url):
+    def has_document(self,url,previous_url=None):
 
         date_today  = datetime.today()
         date_1day   = make_aware( date_today - timedelta(days=1) )
@@ -165,7 +165,7 @@ class Crawler:
                     return False , None , None 
 
             logger.debug("HEAD {0}".format(url))
-            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
+            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url)
             content_type = get_content_type(response)
             if content_type == 'text/html':
                 return False , content_type , None # we still want to parkour the website...
@@ -217,7 +217,7 @@ class Crawler:
                     return False , None , None
             
             logger.debug("HEAD {0}".format(url))
-            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
+            response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url)
             content_type = get_content_type(response)
             head_handler = self.head_handlers.get(content_type)
             final_url = clean_url(response.url)
@@ -263,7 +263,7 @@ class Crawler:
 
         return True 
 
-    def handle_local(self,depth,follow,url,orig_url,is_entry):
+    def handle_local(self,depth,follow,url,orig_url,is_entry,previous_url=None):
 
         # ultra light mode will only look at HTML page linked to 'of-interest' documents
         if is_entry and self.crawler_mode & CrawlerMode.CRAWL_ULTRA_LIGHT:
@@ -287,7 +287,7 @@ class Crawler:
             return True , None
 
         # url is handled by persistence/records (and hasnt changed)
-        has_doc , content_type , objid = self.has_document(url) # HEAD request potentially
+        has_doc , content_type , objid = self.has_document(url,previous_url=previous_url) # HEAD request potentially
         if has_doc:
             if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
                 urls = self.sitemap.get(url) 
@@ -376,7 +376,7 @@ class Crawler:
 
         else:
 
-            is_handled , objid = self.handle_local(depth,follow,url,orig_url,is_entry)
+            is_handled , objid = self.handle_local(depth,follow,url,orig_url,is_entry,previous_url=previous_url)
             if is_handled:
                 return
 
@@ -386,7 +386,7 @@ class Crawler:
 
             logger.info("GET {0} (depth={1} referer={2})".format(url,depth,previous_url))
 
-            response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
+            response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url) # GET request
             content_type        = get_content_type(response)
 
             # we may have slept
@@ -444,7 +444,7 @@ class Crawler:
             if not self.should_crawl(final_url):
                 return 
 
-            is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry)
+            is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry,previous_url=previous_url)
             if is_handled:
                 return
 
