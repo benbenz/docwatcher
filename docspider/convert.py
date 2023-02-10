@@ -20,7 +20,7 @@ def convert_files():
                 if head_handler and isinstance(crawler.urls_to_recover,set):
                     new_utr = dict()
                     for url in crawler.urls_to_recover:
-                        match_id , content_type = head_handler.find_recent(url)
+                        match_id , content_type , last_modified , record_date = head_handler.find_latest(url)
                         new_utr[url] = match_id , content_type
                     crawler.urls_to_recover = new_utr
             crawler.sitemap = None

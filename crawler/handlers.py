@@ -254,6 +254,12 @@ class CSVStatsHandler:
             return res[0]
         return None
 
+    def find_latest(self,url,):
+        res = self.get_filenames(url,None)
+        if res and len(res)>0:
+            return res[0] , None , None , None
+        return None
+
     def find_recent(self,url):
         return None , None  
 

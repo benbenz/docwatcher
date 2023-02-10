@@ -12,6 +12,7 @@ import copy
 from requests import Response
 from datetime import datetime, timedelta
 import logging
+from django.utils.timezone import make_aware
 logger = logging.getLogger("DocCrawler")
 
 
@@ -78,8 +79,7 @@ class Crawler:
             handled_list = Handler.get_handled_list(self.crawler_mode)
             for handled_entry in handled_list:
                 handled_entry = clean_url(handled_entry)
-                #lets not add anything for now
-                #self.handled.add(handled_entry)
+                self.handled.add(handled_entry)
 
     def get_handled_len(self):
         return len(self.handled)
@@ -130,15 +130,12 @@ class Crawler:
 
     def has_document(self,url):
 
+        date_today  = datetime.today()
+        date_1day   = make_aware( date_today - timedelta(days=1) )
+
         if self.crawler_mode & CrawlerMode.CRAWL_RECOVER :
             # + if it is in 'urls_to_recover' >> we get the recent one (no matter what the crawl mode is)
             if url in self.urls_to_recover : 
-                # head_handler = self.get_one_head_handler()
-                # if head_handler:
-                #     match_id , content_type = head_handler.find_recent(url)
-                #     if match_id is not None:
-                #         logger.debug("skipping fetching of document because of its recovery: {0}".format(url))
-                #         return True , content_type , match_id
                 logger.debug("skipping fetching of document because of its recovery: {0}".format(url))
                 match_id , content_type = self.urls_to_recover[url]
                 return True , content_type , match_id
@@ -158,7 +155,7 @@ class Crawler:
             # for new documents ... this will take a longer time ...
             head_handler = self.get_one_head_handler()
             if head_handler:
-                match_id , content_type = head_handler.find_recent(url)
+                match_id , content_type , last_modified , record_date = head_handler.find_latest(url)
                 if content_type == 'text/html': # this is html , we want to return False ... (THRU mode)
                     return False , content_type , None
 
@@ -192,16 +189,33 @@ class Crawler:
             # but we are also in a *LIGHT mode so we dont want to trigger as many full requests
             # which would happen if we were just returning False , None , None
             # >>> let's not fetch if the document is relatively recent ...
+
+            head_handler = self.get_one_head_handler()
+
             if self.safe: 
-                one_handler_k = next(iter(self.head_handlers))
-                if one_handler_k:
-                    head_handler = self.head_handlers[one_handler_k]
-                    match_id , content_type = head_handler.find_recent(url)
+                if head_handler:
+                    match_id , content_type , last_modified , record_date = head_handler.find_recent(url)
                     if match_id is not None:
+                        # this is a high frequency document
+                        if last_modified and last_modified > date_1day and content_type=='text/html': 
+                            logger.debug("forcing fetching of document because it is high frequency {0}".format(url))
+                            return False , None , None
                         logger.debug("skipping fetching of document because it is recent {0}".format(url))
                         return True , content_type , match_id
                 return False , None , None
 
+            # let's check first if we have the doc locally
+            # so we can avoid a potential HEAD + GET sequence
+            if head_handler:
+                match_id , content_type , last_modified , record_date = head_handler.find_latest(url)
+                # we pretty much don't have the document ...
+                # let's avoid the HEAD + GET sequence
+                if not match_id:
+                    return False , None , None     
+                elif last_modified and last_modified > date_1day and content_type=='text/html': 
+                    logger.debug("forcing fetching of document because it is high frequency {0}".format(url))
+                    return False , None , None
+            
             logger.debug("HEAD {0}".format(url))
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time)
             content_type = get_content_type(response)

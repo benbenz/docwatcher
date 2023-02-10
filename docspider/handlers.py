@@ -473,7 +473,7 @@ class AllInOneHandler(LocalStorageHandler):
                     the_doc.last_modified = last_modified
                     the_doc.is_handled = True
                     the_doc.save() 
-                    logger.debug("updated existing document entry {0} / {1} / {2}".format(the_doc.id,path,the_doc.url))
+                    logger.debug("updated existing document entry {0} / {1}".format(the_doc.id,path,the_doc.url))
                 return path , file_status , the_doc.id
             except:
                 logger.error("INTERNAL Error: an existing file is not registered in the database!")
@@ -568,10 +568,10 @@ class DBStatsHandler:
             # unless they are very very old as well (3 years+) ! 
             # this is all to minimize the footprint on the server....
             date_today = datetime.today()
-            date_html  = make_aware( date_today - timedelta(days=3*365) ) # 3 years
-            date_other = make_aware( date_today - timedelta(days=2*365) ) # 2 years 
-            q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_html)
-            q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_other)
+            date_html  = make_aware( date_today - timedelta(days=2*365) ) # 3 years
+            date_other = make_aware( date_today - timedelta(days=2*365) ) # 3 years 
+            q_html  = Q(doc_type=Document.DocumentType.HTML)  & Q(http_last_modified__isnull=False) & Q(http_last_modified__lte=date_html)
+            q_other = ~Q(doc_type=Document.DocumentType.HTML) & Q(http_last_modified__isnull=False) & Q(http_last_modified__lte=date_other)
             query   = Q(domain=self.domain,is_handled=True) & (q_html | q_other)
             if self.domain:
                 queryset = Document.objects.filter(query)
@@ -582,10 +582,11 @@ class DBStatsHandler:
         elif crawler_mode & CrawlerMode.CRAWL_LIGHT or crawler_mode & CrawlerMode.CRAWL_ULTRA_LIGHT :
             # we're gonna consider more documents as being done ...
             date_today = datetime.today()
-            date_html  = make_aware( date_today - timedelta(days=1*365) ) # 2 years
-            date_other = make_aware( date_today - timedelta(days=1*365) ) # 2 years
-            q_html  = Q(doc_type=Document.DocumentType.HTML)  & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_html)
-            q_other = ~Q(doc_type=Document.DocumentType.HTML) & ~Q(http_last_modified__isnull=True) & Q(http_last_modified__lte=date_other)
+            years      = 2 if crawler_mode & CrawlerMode.CRAWL_LIGHT else 1
+            date_html  = make_aware( date_today - timedelta(days=years*365) ) 
+            date_other = make_aware( date_today - timedelta(days=years*365) ) 
+            q_html  = Q(doc_type=Document.DocumentType.HTML)  & Q(http_last_modified__isnull=False) & Q(http_last_modified__lte=date_html)
+            q_other = ~Q(doc_type=Document.DocumentType.HTML) & Q(http_last_modified__isnull=False) & Q(http_last_modified__lte=date_other)
             query   = Q(domain=self.domain,is_handled=True) & (q_html | q_other)
             if self.domain:
                 queryset = Document.objects.filter(query)
@@ -611,6 +612,11 @@ class DBStatsHandler:
         http_encoding      = get_header_http_encoding(response)
         http_last_modified = get_header_http_last_modified(response)
         q_url              = Q(url=url) | Q(final_url=final_url)
+        if isinstance(http_length,str):
+            try:
+                http_length = int(http_length)
+            except:
+                pass
         try:
             result = None
             if http_last_modified:
@@ -641,12 +647,26 @@ class DBStatsHandler:
             results = Document.objects.filter(is_handled=True).filter(q_url & (q_record_date | q_http_last_modified))
             #number  = results.count()
             result  = results.latest('record_date')
-            return result.id , result.http_content_type
+            return result.id , result.http_content_type , result.http_last_modified , result.record_date
         except Document.DoesNotExist:
             pass
         except Exception as e:
             logger.error("error while finding recent element {0}".format(e))
-        return None , None
+        return None , None , None , None
+
+    def find_latest(self,url):
+        try:
+            url   = clean_url(url)
+            q_url = Q(url=url) | Q(final_url=url,final_url__isnull=False)
+            results = Document.objects.filter(is_handled=True).filter(q_url)
+            #number  = results.count()
+            result  = results.latest('record_date')
+            return result.id , result.http_content_type , result.http_last_modified , result.record_date
+        except Document.DoesNotExist:
+            pass
+        except Exception as e:
+            logger.error("error while finding recent element {0}".format(e))
+        return None , None , None , None    
 
     def get_urls_by_referer(self,referer_url,objid=None):
         result = []

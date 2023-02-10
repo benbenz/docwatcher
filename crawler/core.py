@@ -4,13 +4,13 @@ class CrawlerMode(IntEnum):
     # crawl everything, everytime 
     CRAWL_FULL  = 1
     # smart crawl: go through the HTML website and decides if it needs to download files
-    # old HTML and non-HTML files are also considered handled after a certain time (>2/3years)
+    # old HTML and non-HTML files are also considered handled after a certain time (3years)
     CRAWL_THRU  = 2
     # smart crawl: skip the page if it's already been handled (dont go through)
-    # old HTML and non-HTML files are also considered handled after a certain time (>2 years)
+    # old HTML and non-HTML files are also considered handled after a certain time (2years)
     CRAWL_LIGHT = 4
     # ultra light crawl: only crawl the already-marked 'of interest' pages AND their referrers
-    # old HTML and non-HTML files are also considered handled after a certain time (>2 years)
+    # old HTML and non-HTML files are also considered handled after a certain time (1year)
     CRAWL_ULTRA_LIGHT = 8
 
     # MASK for recover mode (when an expiration time is used on the runtime - useful for shared VPS)
