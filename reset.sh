@@ -5,6 +5,7 @@
 source ./env.sh
 ps -ef | grep 'docspider/run.py' | grep -v grep | awk '{print $2}' | xargs -r kill -9
 ps -ef | grep 'docspider/ocr.py' | grep -v grep | awk '{print $2}' | xargs -r kill -9
+ps -ef | grep 'ocr.sh' | grep -v grep | awk '{print $2}' | xargs -r kill -9
 git pull origin master
 rm www/db.sqlite3
 rm -rf download
