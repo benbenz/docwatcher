@@ -1,0 +1,8 @@
+Execute: rm run.log; ./run.sh -m CRAWL_ULTRA_LIGHT- o OFF 	0 10 * * 3 		
+Execute: rm run.log; ./run.sh -m CRAWL_ULTRA_LIGHT -o OFF 	0 13 * * 5 		
+Execute: rm run.log; ./run.sh -m CRAWL_ULTRA_LIGHT -o OFF 	0 12 * * 4 		
+Execute: rm run.log; ./run.sh -m CRAWL_ULTRA_LIGHT -o OFF 	0 12 * * 1 		
+Execute: rm run.log; ./run.sh -e 20 -o OFF -l DEBUG 	17 10-21 * * 2 		
+Execute: ./ocr.sh -e 35 	Every 1 hour(s) 		
+Execute: rm state.* ; rm sitemap.* 	0 9 * * 2 		
+Execute: ./search.sh 	0 22 * * 2
