@@ -45,6 +45,7 @@ class Crawler:
 
         self.sitemap = dict()
         self.sitemap_name = None
+        self.crawl_tree = None 
 
         self.has_finished = False
 
@@ -135,7 +136,7 @@ class Crawler:
 
         if self.crawler_mode & CrawlerMode.CRAWL_RECOVER :
             # + if it is in 'urls_to_recover' >> we get the recent one (no matter what the crawl mode is)
-            if url in self.urls_to_recover : 
+            if url in (self.urls_to_recover or []) : 
                 logger.debug("skipping fetching of document because of its recovery: {0}".format(url))
                 match_id , content_type = self.urls_to_recover[url]
                 return True , content_type , match_id
@@ -263,7 +264,7 @@ class Crawler:
 
         return True 
 
-    def handle_local(self,depth,follow,url,orig_url,is_entry,previous_url=None):
+    def handle_local(self,depth,follow,url,orig_url,is_entry,previous_url=None,crawl_tree=None):
 
         # ultra light mode will only look at HTML page linked to 'of-interest' documents
         if is_entry and self.crawler_mode & CrawlerMode.CRAWL_ULTRA_LIGHT:
@@ -282,7 +283,7 @@ class Crawler:
                 for next_url in urls:
                     if self.do_stop:
                         return False , None
-                    self.crawl(next_url,1, previous_url=None,follow=False,orig_url=orig_url)
+                    self.crawl(next_url,1, previous_url=None,follow=False,orig_url=orig_url,crawl_tree=crawl_tree)
 
             return True , None
 
@@ -298,7 +299,7 @@ class Crawler:
                         for next_url in urls:
                             if self.do_stop:
                                 return False , None
-                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url)
+                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url,crawl_tree=crawl_tree)
                         return True , objid
 
             # we may be in light mode
@@ -320,24 +321,21 @@ class Crawler:
                             if self.do_stop:
                                 return False , None
                             urlfollow = next_url['follow']
-                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=urlfollow,orig_url=orig_url)
+                            self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=urlfollow,orig_url=orig_url,crawl_tree=crawl_tree)
                     return True , objid
             else:
                 return True , objid
         
         return False , objid
 
-    def crawl(self, url, depth, previous_url=None, previous_id=None, follow=True, orig_url=None):
+
+    def crawl(self, url, depth, previous_url=None, previous_id=None, follow=True, orig_url=None, crawl_tree=None):
 
         if self.do_stop:
             return
 
         if url is None:
             return
-
-        objid = None
-
-        url = clean_url(url)
 
         # we're entering crawl() ...
         is_entry = orig_url is None
@@ -359,168 +357,247 @@ class Crawler:
                 self.expired = True
                 # to accelerate the expiration
                 self.do_stop = True
-                return
+                return   
 
-        # check if url should be skipped
-        if not self.should_crawl(url):
-            return 
+        objid = None
 
-        if url in self.fetched:
+        url = clean_url(url)
 
-            response , httpcode , content_type , objid = self.fetched[url]
-
-            if not response:
-                return
-
-            logger.debug("recovered cached url {0}".format(url))
-
+        if is_entry:
+            if self.crawl_tree is None and self.time0 is not None:
+                self.crawl_tree = {
+                    'url'   : url , 
+                    'depth' : depth, 
+                    'ready' : False ,
+                    'children' : dict()
+                }
+            crawl_tree_node = self.crawl_tree
         else:
-
-            is_handled , objid = self.handle_local(depth,follow,url,orig_url,is_entry,previous_url=previous_url)
-            if is_handled:
-                return
-
-            # we may have slept
-            if self.do_stop:
-                return 
-
-            logger.info("GET {0} (depth={1} referer={2})".format(url,depth,previous_url))
-
-            response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url) # GET request
-            content_type        = get_content_type(response)
-
-            # we may have slept
-            if self.do_stop:
-                return 
-        
-            if not response:
-                if httpcode == HTTPStatus.NOT_FOUND:
-                    logger.warning("404 response received for {0}".format(url))
-                    self.handled.add(url)
-                    self.handled.add(clean_url(response.url))
-                    self.avoid.add(url)
-                    self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
-                    return
+            if crawl_tree is not None:
+                if crawl_tree['children'].get(url) is None:
+                    crawl_tree_node = {
+                        'url'   : url ,
+                        'depth' : depth, 
+                        'ready' : False ,
+                        'children' : dict()
+                    }
+                    crawl_tree['children'][url] = crawl_tree_node
                 else:
-                    logger.warning("No response received for {0}. Errmsg={1}. Trying to clear the cookies".format(url,errmsg))
-                    self.session = self.downloader.session(self.safe)
-                    if urlparse(url).netloc == urlparse(orig_url).netloc:
-                        logger.warning("sleeping 5 minutes first ...")
-                        time.sleep(60*5)
-                        # increasing sleep time too 
-                        self.sleep_time += 2
-                    else:
-                        logger.warning("sleeping 30 seconds  first ...")
-                        time.sleep(30)
-
-                    if self.do_stop:
-                        return
-                        
-                    response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
-                    content_type = get_content_type(response)
-                    # we may have slept
-                    if self.do_stop:
-                        return 
-            
-            if not response:
-                if httpcode:
-                    try:
-                        httpcode_int = int(httpcode)
-                    except:
-                        httpcode_int = -1
-                    logger.error("No response received for {0} (code {1} {2})".format(url,httpcode_int,httpcode))
-                else:
-                    logger.error("No response received for {0}. Errmsg={1}".format(url,errmsg))
-                # add the url so we dont check again
-                self.handled.add(url)
-                self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
-                # this is a particularly problematic URL ... lets mark it as avoid
-                self.avoid.add(url) # mark as avoid (will be saved in the state and recovered)
-                return
-
-        final_url = clean_url(response.url)
-
-        # check again
-        if final_url != url:
-            # check if final_url should be skipped
-            if not self.should_crawl(final_url):
-                return 
-
-            is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry,previous_url=previous_url)
-            if is_handled:
-                return
-
-            # we may have slept
-            if self.do_stop:
-                return 
-
-
-        #logger.info(final_url) 
-
-        # Name of pdf
-        local_name = None
-
-        get_handler  = self.get_handlers.get(content_type)
-        head_handler = self.head_handlers.get(content_type)
-        file_status = FileStatus.UNKNOWN
-        nu_objid = None
-        if get_handler:
-            old_files = head_handler.get_filenames(url,final_url) if head_handler else None
-            local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url,url=url)
-            # we got this object
-            # if there is an expiration coming
-            # we want to make sure we mark this object as recently fetched...
-            if self.urls_to_recover is not None:
-                #self.urls_to_recover.add(url)
-                #self.urls_to_recover.add(final_url)
-                self.urls_to_recover[url]       = nu_objid , content_type
-                self.urls_to_recover[final_url] = nu_objid , content_type
-
-        if head_handler and file_status&FileStatus.EXISTING == 0:
-            head_handler.handle(response, depth, previous_url, local_name)
-
-        if nu_objid is not None:
-            objid = nu_objid
-
-        if content_type == "text/html":
-            if depth and follow:
-                if self.do_stop:
-                    return
-                urls = self.get_urls(response)
-
-                # add the urls 
-                self.handled.add(final_url)
-                self.handled.add(url)
-                self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
-                
-                depth -= 1
-                
-                # memory sitemap
-                if self.sitemap is not None:
-                    self.sitemap[url]       = urls
-                    self.sitemap[final_url] = urls
-                    self.save_sitemap()
-
-                for next_url in urls:
-                    if self.do_stop:
-                        return
-                    self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url)
+                    crawl_tree_node = crawl_tree['children'].get(url)
             else:
-                # lets save the work
-                # we may need it if we come back to this URL with depth != 0
-                if url not in self.fetched:
-                    self.fetched[url] = response , httpcode , content_type , objid 
+                 crawl_tree_node = None
+
+        if crawl_tree_node is None or crawl_tree_node['ready'] == False:
+
+            # check if url should be skipped
+            if not self.should_crawl(url):
+                return 
+
+            if url in self.fetched:
+
+                response , httpcode , content_type , objid = self.fetched[url]
+
+                if not response:
+                    return
+
+                logger.debug("recovered cached url {0}".format(url))
+
+            else:
+
+                is_handled , objid = self.handle_local(depth,follow,url,orig_url,is_entry,previous_url=previous_url,crawl_tree=crawl_tree_node)
+                if is_handled:
+                    return
+
+                # we may have slept
+                if self.do_stop:
+                    return 
+
+                logger.info("GET {0} (depth={1} referer={2})".format(url,depth,previous_url))
+
+                response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url) # GET request
+                content_type        = get_content_type(response)
+
+                # we may have slept
+                if self.do_stop:
+                    return 
+            
+                if not response:
+                    if httpcode == HTTPStatus.NOT_FOUND:
+                        logger.warning("404 response received for {0}".format(url))
+                        self.handled.add(url)
+                        self.handled.add(clean_url(response.url))
+                        self.avoid.add(url)
+                        self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                        return
+                    else:
+                        logger.warning("No response received for {0}. Errmsg={1}. Trying to clear the cookies".format(url,errmsg))
+                        self.session = self.downloader.session(self.safe)
+                        if urlparse(url).netloc == urlparse(orig_url).netloc:
+                            logger.warning("sleeping 5 minutes first ...")
+                            time.sleep(60*5)
+                            # increasing sleep time too 
+                            self.sleep_time += 2
+                        else:
+                            logger.warning("sleeping 30 seconds  first ...")
+                            time.sleep(30)
+
+                        if self.do_stop:
+                            return
+                            
+                        response , httpcode , errmsg = call(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time) # GET request
+                        content_type = get_content_type(response)
+                        # we may have slept
+                        if self.do_stop:
+                            return 
+                
+                if not response:
+                    if httpcode:
+                        try:
+                            httpcode_int = int(httpcode)
+                        except:
+                            httpcode_int = -1
+                        logger.error("No response received for {0} (code {1} {2})".format(url,httpcode_int,httpcode))
+                    else:
+                        logger.error("No response received for {0}. Errmsg={1}".format(url,errmsg))
+                    # add the url so we dont check again
+                    self.handled.add(url)
+                    self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                    # this is a particularly problematic URL ... lets mark it as avoid
+                    self.avoid.add(url) # mark as avoid (will be saved in the state and recovered)
+                    return
+
+            final_url = clean_url(response.url)
+
+            # check again
+            if final_url != url:
+                # check if final_url should be skipped
+                if not self.should_crawl(final_url):
+                    return 
+
+                is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry,previous_url=previous_url,crawl_tree=crawl_tree_node)
+                if is_handled:
+                    return
+
+                # we may have slept
+                if self.do_stop:
+                    return 
+
+
+            #logger.info(final_url) 
+
+            # Name of pdf
+            local_name = None
+
+            get_handler  = self.get_handlers.get(content_type)
+            head_handler = self.head_handlers.get(content_type)
+            file_status = FileStatus.UNKNOWN
+            nu_objid = None
+            if get_handler:
+                old_files = head_handler.get_filenames(url,final_url) if head_handler else None
+                local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url,url=url)
+                # we got this object
+                # if there is an expiration coming
+                # we want to make sure we mark this object as recently fetched...
+                if self.urls_to_recover is not None:
+                    #self.urls_to_recover.add(url)
+                    #self.urls_to_recover.add(final_url)
+                    self.urls_to_recover[url]       = nu_objid , content_type
+                    self.urls_to_recover[final_url] = nu_objid , content_type
+
+            if head_handler and file_status&FileStatus.EXISTING == 0:
+                head_handler.handle(response, depth, previous_url, local_name)
+
+            if nu_objid is not None:
+                objid = nu_objid
+
+            # mark this node as being parsed
+            if crawl_tree_node is not None:
+                crawl_tree_node['content_type'] = content_type
+                crawl_tree_node['objid']        = objid
+                crawl_tree_node['final_url'] = final_url
+                # save the state
+                #self.save_state(orig_url)
+
+            if content_type == "text/html":
+                if depth and follow:
+                    if self.do_stop:
+                        return
+                    urls = self.get_urls(response)
+
+                    if crawl_tree_node is not None:
+                        crawl_tree_node['urls'] = urls
+                        crawl_tree_node['ready'] = True
+                        self.save_state(orig_url)
+
+                    # add the urls 
+                    self.handled.add(final_url)
+                    self.handled.add(url)
+                    self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                    
+                    depth -= 1
+                    
+                    # memory sitemap
+                    if self.sitemap is not None:
+                        self.sitemap[url]       = urls
+                        self.sitemap[final_url] = urls
+                        self.save_sitemap()
+
+                    for next_url in urls:
+                        if self.do_stop:
+                            return
+                        self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url,crawl_tree=crawl_tree_node)
+                else:
+                    if crawl_tree_node is not None:
+                        crawl_tree_node['ready'] = True
+                        self.save_state(orig_url)
+                    # lets save the work
+                    # we may need it if we come back to this URL with depth != 0
+                    if url not in self.fetched:
+                        self.fetched[url] = response , httpcode , content_type , objid 
+            else:
+                # add both
+                self.handled.add(url)            
+                self.handled.add(final_url)
+
+                if crawl_tree_node is not None:
+                    crawl_tree_node['ready'] = True
+                    self.save_state(orig_url)
+
+        
+        # cralw_tree_node['ready] == True
         else:
-            # add both
-            self.handled.add(url)            
-            self.handled.add(final_url)
+            content_type = crawl_tree_node['content_type']
+            objid        = crawl_tree_node['objid']
+            final_url    = crawl_tree_node['final_url']
+            depth        = crawl_tree_node['depth']
+
+            if content_type == "text/html":
+                if depth and follow:
+                    if self.do_stop:
+                        return
+                    
+                    # add the urls 
+                    self.handled.add(final_url)
+                    self.handled.add(url)
+                    self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                    
+                    depth -= 1
+
+                    urls = crawl_tree_node.get('urls')
+                    
+                    for next_url in (urls or []):
+                        if self.do_stop:
+                            return
+                        self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url,crawl_tree=crawl_tree_node)
+            else:
+                # add both
+                self.handled.add(url)            
+                self.handled.add(final_url)            
 
         if is_entry:
             self.finish(url)
     
     def finish(self,url):
-        domain = urlparse(url).netloc
-        filename = 'state.'+domain
         # we expired
         if not self.expired:
             self.has_finished = True
@@ -528,8 +605,13 @@ class Crawler:
         if self.time0 is not None: # state mode
             if not self.has_finished:
                 logger.warning("Saving state because of expiration option")
-            with open(filename,'wb') as f:
-                pickle.dump(self,f)    
+            self.save_state(url)
+
+    def save_state(self,url):
+        domain = urlparse(url).netloc
+        filename = 'state.'+domain
+        with open(filename,'wb') as f:
+            pickle.dump(self,f)    
 
     # used by pickle
     def __getstate__(self):
@@ -585,6 +667,8 @@ class Crawler:
                 #self.handled = obj.handled
                 # let's restore the avoid urls
                 self.avoid = obj.avoid #getattr(obj,"avoid",set())
+                # let's restore the crawl tree
+                self.crawl_tree = getattr(obj,'crawl_tree',None)
                 # let's restore the cache
                 self.fetched = obj.fetched
                 # let's restore the fetched urls list
