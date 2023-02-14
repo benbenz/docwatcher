@@ -1,4 +1,21 @@
-# PDF Crawler
+# DocWatcher
+
+This project is branched from SimFin PDF Crawler and provides some improvements to it:
+- configuration through a config.json file
+- haystack indexing on the results
+- OCR analysis for PDFs
+- 4 crawling modes: 
+  - FULL: crawl through the website systemtically
+  - THRU: crawl through HTML only with date/time considerations
+  - LIGHT: crawl through modified URLs
+  - ULTRA_LIGHT: crawl through URLs of interest (bound to haystack search results)
+- specify domains to skip
+- specify urls to skip within each crawled domain
+- keep versions of the different URLs
+- specify LXML and/or Regex patterns to ignore during version comparison
+
+# PDF Crawler original description
+
 This is SimFin's open source PDF crawler. Can be used to crawl all PDFs from a website.
 
 You specify a starting page and all pages that link from that page are crawled (ignoring links that lead to other pages, while still fetching PDFs that are linked on the original page but hosted on a different domain).
