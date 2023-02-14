@@ -303,6 +303,7 @@ class Crawler:
             if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
                 urls = self.sitemap.get(url) 
                 if urls is not None:
+                    # UPDATE crawl_tree for 'True' response
                     if crawl_tree:
                         if not crawl_tree.get('content_type'):
                             crawl_tree['content_type'] = content_type
@@ -310,7 +311,7 @@ class Crawler:
                             crawl_tree['objid']        = objid
                         crawl_tree['ready'] = True
                         self.save_state(orig_url)
-                        
+
                     if depth and follow:
                         self.handled.add(url)
                         self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
@@ -332,6 +333,7 @@ class Crawler:
                     logger.debug("could not handle url locally: {0}. No links are registered in the sitemap".format(url))
                     return False , objid
                 else:
+                    # UPDATE crawl_tree for 'True' response
                     if crawl_tree:
                         if not crawl_tree.get('content_type'):
                             crawl_tree['content_type'] = content_type
@@ -350,6 +352,7 @@ class Crawler:
                             self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=urlfollow,orig_url=orig_url,crawl_tree=crawl_tree)
                     return True , objid
             else:
+                # UPDATE crawl_tree for 'True' response
                 if crawl_tree:
                     if not crawl_tree.get('content_type'):
                         crawl_tree['content_type'] = content_type
