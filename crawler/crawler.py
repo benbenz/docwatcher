@@ -309,7 +309,7 @@ class Crawler:
                 urls = self.sitemap.get(url) 
                 if urls is not None:
                     # UPDATE crawl_tree for 'True' response
-                    if crawl_tree:
+                    if crawl_tree and crawl_tree['ready']==False:
                         if not crawl_tree.get('content_type'):
                             crawl_tree['content_type'] = content_type
                         if not crawl_tree.get('objid'):
@@ -339,7 +339,7 @@ class Crawler:
                     return False , objid
                 else:
                     # UPDATE crawl_tree for 'True' response
-                    if crawl_tree:
+                    if crawl_tree and crawl_tree['ready']==False:
                         if not crawl_tree.get('content_type'):
                             crawl_tree['content_type'] = content_type
                         if not crawl_tree.get('objid'):
@@ -358,7 +358,7 @@ class Crawler:
                     return True , objid
             else:
                 # UPDATE crawl_tree for 'True' response
-                if crawl_tree:
+                if crawl_tree and crawl_tree['ready']==False:
                     if not crawl_tree.get('content_type'):
                         crawl_tree['content_type'] = content_type
                     if not crawl_tree.get('objid'):
@@ -480,7 +480,7 @@ class Crawler:
                             logger.warning("sleeping 5 minutes first ...")
                             time.sleep(60*5)
                             # increasing sleep time too 
-                            self.sleep_time += 2
+                            self.sleep_time += 1
                         else:
                             logger.warning("sleeping 30 seconds  first ...")
                             time.sleep(30)
@@ -568,9 +568,10 @@ class Crawler:
                     urls = self.get_urls(response)
 
                     if crawl_tree_node is not None:
-                        crawl_tree_node['urls'] = urls
-                        crawl_tree_node['ready'] = True
-                        self.save_state(orig_url)
+                        if crawl_tree_node['ready']==False:
+                            crawl_tree_node['urls'] = urls
+                            crawl_tree_node['ready'] = True
+                            self.save_state(orig_url)
 
 
                     # add the urls 
@@ -591,8 +592,9 @@ class Crawler:
                             return
                         self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url,crawl_tree=crawl_tree_node)
                 else:
-                    crawl_tree_node['ready'] = True
-                    self.save_state(orig_url)
+                    if crawl_tree_node['ready']==False:
+                        crawl_tree_node['ready'] = True
+                        self.save_state(orig_url)
 
                     # lets save the work
                     # we may need it if we come back to this URL with depth != 0
@@ -602,8 +604,9 @@ class Crawler:
                 # add both
                 self.handled.add(url)            
                 self.handled.add(final_url)
-                crawl_tree_node['ready'] = True
-                self.save_state(orig_url)
+                if crawl_tree_node['ready']==False:
+                    crawl_tree_node['ready'] = True
+                    self.save_state(orig_url)
         
         # crawl_tree_node['ready] == True
         else:
