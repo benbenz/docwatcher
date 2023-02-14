@@ -3,12 +3,13 @@ import argparse
 import fnmatch
 import pickle
 from urllib.parse import urlparse
-from crawler.core import CrawlerMode
+from crawler.core import CrawlerMode , bcolors
 
 def get_status(links_to_check=None):
     filesOfDirectory = os.listdir('.')
     pattern_state = "state.*"
     pattern_sitemap = "sitemap.*"
+    ljustsize = 22
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern_state):
             with open(file,'rb') as f:
@@ -22,14 +23,17 @@ def get_status(links_to_check=None):
                 if not domain:
                     domain = file
                 print("CRAWLER {0}:".format(domain))
-                if crawler_mode_rec:
-                    print("mode = {0} | {1}".format(crawler_mode.name,CrawlerMode.CRAWL_RECOVER.name))
+                if crawler.has_finished:
+                    print("has_finished".ljust(ljustsize),":","{0}".format(crawler.has_finished))
                 else:
-                    print("mode = {0}".format(crawler_mode.name))
-                print("has_finished = {0}".format(crawler.has_finished))
-                print("safe = {0}".format(crawler.safe))
-                print("sleep_time = {0}".format(crawler.sleep_time))
-                print("num urls_to_recover = {0}".format(len(crawler.urls_to_recover)))
+                    print("has_finished".ljust(ljustsize),":",bcolors.BOLD+bcolors.OKCYAN+"{0}"+bcolors.CEND.format(crawler.has_finished))
+                if crawler_mode_rec:
+                    print("mode".ljust(ljustsize),":","{0} | {1}".format(crawler_mode.name,CrawlerMode.CRAWL_RECOVER.name))
+                else:
+                    print("mode".ljust(ljustsize),":","{0}".format(crawler_mode.name))
+                print("safe".ljust(ljustsize),":","{0}".format(crawler.safe))
+                print("sleep_time".ljust(ljustsize),":","{0}".format(crawler.sleep_time))
+                print("num urls_to_recover".ljust(ljustsize),":","{0}".format(len(crawler.urls_to_recover)))
 
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern_sitemap) and links_to_check:
