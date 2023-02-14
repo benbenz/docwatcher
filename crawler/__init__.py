@@ -116,6 +116,9 @@ def crawl(
         
         logger.error(ke,exc_info=True)
 
+        # mark crawler has expired
+        crawler.expired = True
+
     except Exception as e:
 
         #traceback.print_exc()
