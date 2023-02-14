@@ -26,7 +26,7 @@ def get_first_non_ready_crawl_node(crawler,crawl_node):
                     return result , depth
             elif crawler.should_crawl(clean_url(url_next['url'])):
                 # this maybe wrong (depending on handle_local ... :/)
-                return url_next['url'] # not been created yet - this is the next one !
+                return url_next['url'] , crawl_node.get('depth',0)-1 # not been created yet - this is the next one !
     return None , None
 
 def get_status(links_to_check=None):
