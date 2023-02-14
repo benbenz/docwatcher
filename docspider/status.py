@@ -8,27 +8,26 @@ from crawler.helper import clean_url
 
 def get_first_non_ready_crawl_node(crawler,crawl_node):
     if not crawl_node:
-        return None
+        return None , None
     # we skip the not-crawled urls as well...
     if crawl_node['ready'] == False and \
         crawler.should_crawl(clean_url(crawl_node['url'])) and \
         crawl_node.get('content_type') == "text/html" and \
         crawl_node.get('depth',-1) >= 0: 
-            return crawl_node['url']
+            return crawl_node['url'] , crawl_node.get('depth')
     if 'children' in crawl_node and 'urls' in crawl_node:
         # we gotta get them in the right order
         for url_next in crawl_node['urls']:
         #for url,child in crawl_node['children'].items():
             child  = crawl_node['children'].get(url_next['url'],None)
             if child:
-                if child.get('depth',0) >= 0:
-                    result = get_first_non_ready_crawl_node(crawler,child)
-                    if result is not None:
-                        return result
+                result , depth = get_first_non_ready_crawl_node(crawler,child)
+                if result is not None:
+                    return result , depth
             elif crawler.should_crawl(clean_url(url_next['url'])):
                 # this maybe wrong (depending on handle_local ... :/)
                 return url_next['url'] # not been created yet - this is the next one !
-    return None
+    return None , None
 
 def get_status(links_to_check=None):
     filesOfDirectory = os.listdir('.')
@@ -62,8 +61,8 @@ def get_status(links_to_check=None):
                     print("num urls_to_recover".ljust(ljustsize),":","{0}".format(len(crawler.urls_to_recover)))
 
                     crawl_tree = getattr(crawler,'crawl_tree',None)
-                    current_url = get_first_non_ready_crawl_node(crawler,crawl_tree)
-                    print("current URL".ljust(ljustsize),":","{0}".format(current_url))
+                    current_url , depth = get_first_non_ready_crawl_node(crawler,crawl_tree)
+                    print("current URL".ljust(ljustsize),":","{0} (depth={1})".format(current_url,depth))
             except Exception as e:
                 print(bcolors.FAIL+"error while loading {0}: {1}".format(file,e)+bcolors.CEND)
 
