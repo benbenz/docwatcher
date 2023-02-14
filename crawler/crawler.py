@@ -338,6 +338,10 @@ class Crawler:
         
         return False , objid
 
+    def close_crawl_tree(crawl_tree_node,orig_url):
+        if crawl_tree_node:
+            crawl_tree_node['ready'] = True
+            self.save_state(orig_url)
 
     def crawl(self, url, depth, previous_url=None, previous_id=None, follow=True, orig_url=None, crawl_tree=None):
 
@@ -401,6 +405,7 @@ class Crawler:
 
             # check if url should be skipped
             if not self.should_crawl(url):
+                self.close_crawl_tree(crawl_tree_node,orig_url)
                 return 
 
             if url in self.fetched:
@@ -408,6 +413,7 @@ class Crawler:
                 response , httpcode , content_type , objid = self.fetched[url]
 
                 if not response:
+                    self.close_crawl_tree(crawl_tree_node,orig_url)
                     return
 
                 logger.debug("recovered cached url {0}".format(url))
@@ -416,6 +422,7 @@ class Crawler:
 
                 is_handled , objid = self.handle_local(depth,follow,url,orig_url,is_entry,previous_url=previous_url,crawl_tree=crawl_tree_node)
                 if is_handled:
+                    self.close_crawl_tree(crawl_tree_node,orig_url)
                     return
 
                 # we may have slept
@@ -439,6 +446,7 @@ class Crawler:
                         #self.handled.add(clean_url(response.url))
                         self.avoid.add(url)
                         self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
+                        self.close_crawl_tree(crawl_tree_node,orig_url)
                         return
                     else:
                         logger.warning("No response received for {0}. Errmsg={1}. Trying to clear the cookies".format(url,errmsg))
@@ -475,6 +483,7 @@ class Crawler:
                     self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
                     # this is a particularly problematic URL ... lets mark it as avoid
                     self.avoid.add(url) # mark as avoid (will be saved in the state and recovered)
+                    self.close_crawl_tree(crawl_tree_node,orig_url)
                     return
 
             final_url = clean_url(response.url)
@@ -483,10 +492,12 @@ class Crawler:
             if final_url != url:
                 # check if final_url should be skipped
                 if not self.should_crawl(final_url):
+                    self.close_crawl_tree(crawl_tree_node,orig_url)
                     return 
 
                 is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry,previous_url=previous_url,crawl_tree=crawl_tree_node)
                 if is_handled:
+                    self.close_crawl_tree(crawl_tree_node,orig_url)
                     return
 
                 # we may have slept
@@ -537,8 +548,7 @@ class Crawler:
 
                     if crawl_tree_node is not None:
                         crawl_tree_node['urls'] = urls
-                        crawl_tree_node['ready'] = True
-                        self.save_state(orig_url)
+                        self.close_crawl_tree(crawl_tree_node,orig_url)
 
                     # add the urls 
                     self.handled.add(final_url)
@@ -558,9 +568,7 @@ class Crawler:
                             return
                         self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url,crawl_tree=crawl_tree_node)
                 else:
-                    if crawl_tree_node is not None:
-                        crawl_tree_node['ready'] = True
-                        self.save_state(orig_url)
+                    self.close_crawl_tree(crawl_tree_node,orig_url)
                     # lets save the work
                     # we may need it if we come back to this URL with depth != 0
                     if url not in self.fetched:
@@ -569,10 +577,7 @@ class Crawler:
                 # add both
                 self.handled.add(url)            
                 self.handled.add(final_url)
-
-                if crawl_tree_node is not None:
-                    crawl_tree_node['ready'] = True
-                    self.save_state(orig_url)
+                self.close_crawl_tree(crawl_tree_node,orig_url)
 
         
         # cralw_tree_node['ready] == True
