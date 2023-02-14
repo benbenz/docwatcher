@@ -5,11 +5,23 @@ import pickle
 from urllib.parse import urlparse
 from crawler.core import CrawlerMode , bcolors
 
+def get_first_non_ready_crawl_node(crawl_node):
+    if not crawl_node:
+        return None
+    if crawl_node['ready'] == False:
+        return crawl_node['url']
+    if 'children' in crawl_node:
+        for child in crawl_node['children']:
+            result = get_first_non_ready_crawl_node(child)
+            if result is not None:
+                return result
+    return None
+
 def get_status(links_to_check=None):
     filesOfDirectory = os.listdir('.')
     pattern_state = "state.*"
     pattern_sitemap = "sitemap.*"
-    ljustsize = 22
+    ljustsize = 20
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern_state):
             with open(file,'rb') as f:
@@ -34,6 +46,10 @@ def get_status(links_to_check=None):
                 print("safe".ljust(ljustsize),":","{0}".format(crawler.safe))
                 print("sleep_time".ljust(ljustsize),":","{0}".format(crawler.sleep_time))
                 print("num urls_to_recover".ljust(ljustsize),":","{0}".format(len(crawler.urls_to_recover)))
+
+                crawl_tree = getattr(crawler,'crawl_tree',None)
+                current_url = get_first_non_ready_crawl_node(crawl_tree)
+                print("current URL".ljust(ljustsize),":","{0}".format(current_url))
 
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern_sitemap) and links_to_check:
