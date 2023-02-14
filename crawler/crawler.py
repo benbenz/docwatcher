@@ -599,7 +599,7 @@ class Crawler:
                     # lets save the work
                     # we may need it if we come back to this URL with depth != 0
                     if url not in self.fetched:
-                        self.fetched[url] = response , httpcode , content_type , objid , final_url
+                        self.fetched[url] = response , httpcode , content_type , objid
             else:
                 # add both
                 self.handled.add(url)            
