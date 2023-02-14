@@ -436,7 +436,7 @@ class Crawler:
 
             if url in self.fetched:
 
-                response , httpcode , content_type , objid = self.fetched[url]
+                response , httpcode , content_type , objid , final_url = self.fetched[url]
 
                 if not response:
                     return
@@ -508,53 +508,48 @@ class Crawler:
                     self.avoid.add(url) # mark as avoid (will be saved in the state and recovered)
                     return
 
-            final_url = clean_url(response.url)
+                final_url = clean_url(response.url)
 
-            # check again
-            if final_url != url:
-                # check if final_url should be skipped
-                if not self.should_crawl(final_url):
-                    logger.debug("exiting because of final url {0}".format(final_url))
-                    # we need to make sure the initial url is not accepted again ... (for the duration of this session)
-                    self.should_not_crawl.add(url)
-                    return 
+                # check again
+                if final_url != url:
+                    # check if final_url should be skipped
+                    if not self.should_crawl(final_url):
+                        # we need to make sure the initial url is not accepted again ... (for the duration of this session)
+                        self.should_not_crawl.add(url)
+                        return 
 
-                is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry,previous_url=previous_url,crawl_tree=crawl_tree_node)
-                if is_handled:
-                    logger.debug("exiting because of handled url {0}".format(final_url))
-                    return
+                    is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry,previous_url=previous_url,crawl_tree=crawl_tree_node)
+                    if is_handled:
+                        return
 
-                # we may have slept
-                if self.do_stop:
-                    return 
+                    # we may have slept
+                    if self.do_stop:
+                        return 
 
+                # Name of pdf
+                local_name = None
 
-            #logger.info(final_url) 
+                get_handler  = self.get_handlers.get(content_type)
+                head_handler = self.head_handlers.get(content_type)
+                file_status = FileStatus.UNKNOWN
+                nu_objid = None
+                if get_handler:
+                    old_files = head_handler.get_filenames(url,final_url) if head_handler else None
+                    local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url,url=url)
+                    # we got this object
+                    # if there is an expiration coming
+                    # we want to make sure we mark this object as recently fetched...
+                    if self.urls_to_recover is not None:
+                        #self.urls_to_recover.add(url)
+                        #self.urls_to_recover.add(final_url)
+                        self.urls_to_recover[url]       = nu_objid , content_type
+                        self.urls_to_recover[final_url] = nu_objid , content_type
 
-            # Name of pdf
-            local_name = None
+                if head_handler and file_status&FileStatus.EXISTING == 0:
+                    head_handler.handle(response, depth, previous_url, local_name)
 
-            get_handler  = self.get_handlers.get(content_type)
-            head_handler = self.head_handlers.get(content_type)
-            file_status = FileStatus.UNKNOWN
-            nu_objid = None
-            if get_handler:
-                old_files = head_handler.get_filenames(url,final_url) if head_handler else None
-                local_name , file_status , nu_objid = get_handler.handle(response,depth, previous_url, previous_id, old_files=old_files,orig_url=orig_url,config=self.config,final_url=final_url,url=url)
-                # we got this object
-                # if there is an expiration coming
-                # we want to make sure we mark this object as recently fetched...
-                if self.urls_to_recover is not None:
-                    #self.urls_to_recover.add(url)
-                    #self.urls_to_recover.add(final_url)
-                    self.urls_to_recover[url]       = nu_objid , content_type
-                    self.urls_to_recover[final_url] = nu_objid , content_type
-
-            if head_handler and file_status&FileStatus.EXISTING == 0:
-                head_handler.handle(response, depth, previous_url, local_name)
-
-            if nu_objid is not None:
-                objid = nu_objid
+                if nu_objid is not None:
+                    objid = nu_objid
 
             # mark this node as being parsed
             if crawl_tree_node is not None:
@@ -600,7 +595,7 @@ class Crawler:
                     # lets save the work
                     # we may need it if we come back to this URL with depth != 0
                     if url not in self.fetched:
-                        self.fetched[url] = response , httpcode , content_type , objid 
+                        self.fetched[url] = response , httpcode , content_type , objid , final_url
             else:
                 # add both
                 self.handled.add(url)            
