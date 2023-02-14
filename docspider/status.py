@@ -11,7 +11,7 @@ def get_first_non_ready_crawl_node(crawl_node):
     if crawl_node['ready'] == False:
         return crawl_node['url']
     if 'children' in crawl_node:
-        for child in crawl_node['children']:
+        for url,child in crawl_node['children'].items():
             result = get_first_non_ready_crawl_node(child)
             if result is not None:
                 return result
