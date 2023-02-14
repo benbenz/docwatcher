@@ -168,7 +168,7 @@ class Crawler:
             if crawl_tree:
                 crawl_tree_filter = copy.copy(crawl_tree)
                 crawl_tree_filter['children'] = "..."
-                logger.debug("HEAD {0} (crawl_tree={1})".format(url,))
+                logger.debug("HEAD {0} (crawl_tree={1})".format(url,crawl_tree_filter))
             else:
                 logger.debug("HEAD {0}".format(url))
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url)
@@ -225,7 +225,7 @@ class Crawler:
             if crawl_tree:
                 crawl_tree_filter = copy.copy(crawl_tree)
                 crawl_tree_filter['children'] = "..."
-                logger.debug("HEAD {0} (crawl_tree={1})".format(url,))
+                logger.debug("HEAD {0} (crawl_tree={1})".format(url,crawl_tree_filter))
             else:
                 logger.debug("HEAD {0}".format(url))
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url)
