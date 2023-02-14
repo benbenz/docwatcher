@@ -593,7 +593,7 @@ class Crawler:
             else:
                 # add both
                 self.handled.add(url)            
-                self.handled.add(final_url)            
+                self.handled.add(final_url)        
 
         if is_entry:
             self.finish(url)

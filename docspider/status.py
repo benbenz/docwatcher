@@ -4,17 +4,26 @@ import fnmatch
 import pickle
 from urllib.parse import urlparse
 from crawler.core import CrawlerMode , bcolors
+from crawler.helper import clean_url
 
-def get_first_non_ready_crawl_node(crawl_node):
+def get_first_non_ready_crawl_node(crawler,crawl_node):
     if not crawl_node:
         return None
-    if crawl_node['ready'] == False:
-        return crawl_node['url']
-    if 'children' in crawl_node:
-        for url,child in crawl_node['children'].items():
-            result = get_first_non_ready_crawl_node(child)
-            if result is not None:
-                return result
+    # we skip the not-crawled urls as well...
+    if crawl_node['ready'] == False and crawler.should_crawl(clean_url(crawl_node['url'])):
+            return crawl_node['url']
+    if 'children' in crawl_node and 'urls' in crawl_node:
+        # we gotta get them in the right order
+        for url_next in crawl_node['urls']:
+        #for url,child in crawl_node['children'].items():
+            child  = crawl_node['children'].get(url_next['url'],None)
+            if child:
+                result = get_first_non_ready_crawl_node(crawler,child)
+                if result is not None:
+                    return result
+            elif crawler.should_crawl(clean_url(url_next['url'])):
+                # this maybe wrong (depending on handle_local ... :/)
+                return url_next['url'] # not been created yet - this is the next one !
     return None
 
 def get_status(links_to_check=None):
@@ -49,10 +58,10 @@ def get_status(links_to_check=None):
                     print("num urls_to_recover".ljust(ljustsize),":","{0}".format(len(crawler.urls_to_recover)))
 
                     crawl_tree = getattr(crawler,'crawl_tree',None)
-                    current_url = get_first_non_ready_crawl_node(crawl_tree)
+                    current_url = get_first_non_ready_crawl_node(crawler,crawl_tree)
                     print("current URL".ljust(ljustsize),":","{0}".format(current_url))
-            except:
-                print(bcolors.FAIL+"error while loading {0}".format(file)+bcolors.CEND)
+            except Exception as e:
+                print(bcolors.FAIL+"error while loading {0}: {1}".format(file,e)+bcolors.CEND)
 
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern_sitemap) and links_to_check:
