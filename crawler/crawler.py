@@ -303,6 +303,14 @@ class Crawler:
             if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
                 urls = self.sitemap.get(url) 
                 if urls is not None:
+                    if crawl_tree:
+                        if not crawl_tree.get('content_type'):
+                            crawl_tree['content_type'] = content_type
+                        if not crawl_tree.get('objid'):
+                            crawl_tree['objid']        = objid
+                        crawl_tree['ready'] = True
+                        self.save_state(orig_url)
+                        
                     if depth and follow:
                         self.handled.add(url)
                         self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
@@ -310,7 +318,7 @@ class Crawler:
                             if self.do_stop:
                                 return False , None
                             self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=next_url['follow'],orig_url=orig_url,crawl_tree=crawl_tree)
-                        return True , objid
+                    return True , objid
 
             # we may be in light mode
             # we shouldnt stop here because we want to check the potential sub pages of the already-downloaded page
@@ -324,6 +332,14 @@ class Crawler:
                     logger.debug("could not handle url locally: {0}. No links are registered in the sitemap".format(url))
                     return False , objid
                 else:
+                    if crawl_tree:
+                        if not crawl_tree.get('content_type'):
+                            crawl_tree['content_type'] = content_type
+                        if not crawl_tree.get('objid'):
+                            crawl_tree['objid']        = objid
+                        crawl_tree['ready'] = True
+                        self.save_state(orig_url)
+
                     if depth and follow:
                         self.handled.add(url)
                         self.fetched.pop(url,None) # remove the cache ('handled' will now make sure we dont process anything)
@@ -334,6 +350,14 @@ class Crawler:
                             self.crawl(next_url['url'], depth-1, previous_url=url, previous_id=objid, follow=urlfollow,orig_url=orig_url,crawl_tree=crawl_tree)
                     return True , objid
             else:
+                if crawl_tree:
+                    if not crawl_tree.get('content_type'):
+                        crawl_tree['content_type'] = content_type
+                    if not crawl_tree.get('objid'):
+                        crawl_tree['objid']        = objid
+                    crawl_tree['ready'] = True
+                    self.save_state(orig_url)
+
                 return True , objid
         
         return False , objid
@@ -574,10 +598,10 @@ class Crawler:
         
         # crawl_tree_node['ready] == True
         else:
-            content_type = crawl_tree_node['content_type']
-            objid        = crawl_tree_node['objid']
-            final_url    = crawl_tree_node['final_url']
-            depth        = crawl_tree_node['depth']
+            content_type = crawl_tree_node.get('content_type')
+            objid        = crawl_tree_node.get('objid')
+            final_url    = crawl_tree_node.get('final_url')
+            depth        = crawl_tree_node.get('depth',0)
 
             if content_type == "text/html":
                 if depth and follow:
@@ -585,22 +609,24 @@ class Crawler:
                         return
                     
                     # add the urls 
-                    self.handled.add(final_url)
+                    if final_url is not None:
+                        self.handled.add(final_url)
                     self.handled.add(url)
                     self.fetched.pop(url,None)  # remove the cache ('handled' will now make sure we dont process anything)
                     
                     depth -= 1
 
-                    urls = crawl_tree_node.get('urls')
+                    urls = crawl_tree_node.get('urls',[])
                     
-                    for next_url in (urls or []):
+                    for next_url in urls:
                         if self.do_stop:
                             return
                         self.crawl(next_url['url'], depth, previous_url=url, previous_id=objid , follow=next_url['follow'],orig_url=orig_url,crawl_tree=crawl_tree_node)
             else:
                 # add both
-                self.handled.add(url)            
-                self.handled.add(final_url)        
+                self.handled.add(url)   
+                if final_url is not None:         
+                    self.handled.add(final_url)        
 
         if is_entry:
             self.finish(url)
