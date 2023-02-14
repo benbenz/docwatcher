@@ -514,12 +514,14 @@ class Crawler:
             if final_url != url:
                 # check if final_url should be skipped
                 if not self.should_crawl(final_url):
+                    logger.debug("exiting because of final url {0}".format(final_url))
                     # we need to make sure the initial url is not accepted again ... (for the duration of this session)
                     self.should_not_crawl.add(url)
                     return 
 
                 is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry,previous_url=previous_url,crawl_tree=crawl_tree_node)
                 if is_handled:
+                    logger.debug("exiting because of handled url {0}".format(final_url))
                     return
 
                 # we may have slept
