@@ -12,7 +12,7 @@ def get_first_non_ready_crawl_node(crawler,crawl_node):
     # we skip the not-crawled urls as well...
     if crawl_node['ready'] == False and \
         crawler.should_crawl(clean_url(crawl_node['url'])) and \
-        crawl_node['content_type'] == "text/html":
+        crawl_node.get('content_type') == "text/html":
             return crawl_node['url']
     if 'children' in crawl_node and 'urls' in crawl_node:
         # we gotta get them in the right order
