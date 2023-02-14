@@ -15,6 +15,8 @@ def convert_files(urls,has_finished):
     if urls is not None:
         urls = urls.split(',')
         urls = [ clean_url(url) for url in urls ]
+    if has_finished is not None:
+        has_finished = has_finished == 'TRUE'
 
     for file in filesOfDirectory:
         if fnmatch.fnmatch(file, pattern):
@@ -48,7 +50,7 @@ def convert_files(urls,has_finished):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog = 'python -m docspider.convert',description = 'Fix state files',epilog = '=)')
-    parser.add_argument('-f','--finished',type=bool,help="This option set the has_finished attribute to the boolean value provided.")
+    parser.add_argument('-f','--finished',choices=['TRUE','FALSE'],help="This option set the has_finished attribute to the boolean value provided.")
     parser.add_argument('-u','--urls',type=str,help="Filters the URLs to apply the conversion to")
     args = parser.parse_args()
     convert_files(args.urls,args.finished)
