@@ -22,7 +22,7 @@ def get_status(links_to_check=None):
                 domain = crawler.get_domain()
                 if not domain:
                     domain = file
-                print("\nCRAWLER {0}:".format(domain))
+                print(bcolors.HEADER+"\n{0}:".format(domain)+bcolors.CEND)
                 if crawler.has_finished:
                     print("has_finished".ljust(ljustsize),":",bcolors.BOLD+bcolors.OKCYAN+"{0}".format(crawler.has_finished)+bcolors.CEND)
                 else:
