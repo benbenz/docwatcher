@@ -338,7 +338,7 @@ class Crawler:
         
         return False , objid
 
-    def close_crawl_tree(crawl_tree_node,orig_url):
+    def close_crawl_tree(self,crawl_tree_node,orig_url):
         if crawl_tree_node:
             crawl_tree_node['ready'] = True
             self.save_state(orig_url)
