@@ -12,7 +12,8 @@ def get_first_non_ready_crawl_node(crawler,crawl_node):
     # we skip the not-crawled urls as well...
     if crawl_node['ready'] == False and \
         crawler.should_crawl(clean_url(crawl_node['url'])) and \
-        crawl_node.get('content_type') == "text/html":
+        crawl_node.get('content_type') == "text/html" and \
+        crawl_node.get('depth',-1) >= 0: 
             return crawl_node['url']
     if 'children' in crawl_node and 'urls' in crawl_node:
         # we gotta get them in the right order
@@ -20,9 +21,10 @@ def get_first_non_ready_crawl_node(crawler,crawl_node):
         #for url,child in crawl_node['children'].items():
             child  = crawl_node['children'].get(url_next['url'],None)
             if child:
-                result = get_first_non_ready_crawl_node(crawler,child)
-                if result is not None:
-                    return result
+                if child.get('depth',0) >= 0:
+                    result = get_first_non_ready_crawl_node(crawler,child)
+                    if result is not None:
+                        return result
             elif crawler.should_crawl(clean_url(url_next['url'])):
                 # this maybe wrong (depending on handle_local ... :/)
                 return url_next['url'] # not been created yet - this is the next one !
