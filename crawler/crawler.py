@@ -34,6 +34,7 @@ class Crawler:
         self.click_crawler = None
         self.crawler_mode = crawler_mode
         self.orig_url = None
+        self.should_not_crawl = set()
 
         try:
             with open('config.json','r') as jsonfile:
@@ -245,6 +246,10 @@ class Crawler:
             
 
     def should_crawl(self,url):
+
+        if url in self.should_not_crawl:
+            return False
+
         # file types that are ignored
         if url[-4:].lower() in self.file_endings_exclude:
             return False 
@@ -509,6 +514,8 @@ class Crawler:
             if final_url != url:
                 # check if final_url should be skipped
                 if not self.should_crawl(final_url):
+                    # we need to make sure the initial url is not accepted again ... (for the duration of this session)
+                    self.should_not_crawl.add(url)
                     return 
 
                 is_handled , objid = self.handle_local(depth,follow,final_url,orig_url,is_entry,previous_url=previous_url,crawl_tree=crawl_tree_node)
