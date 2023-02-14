@@ -129,7 +129,7 @@ class Crawler:
         one_handler_k = next(iter(self.head_handlers))
         return self.get_handlers.get(one_handler_k)
 
-    def has_document(self,url,previous_url=None):
+    def has_document(self,url,previous_url=None,crawl_tree=None):
 
         date_today  = datetime.today()
         date_1day   = make_aware( date_today - timedelta(days=1) )
@@ -165,7 +165,12 @@ class Crawler:
                 if not match_id:
                     return False , None , None 
 
-            logger.debug("HEAD {0}".format(url))
+            if crawl_tree:
+                crawl_tree_filter = copy.copy(crawl_tree)
+                crawl_tree_filter['children'] = "..."
+                logger.debug("HEAD {0} (crawl_tree={1})".format(url,))
+            else:
+                logger.debug("HEAD {0}".format(url))
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url)
             content_type = get_content_type(response)
             if content_type == 'text/html':
@@ -217,7 +222,12 @@ class Crawler:
                     logger.debug("forcing fetching of document because it is high frequency {0}".format(url))
                     return False , None , None
             
-            logger.debug("HEAD {0}".format(url))
+            if crawl_tree:
+                crawl_tree_filter = copy.copy(crawl_tree)
+                crawl_tree_filter['children'] = "..."
+                logger.debug("HEAD {0} (crawl_tree={1})".format(url,))
+            else:
+                logger.debug("HEAD {0}".format(url))
             response     = call_head(self.session, url, use_proxy=self.config.get('use_proxy'),sleep_time=self.sleep_time,previous_url=previous_url)
             content_type = get_content_type(response)
             head_handler = self.head_handlers.get(content_type)
@@ -288,7 +298,7 @@ class Crawler:
             return True , None
 
         # url is handled by persistence/records (and hasnt changed)
-        has_doc , content_type , objid = self.has_document(url,previous_url=previous_url) # HEAD request potentially
+        has_doc , content_type , objid = self.has_document(url,previous_url=previous_url,crawl_tree=crawl_tree) # HEAD request potentially
         if has_doc:
             if self.crawler_mode & CrawlerMode.CRAWL_RECOVER and content_type == 'text/html':
                 urls = self.sitemap.get(url) 
