@@ -436,10 +436,12 @@ class Crawler:
 
             if url in self.fetched:
 
-                response , httpcode , content_type , objid , final_url = self.fetched[url]
+                response , httpcode , content_type , objid = self.fetched[url]
 
                 if not response:
                     return
+
+                final_url = clean_url(response.url)
 
                 logger.debug("recovered cached url {0}".format(url))
 
