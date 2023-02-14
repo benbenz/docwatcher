@@ -110,9 +110,11 @@ def crawl(
         
         logger.info_plus("DONE CRAWLING {0}".format(url))
 
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as ke:
 
         logger.info("KeyboardInterrupt: cancelling task")
+        
+        logger.error(ke,exc_info=True)
 
     except Exception as e:
 
