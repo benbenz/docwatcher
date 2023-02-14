@@ -17,7 +17,7 @@ ids_in_process    = list()
 blacklistfilename = 'ocr-blacklist.json'
 blacklist         = list()
 
-def perform_ocr(expiration):
+def perform_ocr(expiration,nice=False):
     global blacklist
     if os.path.isfile(blacklistfilename):
         try:
@@ -56,7 +56,7 @@ def perform_ocr(expiration):
                 return
         print("document {0}/{1}".format(i,num))
         # re-perform OCR 
-        handler.update_document(doc)
+        handler.update_document(doc,nice)
         i+=1
 
 
@@ -81,6 +81,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(prog = 'DocWatcher OCR',description = 'Perform OCR on documents',epilog = '=)')
     parser.add_argument('-e','--expiration',type=int,help="Add an expiration time to the runtime")
+    parser.add_argument('-s','--sleep',type=int,help="Time in seconds used for 'nice mode'")
     args = parser.parse_args()    
 
     perform_ocr(args.expiration)

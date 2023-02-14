@@ -1,6 +1,7 @@
 import argparse
 import easyocr
 import numpy
+import time
 import json
 import os
 from PIL import Image
@@ -9,6 +10,7 @@ logger = logging.getLogger("DocCrawler")
 
 
 parser = argparse.ArgumentParser(prog = 'ProcessOCR',description = 'process document with ocr')
+parser.add_argument('-s','--sleep',type=int,help="Sleep time used in 'nice mode'")
 parser.add_argument('img_path')
 args = parser.parse_args()
 
@@ -46,6 +48,9 @@ for rotate in [-90,0,90] : # lets assume the document is not reversed....
     except Exception as e:
         logger.error("Error while processing image {0} {1}".format(t_img_name,e))
         #traceback.print_exc()
+    if args.sleep:
+        print("sleeping {0}s".format(args.sleep))
+        time.sleep(args.sleep)
 json_result = dict()
 
 try:

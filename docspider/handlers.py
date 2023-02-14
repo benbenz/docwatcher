@@ -184,7 +184,7 @@ class AllInOneHandler(LocalStorageHandler):
                 self.process_PDF_body = self.process_PDF_body_NO_OCR
                 #traceback.print_exc()
 
-    def process_PDF_body_NO_OCR(self,url,path,pdf):
+    def process_PDF_body_NO_OCR(self,url,path,pdf,sleep=0):
         needs_ocr = False
         
         body = "\n".join([p.extract_text() for p in pdf.pages])
@@ -195,7 +195,7 @@ class AllInOneHandler(LocalStorageHandler):
 
         return body , needs_ocr , False
 
-    def process_PDF_page_with_OCR(self,url,path,page,page_count,ocr_reader):
+    def process_PDF_page_with_OCR(self,url,path,page,page_count,ocr_reader,sleep=0):
         
         debug = True
         if debug:
@@ -218,7 +218,10 @@ class AllInOneHandler(LocalStorageHandler):
                 best_text = None
                 # spawn the process out (it can crash)
                 try:
-                    process_args = ['python','docspider/ocr.py',image.name]
+                    if sleep!=0:
+                        process_args = ['python','docspider/ocr.py','-s',sleep,image.name]
+                    else:
+                        process_args = ['python','docspider/ocr.py',image.name]
                     process = subprocess.run(process_args,capture_output=True)
                     stdout  = process.stdout
                     stderr  = process.stderr
@@ -262,7 +265,7 @@ class AllInOneHandler(LocalStorageHandler):
         
         return page_body , found_extra_text
 
-    def process_PDF_body_with_OCR(self,url,path,pdf):
+    def process_PDF_body_with_OCR(self,url,path,pdf,sleep=0):
 
         default_body = "\n".join([p.extract_text() for p in pdf.pages])
                     
@@ -284,7 +287,7 @@ class AllInOneHandler(LocalStorageHandler):
 
         for page in pdf.pages: 
             try:
-                page_body , has_extra_text = self.process_PDF_page_with_OCR(url,path,page,page_count,ocr_reader)
+                page_body , has_extra_text = self.process_PDF_page_with_OCR(url,path,page,page_count,ocr_reader,sleep)
                 if page_body:
                     body += page_body + '\n'
                 found_extra_text = has_extra_text or found_extra_text
@@ -331,8 +334,8 @@ class AllInOneHandler(LocalStorageHandler):
             docs = docs.filter(has_ocr=False)
         return docs
 
-    def update_document(self,the_doc):
-        title , body , num_pages , needs_ocr , has_error  , has_ocr = self.process_document(the_doc.url,the_doc.local_file,the_doc.doc_type,None)
+    def update_document(self,the_doc,sleep=0):
+        title , body , num_pages , needs_ocr , has_error  , has_ocr = self.process_document(the_doc.url,the_doc.local_file,the_doc.doc_type,None,sleep=sleep)
         if title is not None:
             the_doc.title = title
         if body is not None:
@@ -344,7 +347,7 @@ class AllInOneHandler(LocalStorageHandler):
         the_doc.has_ocr   = has_ocr
         the_doc.save() 
 
-    def process_document(self,url,path,doc_type,response_body=None):
+    def process_document(self,url,path,doc_type,response_body=None,sleep=0):
         title         = None
         body          = None
         num_pages     = -1
@@ -359,7 +362,7 @@ class AllInOneHandler(LocalStorageHandler):
                     information = pdf.metadata #pdf.getDocumentInfo()
                     num_pages   = len(pdf.pages) #pdf.getNumPages()
                     title       = information.title if information and information.title else None
-                    body , needs_ocr , has_ocr = self.process_PDF_body(url,path,pdf)
+                    body , needs_ocr , has_ocr = self.process_PDF_body(url,path,pdf,sleep=sleep)
             except Exception as e:
                 msg = str(e)
                 if "EOF" in msg:
@@ -368,7 +371,7 @@ class AllInOneHandler(LocalStorageHandler):
                         information = pdf.metadata #pdf.getDocumentInfo()
                         num_pages   = len(pdf.pages) #pdf.getNumPages()
                         title       = information.title if information and information.title else None
-                        body , needs_ocr , has_ocr = self.process_PDF_body(url,path,pdf)
+                        body , needs_ocr , has_ocr = self.process_PDF_body(url,path,pdf,sleep=sleep)
                     except Exception as e2:
                         has_error = True
                         logger.error("ERROR recovering file {0} {1} {2}".format(url,path,e2))
