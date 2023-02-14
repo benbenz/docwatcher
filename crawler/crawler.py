@@ -662,30 +662,33 @@ class Crawler:
         domain = urlparse(url).netloc
         filename = 'state.'+domain
         if os.path.isfile(filename):
-            with open(filename,'rb') as f:
-                obj = pickle.load(f)
-                #lets not do that so the recursion can take its course
-                #self.handled = obj.handled
-                # let's restore the avoid urls
-                self.avoid = obj.avoid #getattr(obj,"avoid",set())
-                # let's restore the crawl tree
-                self.crawl_tree = getattr(obj,'crawl_tree',None)
-                # let's restore the cache
-                self.fetched = obj.fetched
-                # let's restore the fetched urls list
-                self.urls_to_recover = obj.urls_to_recover
-                # let's restore the partial site map too
-                #self.sitemap = obj.sitemap
-                # let's switch to RECOVER mode
-                self.crawler_mode |= CrawlerMode.CRAWL_RECOVER
-                # make sure we're not expired
-                self.expired = False
-                # has finished?
-                self.has_finished = obj.has_finished
+            try:
+                with open(filename,'rb') as f:
+                    obj = pickle.load(f)
+                    #lets not do that so the recursion can take its course
+                    #self.handled = obj.handled
+                    # let's restore the avoid urls
+                    self.avoid = obj.avoid #getattr(obj,"avoid",set())
+                    # let's restore the crawl tree
+                    self.crawl_tree = getattr(obj,'crawl_tree',None)
+                    # let's restore the cache
+                    self.fetched = obj.fetched
+                    # let's restore the fetched urls list
+                    self.urls_to_recover = obj.urls_to_recover
+                    # let's restore the partial site map too
+                    #self.sitemap = obj.sitemap
+                    # let's switch to RECOVER mode
+                    self.crawler_mode |= CrawlerMode.CRAWL_RECOVER
+                    # make sure we're not expired
+                    self.expired = False
+                    # has finished?
+                    self.has_finished = obj.has_finished
 
-                if self.has_finished:
-                    logger.info_plus("This crawler has finished working. Delete the state file {0} if you want to restart a job".format(filename))
-                    return False # stop crawling
+                    if self.has_finished:
+                        logger.info_plus("This crawler has finished working. Delete the state file {0} if you want to restart a job".format(filename))
+                        return False # stop crawling
+            except Exception as e:
+                logger.error("Error loading state".format(e))
                 
         return True # continue crawl
 
