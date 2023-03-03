@@ -1,4 +1,5 @@
 #!/bin/bash
 source ./env.sh
-python www/manage.py update_index
+rm -rf www/docwatcher/whoosh_index/
+python www/manage.py rebuild_index --noinput
 python docspider/search.py

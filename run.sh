@@ -6,8 +6,8 @@
 source ./env.sh
 python docspider/run.py $@
 if [[ -z "${SKIP_SEARCH}" ]]; then
-    # python www/manage.py rebuild_index --noinput
-    python www/manage.py update_index
+    rm -rf www/docwatcher/whoosh_index/
+    python www/manage.py rebuild_index --noinput
     python docspider/search.py
 else
     echo "run.sh: not performing search"
